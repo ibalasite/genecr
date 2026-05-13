@@ -502,7 +502,9 @@ sequenceDiagram
 每個環節必須能跳轉互通，讓企畫、Cocos 工程、Node 工程、QA 都能各自評估工作量：
 
 1. **Mermaid 圖渲染**：用 mermaid.min.js 內嵌（base64 內嵌或同目錄離線檔，**禁止 CDN**），確保斷網可用。BDD 分頁每個 Scenario 顯示 sequenceDiagram。**初始化必須 `startOnLoad: false`**，改在切 tab 時針對該 panel 內 `.mermaid:not([data-processed="true"])` 呼叫 `mermaid.run({ nodes })`，避免隱藏 tab 中容器寬度為 0 導致破圖。
-1b. **Mermaid 圖必須可放大（Lightbox）**：參考 fish-game `docs/pages/edd.html` 的 `.diagram-container` 模式 —— 每個 mermaid 容器 `cursor: zoom-in`，點擊後 clone 到全螢幕 lightbox，支援滾輪縮放、拖曳平移、`+`/`−`/`0` 鍵、ESC 關閉、雙指 pinch、`+ − ⤺` 按鈕；clone 後若節點未渲染需重跑 `mermaid.run({ nodes })`。
+1b. **Mermaid 圖必須可放大（Lightbox）**：**直接複製貼上** `$GENECR_TEMPLATES/mermaid-lightbox.html` 整段 `<style>` + lightbox markup + `<script>`，不要自己重寫。
+   - **關鍵雷**：lightbox 內**不可** clone 整個 `.diagram-container` 再叫 `mermaid.run({ nodes })`。當下 `.mermaid` 元素內已是渲染後的 `<svg>` 不是源碼，重跑會破圖。正確做法是 **clone 已渲染好的 `<svg>` 元素本身**，剝掉 width/height，靠 viewBox + transform: scale 縮放。`mermaid-lightbox.html` 已實作此正確邏輯。
+   - 支援：滾輪縮放、拖曳平移、`+/−/0` 鍵、ESC 關閉、`+ − ⤺` 按鈕、進 lightbox 時自動 fit-to-screen 並置中。
 2. **API 試打面板**（內嵌在「技術版」分頁，每個 API 一個區塊；風格參考 fish-game api-explorer：https://github.com/... 不重要，照下面規格寫即可）：
    - 上方：method 色塊（GET 綠 / POST 藍 / PUT 橘 / PATCH 紫 / DELETE 紅）+ path + 一句說明
    - Parameters 表單：每個 path/query param 一行（label + input，required 紅色 *）

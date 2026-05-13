@@ -1,15 +1,21 @@
-# genecr setup.ps1 — Windows native (PowerShell) version
+# genecr setup.ps1 — Windows native (PowerShell), multi-host (Claude / Codex)
+#
 # Usage:
-#   .\setup.ps1             # install (default)
-#   .\setup.ps1 install     # clone repo (if missing) + deploy subskills
-#   .\setup.ps1 uninstall   # remove deployed skills + runtime
-#   .\setup.ps1 upgrade     # git pull + redeploy
+#   .\setup.ps1                          # install for auto-detected host
+#   .\setup.ps1 install claude           # ~/.claude/skills/genecr
+#   .\setup.ps1 install codex            # ~/.codex/skills/genecr
+#   .\setup.ps1 install all              # both
+#   .\setup.ps1 upgrade [target]
+#   .\setup.ps1 uninstall [target]
+#   .\setup.ps1 claude|codex|all         # shortcuts for install <target>
 
-param([string]$Command = "install")
+param(
+    [string]$Command = "install",
+    [string]$Target  = ""
+)
 
 $ErrorActionPreference = "Stop"
 
-# UTF-8 console — avoid cp950/cp936 mojibake on zh-TW/zh-CN Windows
 $env:PYTHONIOENCODING = "utf-8"
 $env:PYTHONUTF8 = "1"
 try {
@@ -17,84 +23,117 @@ try {
     $OutputEncoding = [System.Text.Encoding]::UTF8
 } catch {}
 
-$RepoUrl         = "https://github.com/ibalasite/genecr.git"   # TODO: 改成實際 repo URL
-$RuntimeDir      = Join-Path $env:USERPROFILE ".claude\skills\genecr"
-$ClaudeSkillsDir = Join-Path $env:USERPROFILE ".claude\skills"
+$RepoUrl = "https://github.com/ibalasite/genecr.git"
 
 function Log($msg) { Write-Host $msg }
 
-function Deploy-Skills {
-    Log "[deploy] $RuntimeDir\skills\* -> $ClaudeSkillsDir\"
-    if (-not (Test-Path $ClaudeSkillsDir)) {
-        New-Item -ItemType Directory -Force -Path $ClaudeSkillsDir | Out-Null
+function Get-HostDir($host) {
+    switch ($host) {
+        "claude" { Join-Path $env:USERPROFILE ".claude\skills\genecr" }
+        "codex"  { Join-Path $env:USERPROFILE ".codex\skills\genecr" }
     }
-    $skillsSrc = Join-Path $RuntimeDir "skills"
-    if (-not (Test-Path $skillsSrc)) {
-        Log "  WARN: $skillsSrc not found, skip"
-        return
+}
+function Get-HostSkillsDir($host) {
+    switch ($host) {
+        "claude" { Join-Path $env:USERPROFILE ".claude\skills" }
+        "codex"  { Join-Path $env:USERPROFILE ".codex\skills" }
     }
+}
+
+function Detect-HostFromSelf {
+    $self = Split-Path -Parent $MyInvocation.MyCommand.Path
+    if     ($self -match '\\\.codex\\')  { return "codex" }
+    elseif ($self -match '\\\.claude\\') { return "claude" }
+    else                                 { return "" }
+}
+
+function Resolve-Targets($t) {
+    if     ($t -eq "all")    { return @("claude","codex") }
+    elseif ($t -eq "claude") { return @("claude") }
+    elseif ($t -eq "codex")  { return @("codex") }
+    elseif ([string]::IsNullOrEmpty($t)) {
+        $detected = Detect-HostFromSelf
+        if ($detected) { return @($detected) }
+        Log "[warn] cannot autodetect host; defaulting to claude"
+        return @("claude")
+    }
+    else { Write-Error "unknown target: $t (use claude|codex|all)"; exit 1 }
+}
+
+function Deploy-Skills($runtime, $skillsDst) {
+    Log "[deploy] $runtime\skills\* -> $skillsDst\"
+    if (-not (Test-Path $skillsDst)) { New-Item -ItemType Directory -Force -Path $skillsDst | Out-Null }
+    $skillsSrc = Join-Path $runtime "skills"
+    if (-not (Test-Path $skillsSrc)) { Log "  WARN: $skillsSrc not found, skip"; return }
     Get-ChildItem -Path $skillsSrc -Directory | ForEach-Object {
-        $dst = Join-Path $ClaudeSkillsDir $_.Name
+        $dst = Join-Path $skillsDst $_.Name
         if (Test-Path $dst) { Remove-Item -Recurse -Force $dst }
         Copy-Item -Recurse $_.FullName $dst
         Log "  - $($_.Name)"
     }
 }
 
-function Do-Install {
+function Install-One($host) {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Error "git required"; exit 1 }
-
-    if (Test-Path (Join-Path $RuntimeDir ".git")) {
-        Log "[install] $RuntimeDir already exists, running upgrade..."
-        Do-Upgrade; return
+    $runtime  = Get-HostDir $host
+    $skillsDst = Get-HostSkillsDir $host
+    if (Test-Path (Join-Path $runtime ".git")) {
+        Log "[install:$host] $runtime already exists, running upgrade..."
+        Upgrade-One $host; return
     }
-
-    Log "[install] git clone $RepoUrl -> $RuntimeDir"
-    $parent = Split-Path -Parent $RuntimeDir
+    Log "[install:$host] git clone $RepoUrl -> $runtime"
+    $parent = Split-Path -Parent $runtime
     if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
-    git clone $RepoUrl $RuntimeDir
-
-    Deploy-Skills
-
+    git clone $RepoUrl $runtime
+    Deploy-Skills $runtime $skillsDst
     Log ""
-    Log "[install] done. Restart Claude Code to activate skills."
-    Log "  - upgrade:   $RuntimeDir\setup.ps1 upgrade"
-    Log "  - uninstall: $RuntimeDir\setup.ps1 uninstall"
+    Log "[install:$host] done. Restart $host to activate skills."
 }
 
-function Do-Upgrade {
-    if (-not (Test-Path (Join-Path $RuntimeDir ".git"))) {
-        Write-Error "[upgrade] $RuntimeDir not found. Run install first."; exit 1
+function Upgrade-One($host) {
+    $runtime  = Get-HostDir $host
+    $skillsDst = Get-HostSkillsDir $host
+    if (-not (Test-Path (Join-Path $runtime ".git"))) {
+        Write-Warning "[upgrade:$host] $runtime not found. Run install first."
+        return
     }
-    Log "[upgrade] git pull..."
-    git -C $RuntimeDir pull --ff-only
-    Deploy-Skills
-    Log "[upgrade] done."
+    Log "[upgrade:$host] git pull..."
+    git -C $runtime pull --ff-only
+    Deploy-Skills $runtime $skillsDst
+    Log "[upgrade:$host] done."
 }
 
-function Do-Uninstall {
-    Log "[uninstall] remove deployed skills..."
-    $skillsSrc = Join-Path $RuntimeDir "skills"
+function Uninstall-One($host) {
+    $runtime  = Get-HostDir $host
+    $skillsDst = Get-HostSkillsDir $host
+    Log "[uninstall:$host] remove deployed skills..."
+    $skillsSrc = Join-Path $runtime "skills"
     if (Test-Path $skillsSrc) {
         Get-ChildItem -Path $skillsSrc -Directory | ForEach-Object {
-            $dst = Join-Path $ClaudeSkillsDir $_.Name
+            $dst = Join-Path $skillsDst $_.Name
             if (Test-Path $dst) { Remove-Item -Recurse -Force $dst; Log "  - removed $($_.Name)" }
         }
     }
-    Log "[uninstall] delete $RuntimeDir..."
-    if (Test-Path $RuntimeDir) { Remove-Item -Recurse -Force $RuntimeDir }
-    Log "[uninstall] done."
+    Log "[uninstall:$host] delete $runtime..."
+    if (Test-Path $runtime) { Remove-Item -Recurse -Force $runtime }
+    Log "[uninstall:$host] done."
 }
 
 switch ($Command.ToLower()) {
-    "install"   { Do-Install }
-    "upgrade"   { Do-Upgrade }
-    "uninstall" { Do-Uninstall }
+    "install"   { foreach ($h in Resolve-Targets $Target) { Install-One $h } }
+    "upgrade"   { foreach ($h in Resolve-Targets $Target) { Upgrade-One $h } }
+    "uninstall" { foreach ($h in Resolve-Targets $Target) { Uninstall-One $h } }
+    "claude"    { foreach ($h in Resolve-Targets "claude") { Install-One $h } }
+    "codex"     { foreach ($h in Resolve-Targets "codex")  { Install-One $h } }
+    "all"       { foreach ($h in Resolve-Targets "all")    { Install-One $h } }
     default {
-        Write-Host "Usage: .\setup.ps1 [install|uninstall|upgrade]"
-        Write-Host "  install   - git clone + deploy subskills (default)"
-        Write-Host "  uninstall - remove deployed skills + runtime"
-        Write-Host "  upgrade   - git pull + redeploy"
+        Write-Host "Usage: .\setup.ps1 <command> [target]"
+        Write-Host "  install [target]    git clone + deploy subskills (default)"
+        Write-Host "  upgrade [target]    git pull + redeploy"
+        Write-Host "  uninstall [target]  remove deployed skills + runtime"
+        Write-Host "  claude|codex|all    shortcut for install <target>"
+        Write-Host ""
+        Write-Host "Targets: claude | codex | all | (auto-detect)"
         exit 1
     }
 }

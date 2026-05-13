@@ -24,9 +24,18 @@ description: iGaming 功能需求文件自動生成器 (Game Design Creation)。
 **Step 0（每次執行 genecr 都必須先做）**：載入 runtime env，確認所有路徑變數。
 
 ```bash
-source "$HOME/.claude/skills/genecr/bin/genecr-env.sh"
-# 取得：GENECR_DIR / GENECR_TEMPLATES / GENECR_TOOLS / GENECR_ASSETS / GENECR_REFERENCES
+# Host-neutral：支援 Claude (~/.claude) / Codex (~/.codex) / 其他
+if [ -z "$GENECR_DIR" ]; then
+  for d in "$HOME/.codex/skills/genecr" "$HOME/.claude/skills/genecr"; do
+    [ -d "$d/bin" ] && export GENECR_DIR="$d" && break
+  done
+fi
+source "$GENECR_DIR/bin/genecr-env.sh"
+# 取得：GENECR_DIR / GENECR_BIN / GENECR_TEMPLATES / GENECR_TOOLS / GENECR_ASSETS / GENECR_REFERENCES / GENECR_HOST
 ```
+
+> 🚨 **絕不可** 寫 `source "$HOME/.claude/skills/genecr/..."`（綁死 Claude）。
+> 一律走 `$GENECR_DIR` — `bin/genecr-env.sh` 會從自身位置反推，Claude / Codex 都通用。
 
 接下來的所有檔案讀寫**必須**遵守：
 
@@ -43,7 +52,7 @@ source "$HOME/.claude/skills/genecr/bin/genecr-env.sh"
 - ❌ 硬編碼任何絕對路徑指向 runtime 以外的位置
 - ❌ 使用 `$_CWD/templates/` 之類的 fallback（gendoc 有這設計，**genecr 不採用** — 一律 runtime-only）
 
-理由：runtime（`~/.claude/skills/genecr/`）才是 single source of truth；開發者的工作樹只是 git working tree，可能不存在於使用者機器上，也可能版本不同。所有 user-facing skill 都必須能在「只裝了 runtime」的乾淨環境下執行。
+理由：runtime（`$GENECR_DIR` — 視 host 而定 `~/.claude/skills/genecr` 或 `~/.codex/skills/genecr`）才是 single source of truth；開發者的工作樹只是 git working tree，可能不存在於使用者機器上，也可能版本不同。所有 user-facing skill 都必須能在「只裝了 runtime」的乾淨環境下執行。
 
 ---
 

@@ -7,97 +7,159 @@
 企畫基礎版、進階技術版、資源清單＋AI Prompt、BDD 測試案例、SCRUM 故事卡、
 切換式 HTML 文件、可互動 HTML 原型。
 
+**Host-neutral**：同時支援 [Claude Code](https://claude.com/claude-code) 與 [Codex CLI](https://github.com/openai/codex)，skill 內容不綁死任何一家。
+
 ---
 
-## 目錄結構（仿 gendoc）
+## 目錄結構
 
 ```
 genecr/
 ├── README.md
-├── SKILL.md         # 主 skill 定義（runtime root 即 genecr skill 本身）
-├── setup            # bash 安裝腳本 (Windows Git Bash / macOS / Linux)
+├── SKILL.md         # 主 skill 定義
+├── setup            # bash 安裝腳本 (Git Bash / macOS / Linux)
 ├── setup.ps1        # PowerShell 安裝腳本 (Windows 原生)
 ├── bin/
-│   ├── genecr-env.sh    # 路徑單一來源（source 後取得 GENECR_DIR 等）
-│   └── genecr-env.ps1   # PowerShell 版
+│   ├── genecr-env.sh    # 路徑單一來源（host-neutral，反推自身位置）
+│   └── genecr-env.ps1
 ├── skills/
-│   └── genecr-upgrade/  # 子 skill — 部署時 copy 到 ~/.claude/skills/genecr-upgrade/
-├── templates/       # 共用範本（如 genecr-template.html、lightbox 片段）
-├── tools/
-│   └── bin/         # 工具腳本（預留）
-├── assets/          # skill 靜態資源
-├── evals/           # evals.json
-├── references/      # 參考文件
-└── output/          # 使用者執行 genecr 後產生的文件成果（**不部署**，git ignore）
+│   └── genecr-upgrade/  # 子 skill — 部署時 copy 到 host 的 skills/ 目錄
+├── templates/       # 共用範本（wireframe-dsl.md、mermaid.min.js 等）
+├── tools/bin/
+├── assets/
+├── evals/
+├── references/      # 參考文件（本機保留，不入 git）
+└── output/          # 使用者執行 genecr 後產生的文件（不入 git）
 ```
 
-**部署行為**（與 gendoc 同模式）：
-1. `git clone <REPO_URL> ~/.claude/skills/genecr`（runtime 即 git working tree）
-2. 跑 `setup` 把 `~/.claude/skills/genecr/skills/*/` 每個子目錄部署到 `~/.claude/skills/`
-3. 主 skill `genecr` 從 runtime root 的 `SKILL.md` 直接生效（Claude Code 會掃描 `~/.claude/skills/*/SKILL.md`）
+**部署行為**：
+1. `git clone <REPO_URL> <host-skills-dir>/genecr`（每個 host 各 clone 一份）
+2. 跑 `setup [claude|codex|all]` 把 `genecr/skills/*/` 部署到該 host 的 `skills/`
+3. 主 skill `genecr` 從 runtime root 的 `SKILL.md` 直接生效
 
 **資料來源邊界（鐵律）**：
-- Skill 執行時，**只**從 runtime（`~/.claude/skills/genecr/`，由 `$GENECR_*` 環境變數定位）讀 templates / tools / references
+- Skill 執行時，**只**從 runtime（由 `$GENECR_DIR` 定位）讀 templates / tools / references
 - **絕不**從開發者的工作樹（如 `C:/projects/genecr/`）讀任何檔案
 - 產出物**只**寫到使用者當前工作目錄下的 `./output/[feature-slug]/`
-- 所有 skill 開頭必須 `source "$HOME/.claude/skills/genecr/bin/genecr-env.sh"`
+- 所有 skill 開頭必須 `source "$GENECR_DIR/bin/genecr-env.sh"`（**不可**寫死 `~/.claude/...`）
 
 ---
 
 ## 安裝
 
-首次安裝先 clone repo 到 `~/.claude/skills/genecr`：
+### 🟣 Claude Code
+
+#### macOS / Linux / Windows (Git Bash)
 
 ```bash
 git clone https://github.com/ibalasite/genecr.git ~/.claude/skills/genecr
+~/.claude/skills/genecr/setup claude
 ```
 
-然後執行 setup：
-
-### macOS / Linux / Windows (Git Bash)
-
-```bash
-~/.claude/skills/genecr/setup            # install（預設）
-~/.claude/skills/genecr/setup upgrade    # git pull + 重新部署
-~/.claude/skills/genecr/setup uninstall  # 移除
-```
-
-### Windows (PowerShell)
+#### Windows (PowerShell)
 
 ```powershell
-& "$env:USERPROFILE\.claude\skills\genecr\setup.ps1"            # install
-& "$env:USERPROFILE\.claude\skills\genecr\setup.ps1" upgrade
-& "$env:USERPROFILE\.claude\skills\genecr\setup.ps1" uninstall
+git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.claude\skills\genecr"
+& "$env:USERPROFILE\.claude\skills\genecr\setup.ps1" claude
 ```
 
-安裝完成後**重啟 Claude Code**讓新 skill 生效。
-往後在對話說「升級 genecr」即會自動執行 `setup upgrade`（git pull + redeploy）。
+### 🟢 Codex CLI
+
+#### macOS / Linux / Windows (Git Bash)
+
+```bash
+git clone https://github.com/ibalasite/genecr.git ~/.codex/skills/genecr
+~/.codex/skills/genecr/setup codex
+```
+
+#### Windows (PowerShell)
+
+```powershell
+git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.codex\skills\genecr"
+& "$env:USERPROFILE\.codex\skills\genecr\setup.ps1" codex
+```
+
+### 🔁 兩個都要
+
+```bash
+# 任一已 clone 的 runtime 都可以執行 all（會把兩邊都裝起來）
+~/.claude/skills/genecr/setup install all
+# 或 PowerShell
+& "$env:USERPROFILE\.claude\skills\genecr\setup.ps1" install all
+```
+
+安裝完成後**重啟 Claude Code / Codex** 讓新 skill 生效。
+往後對話說「升級 genecr」即會自動執行 `setup upgrade`（git pull + redeploy 當前 host）。
 
 ---
 
 ## 使用
 
-安裝後，在 Claude Code 任意對話中描述 iGaming 功能需求即可觸發，例如：
+安裝後，在 Claude Code 或 Codex 任意對話中描述 iGaming 功能需求即可觸發，例如：
 
 > 我要建立 iGaming 排行榜機制，週排行榜，玩家下注金額累積積分，前 10 名可以領獎
 
 genecr 會自動：
 1. 深度競業調查（北美 / 哥斯大黎加 / 東南亞 / 台灣）
-2. 產出 7 份文件到當前工作目錄 `./output/[feature-slug]/`
+2. 產出 7 份文件到當前工作目錄 `./output/[feature-slug]/`：
+   - `*-spec-basic.md`（企畫版規格書 + wireframe）
+   - `*-spec-advanced.md`（技術版）
+   - `*-assets.md`（資源清單 + AI Prompt）
+   - `*-bdd.md`（BDD + sequenceDiagram）
+   - `*-scrum.md`（SCRUM 故事卡）
+   - `*-docs.html`（切換式 HTML 文件，含 API 試打面板，**離線** mermaid）
+   - `*-prototype.html`（互動原型）
 
-詳細產出規格請見 [`skills/genecr/SKILL.md`](./skills/genecr/SKILL.md)。
+詳細產出規格請見 [`SKILL.md`](./SKILL.md)。
+
+### Codex 注意事項（sandbox / approval）
+
+Codex 對檔案與命令更重視 sandbox。genecr 執行期間會：
+
+| 動作 | 範圍 | 是否需要 approval |
+|------|------|-----------------|
+| 讀取 `$GENECR_*` 內所有檔案 | runtime（已安裝目錄） | ❌ |
+| 寫入 `./output/<slug>/` | user CWD | 視 Codex 設定 |
+| `git pull`（升級 skill 時） | runtime | ✅（網路） |
+| WebSearch / WebFetch 競業調查 | 外網 | ✅（網路） |
+| 寫入 `~/.claude/...` 或 `~/.codex/...` | home | ✅（升級 / 安裝時） |
+
+如果 Codex 在 sandbox 模式下，建議：競業調查可改用本地 references；升級指令在 host 外手動執行。
+
+---
+
+## 升級
+
+```bash
+# 任一 host 的 runtime 都可以執行 upgrade
+~/.claude/skills/genecr/setup upgrade           # 只升 claude
+~/.codex/skills/genecr/setup upgrade            # 只升 codex
+~/.claude/skills/genecr/setup upgrade all       # 兩邊都升
+
+# 對話內：說「升級 genecr」會自動跑（會自動偵測當前 host）
+```
 
 ---
 
 ## 開發
 
-`~/.claude/skills/genecr/` 本身就是 git working tree，直接在那裡編輯 `SKILL.md` / `templates/` / `skills/`：
+`~/.claude/skills/genecr/` 或 `~/.codex/skills/genecr/` 本身就是 git working tree，直接在那裡編輯：
 
 ```bash
-cd ~/.claude/skills/genecr
+cd ~/.claude/skills/genecr   # 或 ~/.codex/skills/genecr
 # ...edit...
-./setup upgrade   # 把 skills/* 重新部署到 ~/.claude/skills/
+./setup upgrade              # 把 skills/* 重新部署到當前 host
 # 滿意後 git commit && git push
 ```
 
 別的機器跑 `setup upgrade` 即會 git pull 同步。
+
+---
+
+## 解除安裝
+
+```bash
+~/.claude/skills/genecr/setup uninstall          # 移除 claude
+~/.codex/skills/genecr/setup uninstall           # 移除 codex
+~/.claude/skills/genecr/setup uninstall all      # 兩邊都移除
+```

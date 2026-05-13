@@ -1,104 +1,188 @@
 #!/usr/bin/env bash
-# genecr setup — install / uninstall / upgrade
+# genecr setup — install / uninstall / upgrade, multi-host (Claude / Codex)
+#
 # Usage:
-#   ./setup             # install (default)
-#   ./setup install     # clone repo (if missing) + deploy subskills
-#   ./setup uninstall   # remove deployed skills + runtime
-#   ./setup upgrade     # git pull + redeploy
+#   ./setup                         # install for auto-detected host (current location)
+#   ./setup install                 # same as above
+#   ./setup install claude          # clone to ~/.claude/skills/genecr + deploy subskills there
+#   ./setup install codex           # clone to ~/.codex/skills/genecr  + deploy subskills there
+#   ./setup install all             # install for BOTH hosts (two clones)
+#   ./setup upgrade                 # git pull + redeploy (current host)
+#   ./setup upgrade all             # upgrade BOTH hosts
+#   ./setup uninstall [claude|codex|all]
 #
 # Cross-platform: Windows (Git Bash), macOS, Linux.
 
 set -e
 
-REPO_URL="https://github.com/ibalasite/genecr.git"   # TODO: 改成實際 repo URL
-RUNTIME_DIR="$HOME/.claude/skills/genecr"
-CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
+REPO_URL="https://github.com/ibalasite/genecr.git"
 
 CMD="${1:-install}"
+TARGET="${2:-}"
 
 log() { echo "$@"; }
 
+# ── Host config ───────────────────────────────────────
+_host_dir() {
+  # $1 = host name → echo path
+  case "$1" in
+    claude) echo "$HOME/.claude/skills/genecr" ;;
+    codex)  echo "$HOME/.codex/skills/genecr"  ;;
+    *)      return 1 ;;
+  esac
+}
+_host_skills_dir() {
+  case "$1" in
+    claude) echo "$HOME/.claude/skills" ;;
+    codex)  echo "$HOME/.codex/skills"  ;;
+    *)      return 1 ;;
+  esac
+}
+
+# Detect host from this script's own location if TARGET not specified
+_detect_host_from_self() {
+  local self_path
+  self_path="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+  case "$self_path" in
+    *"/.codex/"*)  echo "codex"  ;;
+    *"/.claude/"*) echo "claude" ;;
+    *) echo "" ;;
+  esac
+}
+
+# Expand "all" → list of hosts; expand single host → that host; empty → autodetect
+_resolve_targets() {
+  if [[ "$1" == "all" ]]; then
+    echo "claude codex"
+  elif [[ "$1" == "claude" || "$1" == "codex" ]]; then
+    echo "$1"
+  elif [[ -z "$1" ]]; then
+    local detected
+    detected="$(_detect_host_from_self)"
+    if [[ -n "$detected" ]]; then
+      echo "$detected"
+    else
+      log "[warn] cannot autodetect host from $(_detect_host_from_self || true); defaulting to claude"
+      echo "claude"
+    fi
+  else
+    echo "❌ unknown target: $1 (use claude|codex|all)" >&2
+    exit 1
+  fi
+}
+
+# ── Subskill deployment (writes to $HOST_SKILLS_DIR) ──
 _deploy_skills() {
-  log "[deploy] $RUNTIME_DIR/skills/* → $CLAUDE_SKILLS_DIR/"
-  mkdir -p "$CLAUDE_SKILLS_DIR"
-  if [[ ! -d "$RUNTIME_DIR/skills" ]]; then
-    log "  ⚠️  $RUNTIME_DIR/skills 不存在，跳過"
+  local runtime="$1"
+  local skills_dst="$2"
+  log "[deploy] $runtime/skills/* → $skills_dst/"
+  mkdir -p "$skills_dst"
+  if [[ ! -d "$runtime/skills" ]]; then
+    log "  ⚠️  $runtime/skills 不存在，跳過"
     return
   fi
-  for skill_dir in "$RUNTIME_DIR/skills"/*/; do
+  for skill_dir in "$runtime/skills"/*/; do
     [[ -d "$skill_dir" ]] || continue
     name="$(basename "$skill_dir")"
-    rm -rf "$CLAUDE_SKILLS_DIR/$name"
-    cp -r "$skill_dir" "$CLAUDE_SKILLS_DIR/$name"
+    rm -rf "$skills_dst/$name"
+    cp -r "$skill_dir" "$skills_dst/$name"
     log "  · $name"
   done
 }
 
-do_install() {
+# ── install ───────────────────────────────────────────
+_install_one() {
+  local host="$1"
+  local runtime; runtime="$(_host_dir "$host")"
+  local skills_dst; skills_dst="$(_host_skills_dir "$host")"
+
   command -v git >/dev/null 2>&1 || { echo "❌ git required"; exit 1; }
 
-  if [[ -d "$RUNTIME_DIR/.git" ]]; then
-    log "[install] $RUNTIME_DIR 已存在，執行 upgrade..."
-    do_upgrade
+  if [[ -d "$runtime/.git" ]]; then
+    log "[install:$host] $runtime 已存在，執行 upgrade..."
+    _upgrade_one "$host"
     return
   fi
 
-  log "[install] git clone $REPO_URL → $RUNTIME_DIR"
-  mkdir -p "$(dirname "$RUNTIME_DIR")"
-  git clone "$REPO_URL" "$RUNTIME_DIR"
-
-  _deploy_skills
+  log "[install:$host] git clone $REPO_URL → $runtime"
+  mkdir -p "$(dirname "$runtime")"
+  git clone "$REPO_URL" "$runtime"
+  _deploy_skills "$runtime" "$skills_dst"
 
   log ""
-  log "[install] 完成。重啟 Claude Code 讓 skills 生效。"
-  log "  · 升級：$RUNTIME_DIR/setup upgrade"
-  log "  · 解除安裝：$RUNTIME_DIR/setup uninstall"
+  log "[install:$host] 完成。重啟 $host 讓 skills 生效。"
+  log "  · 升級：$runtime/setup upgrade"
+  log "  · 解除安裝：$runtime/setup uninstall"
 }
 
-do_upgrade() {
-  if [[ ! -d "$RUNTIME_DIR/.git" ]]; then
-    log "[upgrade] 找不到 $RUNTIME_DIR，請先執行 install。"
-    exit 1
+# ── upgrade ───────────────────────────────────────────
+_upgrade_one() {
+  local host="$1"
+  local runtime; runtime="$(_host_dir "$host")"
+  local skills_dst; skills_dst="$(_host_skills_dir "$host")"
+  if [[ ! -d "$runtime/.git" ]]; then
+    log "[upgrade:$host] 找不到 $runtime，請先執行 install。"
+    return 1
   fi
-  log "[upgrade] git pull..."
-  git -C "$RUNTIME_DIR" pull --ff-only
-
-  # Re-exec freshly pulled setup so new logic takes effect
-  exec "$RUNTIME_DIR/setup" _post_upgrade
+  log "[upgrade:$host] git pull..."
+  git -C "$runtime" pull --ff-only
+  _deploy_skills "$runtime" "$skills_dst"
+  log "[upgrade:$host] 完成。"
 }
 
-_post_upgrade() {
-  _deploy_skills
-  log "[upgrade] 完成。"
-}
-
-do_uninstall() {
-  log "[uninstall] 移除 deployed skills..."
-  if [[ -d "$RUNTIME_DIR/skills" ]]; then
-    for skill_dir in "$RUNTIME_DIR/skills"/*/; do
+# ── uninstall ─────────────────────────────────────────
+_uninstall_one() {
+  local host="$1"
+  local runtime; runtime="$(_host_dir "$host")"
+  local skills_dst; skills_dst="$(_host_skills_dir "$host")"
+  log "[uninstall:$host] 移除 deployed skills..."
+  if [[ -d "$runtime/skills" ]]; then
+    for skill_dir in "$runtime/skills"/*/; do
       [[ -d "$skill_dir" ]] || continue
       name="$(basename "$skill_dir")"
-      if [[ -d "$CLAUDE_SKILLS_DIR/$name" ]]; then
-        rm -rf "$CLAUDE_SKILLS_DIR/$name"
-        log "  · 刪除 ~/.claude/skills/$name"
+      if [[ -d "$skills_dst/$name" ]]; then
+        rm -rf "$skills_dst/$name"
+        log "  · 刪除 $skills_dst/$name"
       fi
     done
   fi
-  log "[uninstall] 刪除 $RUNTIME_DIR..."
-  rm -rf "$RUNTIME_DIR"
-  log "[uninstall] 完成。"
+  log "[uninstall:$host] 刪除 $runtime..."
+  rm -rf "$runtime"
+  log "[uninstall:$host] 完成。"
 }
 
 case "$CMD" in
-  install)       do_install ;;
-  upgrade)       do_upgrade ;;
-  uninstall)     do_uninstall ;;
-  _post_upgrade) _post_upgrade ;;
+  install)
+    for h in $(_resolve_targets "$TARGET"); do _install_one "$h"; done
+    ;;
+  upgrade)
+    for h in $(_resolve_targets "$TARGET"); do _upgrade_one "$h"; done
+    ;;
+  uninstall)
+    for h in $(_resolve_targets "$TARGET"); do _uninstall_one "$h"; done
+    ;;
+  claude|codex|all)
+    # Convenience: ./setup claude  ≡  ./setup install claude
+    for h in $(_resolve_targets "$CMD"); do _install_one "$h"; done
+    ;;
   *)
-    echo "用法：./setup [install|uninstall|upgrade]"
-    echo "  install   — git clone + 部署 subskills（預設）"
-    echo "  uninstall — 移除 deployed skills + runtime"
-    echo "  upgrade   — git pull + 重新部署"
+    cat <<EOF
+用法：./setup <command> [target]
+
+Commands:
+  install [target]    git clone + 部署 subskills（預設）
+  upgrade [target]    git pull + 重新部署
+  uninstall [target]  移除 deployed skills + runtime
+  claude              快捷：install claude
+  codex               快捷：install codex
+  all                 快捷：install all
+
+Targets:
+  claude              安裝到 ~/.claude/skills/genecr
+  codex               安裝到 ~/.codex/skills/genecr
+  all                 兩個都裝
+  (省略)              依本 setup 腳本所在位置自動判斷
+EOF
     exit 1
     ;;
 esac

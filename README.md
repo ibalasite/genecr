@@ -16,32 +16,41 @@
 ```
 genecr/
 ├── README.md
-├── SKILL.md         # 主 skill 定義
-├── setup            # bash 安裝腳本 (Git Bash / macOS / Linux)
-├── setup.ps1        # PowerShell 安裝腳本 (Windows 原生)
+├── SKILL.md                       # 主 skill — 章節骨架 / i18n 詞表已內聯，無外部檔依賴
+├── setup                          # bash (Git Bash / macOS / Linux)，支援 claude|codex|all
+├── setup.ps1                      # PowerShell (Windows)
 ├── bin/
-│   ├── genecr-env.sh    # 路徑單一來源（host-neutral，反推自身位置）
+│   ├── genecr-env.sh              # host-neutral：從自身位置反推 $GENECR_DIR
 │   └── genecr-env.ps1
 ├── skills/
-│   └── genecr-upgrade/  # 子 skill — 部署時 copy 到 host 的 skills/ 目錄
-├── templates/       # 共用範本（wireframe-dsl.md、mermaid.min.js 等）
+│   └── genecr-upgrade/            # 子 skill — 部署時 copy 到 host 的 skills/
+├── templates/                     # 所有必要 asset 一次帶齊（完全離線）
+│   ├── wireframe-dsl.md           # 低保真線框圖 DSL 規範（必讀）
+│   ├── wireframe-snippets.html    # DSL 對應的 CSS + HTML 範例（複製貼上即用）
+│   ├── genecr-template.html       # 切換式 HTML 文件 master template（system font，無 CDN）
+│   └── mermaid.min.js             # mermaid v11 離線版（2.5 MB，禁止 CDN 規則所需）
 ├── tools/bin/
 ├── assets/
 ├── evals/
-├── references/      # 參考文件（本機保留，不入 git）
-└── output/          # 使用者執行 genecr 後產生的文件（不入 git）
+├── references/                    # 本機保留（公司範本等），預設 gitignore
+└── output/                        # 使用者執行 genecr 後產生的文件（gitignore）
 ```
 
 **部署行為**：
 1. `git clone <REPO_URL> <host-skills-dir>/genecr`（每個 host 各 clone 一份）
 2. 跑 `setup [claude|codex|all]` 把 `genecr/skills/*/` 部署到該 host 的 `skills/`
-3. 主 skill `genecr` 從 runtime root 的 `SKILL.md` 直接生效
+3. 主 skill `genecr` 從 runtime root 的 `SKILL.md` 直接生效（host 掃 `skills/*/SKILL.md`）
 
 **資料來源邊界（鐵律）**：
-- Skill 執行時，**只**從 runtime（由 `$GENECR_DIR` 定位）讀 templates / tools / references
+- Skill 執行時，**只**從 runtime（由 `$GENECR_DIR` 定位）讀 templates / tools
 - **絕不**從開發者的工作樹（如 `C:/projects/genecr/`）讀任何檔案
 - 產出物**只**寫到使用者當前工作目錄下的 `./output/[feature-slug]/`
 - 所有 skill 開頭必須 `source "$GENECR_DIR/bin/genecr-env.sh"`（**不可**寫死 `~/.claude/...`）
+
+**離線保證**：
+- ❌ 不抓 Google Fonts / cdn.jsdelivr / unpkg / cdnjs（templates 已淨化）
+- ❌ 不依賴 `references/` 內任何檔（章節結構 + i18n 詞表已內聯進 SKILL.md）
+- ✅ 唯一需要網路的是**競業調查**階段的 WebSearch / WebFetch（可選，斷網會跳過）
 
 ---
 

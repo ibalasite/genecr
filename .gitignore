@@ -1,4 +1,12 @@
-# Local state files (mirroring gendoc convention — name them, don't blanket .*)
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+
+# Local state files (mirror gendoc convention — name them, don't blanket .*)
 .gendoc-state*.json
 .skill-guard.json
 .skill-guard-queue

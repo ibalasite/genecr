@@ -9,19 +9,18 @@ It contains the user's natural-language description of the feature to design.
 This is the SOURCE OF TRUTH.
 
 ## OUTPUT
-Write a JSON file (and ONLY that file) to this absolute path:
-
-    {output}
+Print a single JSON object to STDOUT. **Nothing else.** No markdown fences,
+no commentary, no explanation. Your entire response = the JSON.
 
 The JSON must match the shape of:
   - Schema:  ${GENECR_TEMPLATES}/schemas/spec-advanced.schema.json   (if it exists)
   - Example: ${GENECR_TEMPLATES}/examples/spec-advanced.input.json
 
 Rules:
-  - Output a single JSON file at the OUTPUT path. No code fences, no commentary.
   - Use the user brief to fill feature.name, summary, axes, fields, etc.
   - For competitor research, do real web research where possible; otherwise
     fall back to industry-typical iGaming examples.
   - All cross-reference IDs (api-xxx, sc-xxx, ASSET-xxx) must be self-consistent.
+  - Output JSON only. The pipeline captures stdout to a file via shell redirection.
 
 Type for this step: spec-advanced

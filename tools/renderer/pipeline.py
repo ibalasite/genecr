@@ -89,10 +89,10 @@ def expand(s: str, vars_: dict) -> str:
     return out
 
 
-def load_pipeline(path: Path) -> tuple[dict, list[StepState]]:
+def load_pipeline(path: Path, slug: str) -> tuple[dict, list[StepState]]:
     cfg = json.loads(path.read_text(encoding="utf-8"))
     base = path.parent
-    vars_ = {"slug": cfg["feature"]["slug"]}
+    vars_ = {"slug": slug}
     steps = []
     for s in cfg["steps"]:
         steps.append(StepState(
@@ -136,8 +136,65 @@ def print_status(steps: list[StepState], run_dir: Path) -> None:
     print(f"Progress: {n_done}/{len(steps)} done\n")
 
 
-def call_ai(step: StepState, ai_cfg: dict, brief_file: Path) -> bool:
+def _substitute(raw: str, brief_file: Path, output_path: Path, type_: str, extra: dict[str, str] | None = None) -> str:
+    out = (
+        raw
+        .replace("${GENECR_DIR}",       str(REPO_ROOT))
+        .replace("${GENECR_TEMPLATES}", str(REPO_ROOT / "templates"))
+        .replace("${GENECR_BIN}",       str(REPO_ROOT / "bin"))
+        .replace("${GENECR_TOOLS}",     str(REPO_ROOT / "tools" / "bin"))
+        .replace("${GENECR_ASSETS}",    str(REPO_ROOT / "assets"))
+        .replace("${GENECR_REFERENCES}", str(REPO_ROOT / "references"))
+        .replace("{brief_file}", str(brief_file))
+        .replace("{output}",     str(output_path))
+        .replace("{type}",       type_)
+    )
+    if extra:
+        for k, v in extra.items():
+            out = out.replace("{" + k + "}", str(v))
+    return out
+
+
+def _run_ai(ai_cfg: dict, prompt_path: Path, output_path: Path, brief_file: Path) -> bool:
+    cmd = ai_cfg["command"].format(
+        prompt=str(prompt_path),
+        output=str(output_path),
+        brief_file=str(brief_file),
+    )
+    print(f"      $ {cmd}")
+    try:
+        subprocess.run(cmd, shell=True, check=True)
+        return output_path.exists() and output_path.stat().st_size > 0
+    except subprocess.CalledProcessError as e:
+        print(f"      ✗ subprocess failed: {e}")
+        return False
+
+
+def _validate_format(step: StepState) -> tuple[bool, str]:
+    """Pure schema-format check. Returns (ok, error_text)."""
+    try:
+        data = r.load_input(step.input_path)
+    except Exception as e:
+        return False, f"JSON parse error: {e}"
+    schema_path = REPO_ROOT / "templates" / "schemas" / f"{step.type}.schema.json"
+    if not schema_path.exists():
+        return True, ""  # no schema → pass by default
+    try:
+        from jsonschema import validate, ValidationError
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        validate(instance=data, schema=schema)
+        return True, ""
+    except ValidationError as e:
+        path = ".".join(str(p) for p in e.absolute_path) or "(root)"
+        return False, f"at {path}: {e.message}"
+    except Exception as e:
+        return False, f"validator error: {e}"
+
+
+def call_ai(step: StepState, ai_cfg: dict, brief_file: Path, max_loops: int = 3) -> bool:
+    """Generate → validate → fix loop. Program controls flow; AI generates/fixes."""
     step.input_path.parent.mkdir(parents=True, exist_ok=True)
+
     if ai_cfg.get("stub_mode"):
         if not step.stub_fixture or not step.stub_fixture.exists():
             print(f"   [stub] no fixture for {step.name}")
@@ -146,38 +203,47 @@ def call_ai(step: StepState, ai_cfg: dict, brief_file: Path) -> bool:
         print(f"   [stub] {step.stub_fixture.name} → {step.input_path}")
         return True
 
-    # Substitute {brief_file} inside the prompt content itself, so the AI is
-    # instructed to READ that file as its first step (not piped on stdin).
-    # Match the env-var names exported by bin/genecr-env.sh — single source of
-    # truth for runtime paths. Per-step dynamic paths (brief, output) use {…}.
-    raw_prompt = step.prompt_path.read_text(encoding="utf-8")
-    effective_prompt = (
-        raw_prompt
-        .replace("${GENECR_DIR}",       str(REPO_ROOT))
-        .replace("${GENECR_TEMPLATES}", str(REPO_ROOT / "templates"))
-        .replace("${GENECR_BIN}",       str(REPO_ROOT / "bin"))
-        .replace("${GENECR_TOOLS}",     str(REPO_ROOT / "tools" / "bin"))
-        .replace("${GENECR_ASSETS}",    str(REPO_ROOT / "assets"))
-        .replace("${GENECR_REFERENCES}", str(REPO_ROOT / "references"))
-        .replace("{brief_file}", str(brief_file))
-        .replace("{output}",     str(step.input_path))
-        .replace("{type}",       step.type)
-    )
+    # ─── Attempt 1: generate ───
+    print(f"   ▸ {step.name}: generating (attempt 1/{max_loops})")
+    raw = step.prompt_path.read_text(encoding="utf-8")
+    combined = _substitute(raw, brief_file, step.input_path, step.type)
     combined_path = step.run_dir / f"{step.name}.combined.prompt.md"
-    combined_path.write_text(effective_prompt, encoding="utf-8")
-
-    cmd = ai_cfg["command"].format(
-        prompt=str(combined_path),
-        output=str(step.input_path),
-        brief_file=str(brief_file),
-    )
-    print(f"   [ai ] {cmd}")
-    try:
-        subprocess.run(cmd, shell=True, check=True)
-        return step.input_path.exists()
-    except subprocess.CalledProcessError as e:
-        print(f"   [ai ] FAILED: {e}")
+    combined_path.write_text(combined, encoding="utf-8")
+    if not _run_ai(ai_cfg, combined_path, step.input_path, brief_file):
+        print(f"   ✗ {step.name}: AI did not produce output")
         return False
+
+    ok, err = _validate_format(step)
+    if ok:
+        print(f"   ✓ {step.name}: format OK on attempt 1")
+        return True
+    print(f"   ⚠ {step.name}: format FAIL: {err}")
+
+    # ─── Attempts 2..N: fix ───
+    fix_template_path = REPO_ROOT / "templates" / "prompts" / "_fix.prompt.md"
+    if not fix_template_path.exists():
+        print(f"   ✗ {step.name}: no fix prompt template")
+        return False
+    fix_raw = fix_template_path.read_text(encoding="utf-8")
+
+    for attempt in range(2, max_loops + 1):
+        errors_file = step.run_dir / f"{step.name}.errors.{attempt - 1}.txt"
+        errors_file.write_text(err, encoding="utf-8")
+        print(f"   ▸ {step.name}: fixing (attempt {attempt}/{max_loops})")
+        fix_combined = _substitute(fix_raw, brief_file, step.input_path, step.type, {"errors_file": str(errors_file)})
+        fix_combined_path = step.run_dir / f"{step.name}.fix.{attempt}.combined.prompt.md"
+        fix_combined_path.write_text(fix_combined, encoding="utf-8")
+        if not _run_ai(ai_cfg, fix_combined_path, step.input_path, brief_file):
+            print(f"   ✗ {step.name}: fix AI did not produce output")
+            return False
+        ok, err = _validate_format(step)
+        if ok:
+            print(f"   ✓ {step.name}: format OK on attempt {attempt}")
+            return True
+        print(f"   ⚠ {step.name}: still failing: {err}")
+
+    print(f"   ✗ {step.name}: gave up after {max_loops} attempts")
+    return False
 
 
 def call_render(step: StepState) -> bool:
@@ -231,14 +297,43 @@ def run_once(steps: list[StepState], ai_cfg: dict, brief_file: Path) -> bool:
     return any_change
 
 
+def _arg_value(args: list[str], key: str) -> str | None:
+    """Extract --key=value or --key value from argv."""
+    for i, a in enumerate(args):
+        if a == key and i + 1 < len(args):
+            return args[i + 1]
+        if a.startswith(key + "="):
+            return a[len(key) + 1:]
+    return None
+
+
+def _latest_run_across_features() -> Path | None:
+    if not OUTPUT_ROOT.exists():
+        return None
+    candidates = []
+    for feat_dir in OUTPUT_ROOT.iterdir():
+        if not feat_dir.is_dir():
+            continue
+        for run in feat_dir.iterdir():
+            if run.is_dir():
+                candidates.append(run)
+    return max(candidates, key=lambda p: p.stat().st_mtime) if candidates else None
+
+
 def main(argv: list[str]) -> int:
     args = argv[1:]
-    flags = {a for a in args if a.startswith("--")}
-    positional = [a for a in args if not a.startswith("--")]
+    # Strip --key value pairs out of "flags" detection
+    consumed = set()
+    for i, a in enumerate(args):
+        if a in ("--slug", "--name") and i + 1 < len(args):
+            consumed.add(i); consumed.add(i + 1)
+    flags = {a for i, a in enumerate(args) if a.startswith("--") and i not in consumed}
+    positional = [a for i, a in enumerate(args) if not a.startswith("--") and i not in consumed]
 
-    # split: .json arg = pipeline file; rest joined = user brief
     pipeline_arg = next((p for p in positional if p.endswith(".json")), None)
     brief_arg = " ".join(p for p in positional if not p.endswith(".json")).strip()
+    slug_arg = _arg_value(args, "--slug")
+    name_arg = _arg_value(args, "--name")
 
     pipeline_path = Path(pipeline_arg or "pipeline.json").resolve()
     if not pipeline_path.exists():
@@ -246,10 +341,36 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 1
 
-    cfg, steps = load_pipeline(pipeline_path)
+    # Resolve slug + run_dir.
+    # New run (--new or first ever): --slug REQUIRED.
+    # Resume: --slug optional; if missing, use latest run across all features.
+    if "--new" in flags or slug_arg:
+        if not slug_arg:
+            print("[error] --new requires --slug <name>  (e.g. --slug bingo)")
+            return 1
+        slug = slug_arg
+        run_dir = pick_run_dir(slug, force_new="--new" in flags)
+    else:
+        latest = _latest_run_across_features()
+        if not latest:
+            print("[error] no existing run; provide --slug to start a new one")
+            return 1
+        run_dir = latest
+        slug = run_dir.parent.name
+
+    feature_file = run_dir / "feature.json"
+    feature = {"slug": slug, "name": name_arg or slug}
+    if feature_file.exists() and not name_arg:
+        # Reuse stored name on resume
+        try:
+            stored = json.loads(feature_file.read_text(encoding="utf-8"))
+            feature["name"] = stored.get("name", slug)
+        except Exception:
+            pass
+    feature_file.write_text(json.dumps(feature, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    cfg, steps = load_pipeline(pipeline_path, slug)
     ai_cfg = cfg.get("ai", {})
-    slug = cfg["feature"]["slug"]
-    run_dir = pick_run_dir(slug, force_new="--new" in flags)
     for s in steps:
         s.run_dir = run_dir
 
@@ -259,7 +380,6 @@ def main(argv: list[str]) -> int:
         brief_file.write_text(brief_arg, encoding="utf-8")
         print(f"[brief] saved to {brief_file}")
     elif not brief_file.exists():
-        # New run with no brief — write an empty file so AI commands don't break.
         brief_file.write_text("", encoding="utf-8")
         if "--status" not in flags and not ai_cfg.get("stub_mode"):
             print(f"[warn] no brief provided and no brief.txt found; AI may have nothing to work on")

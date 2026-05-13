@@ -61,13 +61,32 @@ def validate_input(type_: str, data: dict) -> None:
 
 
 def preprocess(type_: str, data: dict, base_dir: Path) -> dict:
-    """Type-specific preprocessing. For 'docs', read .md files into HTML chunks."""
+    """Type-specific preprocessing. For 'docs', read .md files into HTML chunks.
+    Section filenames are derived from feature.slug + section.type — AI does not
+    control filenames. AI provides {title, type} per section; we compute md.
+    """
     if type_ != "docs":
         return data
     import markdown as _md
+    # Resolve slug from sibling feature.json (pipeline-controlled, not AI)
+    feature_file = base_dir / "feature.json"
+    slug = ""
+    if feature_file.exists():
+        try:
+            slug = json.loads(feature_file.read_text(encoding="utf-8")).get("slug", "")
+        except Exception:
+            pass
+    # Prototype path also derived from slug (pipeline-controlled, not AI)
+    if slug:
+        data["prototype_path"] = f"{slug}-prototype.html"
     md = _md.Markdown(extensions=["fenced_code", "tables", "toc", "attr_list"])
     sections = data.get("sections", [])
     for s in sections:
+        # Compute md filename deterministically: <slug>-<type>.md
+        if "type" in s and slug:
+            s["md"] = f"{slug}-{s['type']}.md"
+        if "md" not in s:
+            raise SystemExit(f"docs section missing both 'type' and 'md': {s}")
         md_path = (base_dir / s["md"]).resolve()
         if not md_path.exists():
             raise SystemExit(f"docs section missing file: {md_path}")

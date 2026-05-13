@@ -1,109 +1,88 @@
 {
-  "feature": {"name": "排行榜", "slug": "leaderboard"},
+  "feature": {"name": "<功能名稱>", "slug": "<feature-slug>"},
   "change_log": [
-    {"date": "2026-05-13", "author": "GeneCR", "note": "初版"}
+    {"date": "<YYYY-MM-DD>", "author": "<作者>", "note": "<變更說明>"}
   ],
   "related_docs": [
-    {"file": "(figma 連結待補)", "desc": "流程示意", "status": "進行中"}
+    {"file": "<檔案或連結>", "desc": "<說明>", "status": "<進行中|已完成|待補>"}
   ],
   "summary": {
-    "what": "玩家依累積分數競爭排名，週期結算發放獎勵的活動系統。",
-    "why": "刺激玩家持續登入與下注，提升 DAU 與 ARPU。",
-    "audience": "中高活躍玩家、競爭傾向強的核心用戶。"
+    "what": "<一句話描述這個功能是什麼>",
+    "why": "<為何要做：玩家動機 + 商業價值>",
+    "audience": "<目標族群：哪一類玩家>"
   },
   "competitors": [
-    {"name": "TaDa Gaming", "market": "亞洲", "highlight": "三軸切換 + 我的排名常駐底部", "url": "https://tadagaming.com/zh-cn"},
-    {"name": "SlotsMaker", "market": "台灣", "highlight": "前三名特殊頭像光環", "url": "https://slotsmaker.com/zh-hant/"}
+    {"name": "<競業 A>", "market": "<市場>", "highlight": "<亮點/差異>", "url": "<連結>"},
+    {"name": "<競業 B>", "market": "<市場>", "highlight": "<亮點/差異>", "url": "<連結>"}
   ],
   "comparison_table": {
-    "competitors": ["TaDa", "SlotsMaker"],
+    "competitors": ["<競業 A>", "<競業 B>"],
     "rows": [
-      {"item": "切換軸數", "us": "3", "others": ["3", "2"]},
-      {"item": "刷新週期", "us": "15 分鐘", "others": ["即時", "1 小時"]}
+      {"item": "<對比項>", "us": "<我們>", "others": ["<競業 A 值>", "<競業 B 值>"]}
     ]
   },
   "axes": [
-    {"name": "類別", "options": [
-      {"name": "個人", "desc": "玩家個人累積"},
-      {"name": "公會", "desc": "公會成員加總"}
-    ]},
-    {"name": "數據指標", "options": [
-      {"name": "下注金額", "desc": "累計下注總額"},
-      {"name": "贏分", "desc": "累計贏取金額"}
-    ]},
-    {"name": "時間區段", "options": [
-      {"name": "7 日", "desc": "近 7 天"},
-      {"name": "30 日", "desc": "近 30 天"},
-      {"name": "歷史", "desc": "全期累積"}
+    {"name": "<切換軸名稱>", "options": [
+      {"name": "<選項 1>", "desc": "<說明>"},
+      {"name": "<選項 2>", "desc": "<說明>"}
     ]}
   ],
   "matrix": {
-    "description": "類別 × 數據指標 × 時間區段 的全部組合：",
-    "row_axis": "類別",
-    "col_axis": "下注/贏分",
-    "cols": ["下注金額", "贏分"],
+    "description": "<軸交叉組合說明>",
+    "row_axis": "<row 軸名>",
+    "col_axis": "<col 軸名>",
+    "cols": ["<col 1>", "<col 2>"],
     "rows": [
-      {"label": "個人", "cells": ["✓", "✓"], "time": "7日 / 30日 / 歷史"},
-      {"label": "公會", "cells": ["✓", "--"], "time": "7日 / 30日 / 歷史"}
+      {"label": "<row 1>", "cells": ["✓", "--"], "time": "<時間區段選項>"}
     ]
   },
   "fields": [
-    {"name": "排名", "desc": "1-100 名，前三名顯示金銀銅 Icon", "example": "1, 2, 3..."},
-    {"name": "玩家名稱", "desc": "超過 8 字截斷加 ...", "example": "Player001"},
-    {"name": "分數", "desc": "千分位顯示", "example": "8,888,888"},
-    {"name": "我的排名", "desc": "底部固定，未上榜顯示『未上榜』"}
+    {"name": "<欄位名>", "desc": "<說明 + 格式規則>", "example": "<範例值>"}
   ],
   "rules": {
-    "trigger": "玩家完成符合條件的下注/贏分後，分數即時累計。",
-    "data": "重複下注分別累計；單筆上限 1,000,000；榜單僅顯示前 100 名。",
-    "sorting": "分數高者優先；同分時以達成時間早者為優。",
-    "anti_cheat": "偵測異常下注（短時間內大量重複），暫扣分數待人工審核。"
+    "trigger": "<觸發條件>",
+    "data": "<資料處理規則：重複/上限/邊界>",
+    "sorting": "<排序與 tiebreaker>",
+    "anti_cheat": "<防作弊機制>"
   },
   "user_journey": [
-    {"action": "進入大廳", "detail": "看到排行榜入口浮動按鈕", "emotion": "好奇"},
-    {"action": "點開排行榜", "detail": "預設顯示『個人 / 下注金額 / 7 日』", "emotion": "想看自己排第幾"},
-    {"action": "切換條件", "detail": "切到『公會』看是否第一", "emotion": "競爭心"},
-    {"action": "領取獎勵", "detail": "週期結算後彈窗提示", "emotion": "成就感"}
+    {"action": "<玩家動作>", "detail": "<細節>", "emotion": "<情緒/動機>"}
   ],
   "ui_sections": [
-    {"name": "第一層切換（類別）", "detail": "頂部 Tab，預設『個人』"},
-    {"name": "第二層切換（指標）", "detail": "Tab 下方 Segment，預設『下注金額』"},
-    {"name": "時間切換", "detail": "右上下拉，選項 7日/30日/歷史"},
-    {"name": "資料區", "detail": "捲動清單，顯示 100 筆，空狀態文案『目前還沒有人上榜，快來搶頭香！』"},
-    {"name": "我的排名", "detail": "底部固定 bar，未達 100 名顯示『未上榜，再加把勁！』"}
+    {"name": "<UI 區域名>", "detail": "<位置 + 互動細節>"}
   ],
   "ui_misc": {
-    "refresh": "每 15 分鐘伺服器計算一次；客戶端開啟頁面即拉一次。",
-    "extensibility": "預留『賽季』欄位（目前 hard-code = 1），未來支援多賽季。",
-    "edge_cases": "斷網：顯示快取資料 + 紅點提示；無資料：顯示空狀態插圖。"
+    "refresh": "<刷新機制>",
+    "extensibility": "<擴充性註記>",
+    "edge_cases": "<斷網/無資料/權限不足等邊界處理>"
   },
   "i18n": [
-    {"zh": "排行榜", "en": "Leaderboard", "es": "Tabla de Posiciones"},
-    {"zh": "我的排名", "en": "My Rank", "es": "Mi Posición"},
-    {"zh": "未上榜", "en": "Not Ranked", "es": "Sin Clasificar"},
-    {"zh": "每 15 分鐘刷新一次", "en": "Refreshed every 15 minutes", "es": "Actualizado cada 15 minutos"}
+    {"zh": "<中文詞條>", "en": "<English>", "es": "<Español>"}
   ],
   "help_page": {
-    "hook": "比拼分數，週週領獎！",
-    "bullets": [
-      "🏆 三大榜單，個人公會任你挑",
-      "💰 下注就累分，贏分加倍爽",
-      "🎁 週期結算自動派獎"
-    ],
-    "steps": [
-      "點大廳右上『排行榜』圖示",
-      "選擇你想看的榜單條件",
-      "週期結束後到信箱領獎"
-    ]
+    "hook": "<一句話 hook>",
+    "bullets": ["<🎯 賣點 1>", "<💰 賣點 2>", "<🎁 賣點 3>"],
+    "steps": ["<步驟 1>", "<步驟 2>", "<步驟 3>"]
   },
   "timeline": [
-    {"phase": "Phase 1 - MVP", "content": "三軸切換 + 個人榜 + 基本獎勵", "duration": "3 週"},
-    {"phase": "Phase 2 - 優化", "content": "前三名動畫 + 升降排名特效", "duration": "2 週"},
-    {"phase": "Phase 3 - 擴充", "content": "公會榜 + 賽季制", "duration": "3 週"}
+    {"phase": "Phase 1 - MVP", "content": "<MVP 內容>", "duration": "<X 週>"},
+    {"phase": "Phase 2 - 優化", "content": "<優化內容>", "duration": "<X 週>"}
   ],
   "resources": {
-    "art": "約 18 張圖、6 個動畫（詳見 assets.md）",
-    "audio": "約 5 個音效",
-    "engineering": "中（涉及即時計算與快取）"
-  }
+    "art": "<美術資源概數>",
+    "audio": "<音效資源概數>",
+    "engineering": "<低|中|高，附原因>"
+  },
+  "wireframes": [
+    {
+      "name": "<主畫面>",
+      "desc": "<一句話描述這張線框>",
+      "html": "<div class=\"wf-scope\"><div class=\"wf-mobile\"><div class=\"wf-statusbar\"><span>09:41</span><span>● ● ●</span></div><div class=\"wf-appbar\"><span class=\"wf-dot\"></span><span class=\"wf-section-title\">標題</span><span class=\"wf-pill\">餘額</span></div><div class=\"wf-stage\"><div class=\"wf-skeleton-block\" style=\"width:100%;min-height:200px\">主要內容區</div></div><div class=\"wf-actionbar\"><button class=\"wf-btn wf-btn-primary\">主按鈕</button></div></div></div>"
+    },
+    {
+      "name": "<彈窗>",
+      "desc": "<彈窗用途>",
+      "html": "<div class=\"wf-scope\"><div class=\"wf-modal\"><div class=\"wf-modal-icon\">ICON</div><div class=\"wf-modal-title\">標題</div><div class=\"wf-modal-body\">內容</div><div class=\"wf-modal-actions\"><button class=\"wf-btn wf-btn-primary\">確認</button></div></div></div>"
+    }
+  ]
 }

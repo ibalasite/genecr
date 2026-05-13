@@ -32,7 +32,7 @@
 | ID | Method | Endpoint | 說明 | 認證 | 讀 | 寫 |
 |----|--------|----------|------|------|----|----|
 {% for a in apis %}
-| `{{ a.id }}` | {{ a.method }} | {{ a.path }} | {{ a.desc }} | {{ a.auth }} | {{ a.reads | default('-') }} | {{ a.writes | default('-') }} |
+| [`{{ a.id }}`](#{{ a.id }}) | {{ a.method }} | {{ a.path }} | {{ a.desc }} | {{ a.auth }} | {{ a.reads | default('-') }} | {{ a.writes | default('-') }} |
 {% endfor %}
 
 ### 各 API 詳細規格

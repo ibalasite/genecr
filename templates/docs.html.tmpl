@@ -3,170 +3,473 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ feature.name }} — 文件</title>
+<title>{{ feature.name }} — 文件中心</title>
 <style>
+  /* ─── Tokens (gendoc-style: dark nav + light content) ─── */
+  :root {
+    --nav-bg: #1e293b;
+    --nav-fg: #f1f5f9;
+    --nav-accent: #60a5fa;
+    --nav-h: 56px;
+
+    --bg: #f8fafc;
+    --panel-bg: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --link: #2563eb;
+    --link-hover: #1d4ed8;
+    --code-bg: #f1f5f9;
+    --code-fg: #c7254e;
+    --pre-bg: #0f172a;
+    --pre-fg: #e2e8f0;
+    --th-bg: #f1f5f9;
+    --row-alt: #fafbfc;
+    --accent: #2563eb;
+
+    --content-max: 1400px;
+    --sidebar-w: 240px;
+  }
+
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
-         background: #1a1a2e; color: #e8e8f0; line-height: 1.7; }
-  header { background: linear-gradient(90deg, #2a1a4e, #1a1a2e); padding: 20px 32px;
-           border-bottom: 2px solid #ffd700; display: flex; justify-content: space-between; align-items: center; }
-  header h1 { color: #ffd700; margin: 0; font-size: 22px; }
-  .lang { display: flex; gap: 8px; }
-  .lang button { padding: 6px 14px; background: transparent; color: #ffd700;
-                 border: 1px solid #ffd700; border-radius: 4px; cursor: pointer; }
-  .lang button.active { background: #ffd700; color: #1a1a2e; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+                 "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    line-height: 1.7; font-size: 15px;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
 
-  nav.tabs { display: flex; background: #0f0f1e; border-bottom: 1px solid #333;
-             overflow-x: auto; padding: 0 16px; }
-  nav.tabs button { padding: 14px 20px; border: none; background: transparent;
-                    color: #888; cursor: pointer; font-size: 14px; white-space: nowrap;
-                    border-bottom: 2px solid transparent; }
-  nav.tabs button.active { color: #ffd700; border-bottom-color: #ffd700; background: rgba(255,215,0,0.05); }
+  /* ─── Top nav ─── */
+  .top-nav {
+    position: sticky; top: 0; z-index: 50;
+    height: var(--nav-h);
+    background: var(--nav-bg); color: var(--nav-fg);
+    display: flex; align-items: center;
+    padding: 0 24px; gap: 24px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.1);
+  }
+  .top-nav h1 { font-size: 16px; font-weight: 600; margin: 0; color: #fff; }
+  .top-nav .crumb { color: #94a3b8; font-size: 14px; }
+  .top-nav .spacer { flex: 1; }
+  .top-nav .lang { display: flex; gap: 4px; }
+  .top-nav .lang button {
+    padding: 4px 10px; font-size: 12px;
+    background: transparent; color: #cbd5e1;
+    border: 1px solid #475569; border-radius: 4px; cursor: pointer;
+  }
+  .top-nav .lang button.active { background: var(--nav-accent); color: #fff; border-color: var(--nav-accent); }
+  .top-nav .lang button:hover:not(.active) { background: #334155; color: #fff; }
 
-  main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+  /* ─── Layout: sidebar + content (full viewport, gendoc-style) ─── */
+  .page-wrapper {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    width: 100%;
+    min-height: calc(100vh - var(--nav-h));
+    transition: grid-template-columns .15s;
+  }
+  .page-wrapper.sidebar-collapsed {
+    grid-template-columns: 36px 1fr;
+  }
+  @media (max-width: 768px) {
+    .page-wrapper { grid-template-columns: 36px 1fr; }
+  }
+
+  /* ─── Sidebar (with tabs + collapse) ─── */
+  .sidebar {
+    position: sticky; top: var(--nav-h);
+    align-self: start;
+    height: calc(100vh - var(--nav-h));
+    background: var(--panel-bg);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: visible;
+  }
+  .sidebar__toggle {
+    position: absolute; top: 6px; right: 6px;
+    background: var(--code-bg); color: var(--text-muted);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    padding: 2px 8px; font-size: 13px; line-height: 1; cursor: pointer; z-index: 3;
+  }
+  .sidebar__toggle:hover { background: var(--border); color: var(--text); }
+  .page-wrapper.sidebar-collapsed .sidebar__tabs,
+  .page-wrapper.sidebar-collapsed .sidebar__panel { display: none; }
+  .page-wrapper.sidebar-collapsed .sidebar__toggle { left: 6px; right: auto; top: 6px; }
+
+  .sidebar__tabs {
+    display: flex; gap: 2px; padding: 6px 36px 0 6px;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    flex: 0 0 auto;
+  }
+  .sidebar__tab {
+    flex: 1; padding: 6px 8px; font-size: 12px;
+    border: 1px solid transparent; border-bottom: none;
+    border-radius: 4px 4px 0 0; cursor: pointer; background: transparent;
+    color: var(--text-muted); font-family: inherit; text-align: center;
+    transition: background .15s, color .15s;
+  }
+  .sidebar__tab:hover { color: var(--text); background: var(--code-bg); }
+  .sidebar__tab.active {
+    background: var(--panel-bg); color: var(--link);
+    border-color: var(--border); font-weight: 600; margin-bottom: -1px;
+  }
+
+  .sidebar__panel {
+    display: none; flex: 1 1 auto;
+    overflow-y: auto; overflow-x: hidden;
+    padding: 8px 0; font-size: 14px;
+    scrollbar-width: thin;
+  }
+  .sidebar__panel.active { display: block; }
+  .sidebar__panel::-webkit-scrollbar { width: 6px; }
+  .sidebar__panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 3px; }
+
+  .sidebar__link {
+    display: block;
+    padding: 8px 16px;
+    color: var(--text); text-decoration: none;
+    border-left: 3px solid transparent;
+    font-size: 14px; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sidebar__link:hover { background: var(--code-bg); }
+  .sidebar__link.active {
+    background: #eff6ff; color: var(--link);
+    border-left-color: var(--accent); font-weight: 600;
+  }
+
+  /* TOC links — indent by heading depth */
+  .toc__link { display: block; padding: 4px 16px;
+    color: var(--text); text-decoration: none; font-size: 13px;
+    border-left: 2px solid transparent;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .toc__link:hover { background: var(--code-bg); color: var(--link); }
+  .toc__link.active { background: #eff6ff; color: var(--link); border-left-color: var(--accent); font-weight: 500; }
+  .toc__link--h2 { padding-left: 16px; font-weight: 600; }
+  .toc__link--h3 { padding-left: 32px; font-size: 12px; color: var(--text-muted); }
+  .toc__link--h4 { padding-left: 48px; font-size: 12px; color: var(--text-muted); }
+
+  /* ─── Main content area (full width, responsive) ─── */
+  main.content {
+    background: var(--panel-bg);
+    padding: 32px 48px 96px;
+    min-width: 0;
+    width: 100%;
+  }
+  @media (max-width: 768px) { main.content { padding: 20px 16px 64px; } }
+
   .panel { display: none; }
   .panel.active { display: block; }
+  .panel [id] { scroll-margin-top: calc(var(--nav-h) + 16px); }
 
-  h1, h2, h3, h4 { color: #ffd700; margin-top: 1.5em; }
-  h2 { border-bottom: 1px solid #333; padding-bottom: 8px; }
-  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-  th, td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
-  th { background: #2a1a4e; color: #ffd700; }
-  code { background: #0a0a14; color: #ff6b35; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
-  pre { background: #0a0a14; padding: 14px; border-radius: 6px; overflow-x: auto;
-        border-left: 3px solid #ffd700; }
-  pre code { background: transparent; color: #cce; padding: 0; }
-  a { color: #ff6b35; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  blockquote { border-left: 3px solid #ffd700; padding-left: 14px; margin: 12px 0; color: #aaa; }
+  /* ─── Typography ─── */
+  h1, h2, h3, h4, h5 { color: var(--text); font-weight: 700; line-height: 1.3; }
+  h1 { font-size: 28px; margin: 8px 0 24px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+  h2 { font-size: 22px; margin: 36px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 18px; margin: 28px 0 12px; }
+  h4 { font-size: 16px; margin: 20px 0 10px; }
+  p, ul, ol { margin: 12px 0; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
 
-  /* Mermaid diagram container */
-  .diagram-container { background: #fff; border-radius: 8px; padding: 16px; margin: 12px 0;
-                       cursor: zoom-in; transition: transform 0.2s; }
-  .diagram-container:hover { transform: scale(1.005); box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { color: var(--link-hover); text-decoration: underline; }
 
-  /* Lightbox */
-  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none;
-              z-index: 1000; justify-content: center; align-items: center; }
-  .lightbox.show { display: flex; }
-  .lightbox-inner { background: #fff; padding: 24px; border-radius: 8px;
-                    max-width: 95vw; max-height: 90vh; overflow: auto;
-                    transform-origin: center; }
-  .lightbox-controls { position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; }
-  .lightbox-controls button { background: #ffd700; color: #1a1a2e; border: none;
-                              padding: 8px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-
-  /* API Try-It panel */
-  .api-card { background: #0f0f1e; border: 1px solid #333; border-radius: 8px;
-              padding: 16px; margin: 16px 0; }
-  .api-head { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
-  .method { padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; }
-  .method.GET { background: #28a745; color: #fff; }
-  .method.POST { background: #007bff; color: #fff; }
-  .method.PUT { background: #fd7e14; color: #fff; }
-  .method.PATCH { background: #6f42c1; color: #fff; }
-  .method.DELETE { background: #dc3545; color: #fff; }
-  .api-path { color: #ffd700; font-family: monospace; }
-  .api-card label { display: block; font-size: 12px; color: #aaa; margin-top: 8px; }
-  .api-card input, .api-card textarea, .api-card select {
-    width: 100%; padding: 6px; background: #1a1a2e; color: #e8e8f0;
-    border: 1px solid #333; border-radius: 4px; font-family: monospace; font-size: 13px;
+  blockquote {
+    margin: 16px 0; padding: 12px 16px;
+    border-left: 4px solid var(--accent);
+    background: #eff6ff; color: var(--text);
   }
-  .api-card textarea { min-height: 80px; }
-  .api-card .btns { margin-top: 12px; display: flex; gap: 8px; }
-  .api-card button { padding: 8px 14px; border: none; border-radius: 4px;
-                     font-weight: bold; cursor: pointer; }
-  .btn-try { background: #ffd700; color: #1a1a2e; }
-  .btn-curl { background: #ff6b35; color: #fff; }
-  .response { margin-top: 12px; padding: 10px; background: #0a0a14; border-radius: 4px;
-              font-family: monospace; font-size: 12px; white-space: pre-wrap; min-height: 30px; }
-  .status-2xx { border-left: 3px solid #28a745; }
-  .status-4xx { border-left: 3px solid #ffc107; }
-  .status-5xx { border-left: 3px solid #dc3545; }
 
-  iframe.proto { width: 100%; height: 80vh; border: 1px solid #ffd700; border-radius: 8px; background: #000; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 
-  @media print { nav.tabs, header, .lang { display: none; } .panel { display: block !important; } }
+  /* ─── Code ─── */
+  code {
+    background: var(--code-bg); color: var(--code-fg);
+    padding: 2px 6px; border-radius: 3px;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular,
+                 Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--pre-bg); color: var(--pre-fg);
+    padding: 16px; border-radius: 8px; overflow-x: auto;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px; line-height: 1.55;
+    margin: 16px 0;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; font-size: inherit; }
+
+  /* ─── Tables (gendoc style: light theme, scroll if too wide) ─── */
+  .panel { max-width: 100%; }
+  .panel table {
+    border-collapse: collapse;
+    margin: 16px 0;
+    width: auto;
+    background: var(--panel-bg);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    border-radius: 6px;
+    overflow: hidden;
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .panel th, .panel td {
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    line-height: 1.6;
+    word-break: break-word;
+    max-width: 480px;
+    font-size: 14px;
+  }
+  .panel th {
+    background: var(--th-bg);
+    color: var(--text);
+    font-weight: 600;
+    white-space: nowrap;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  .panel tbody tr:nth-child(even) { background: var(--row-alt); }
+
+  /* ─── Mermaid diagrams ─── */
+  .diagram-container {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; margin: 16px 0;
+    cursor: zoom-in; transition: box-shadow .15s;
+  }
+  .diagram-container:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+
+  /* ─── Lightbox (mermaid zoom) ─── */
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(15,23,42,.92);
+    display: none; z-index: 1000;
+    justify-content: center; align-items: center;
+  }
+  .lightbox.show { display: flex; }
+  .lightbox-inner {
+    background: #fff; padding: 32px; border-radius: 8px;
+    max-width: 95vw; max-height: 90vh; overflow: auto;
+    transform-origin: center;
+  }
+  .lightbox-controls { position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 1001; }
+  .lightbox-controls button {
+    background: #fff; color: var(--text); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 4px; font-weight: 600; cursor: pointer;
+  }
+  .lightbox-controls button:hover { background: var(--code-bg); }
+
+  /* ─── API try-it card ─── */
+  .api-card {
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 20px; margin: 20px 0;
+  }
+  .api-card.hidden { display: none; }
+  .api-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .method {
+    padding: 4px 10px; border-radius: 4px;
+    font-weight: 700; font-size: 11px; letter-spacing: 0.05em; color: #fff;
+  }
+  .method.GET { background: #16a34a; }
+  .method.POST { background: #2563eb; }
+  .method.PUT { background: #ea580c; }
+  .method.PATCH { background: #7c3aed; }
+  .method.DELETE { background: #dc2626; }
+  .api-path {
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    color: var(--text); font-size: 14px; font-weight: 600;
+  }
+  .api-card label { display: block; font-size: 12px; color: var(--text-muted); margin-top: 10px; font-weight: 600; }
+  .api-card input, .api-card textarea, .api-card select {
+    width: 100%; padding: 8px 10px;
+    background: #fff; color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 13px; margin-top: 4px;
+  }
+  .api-card textarea { min-height: 100px; resize: vertical; }
+  .api-card .btns { margin-top: 14px; display: flex; gap: 8px; }
+  .api-card button {
+    padding: 8px 16px; border: none; border-radius: 4px;
+    font-weight: 600; cursor: pointer; font-size: 13px;
+  }
+  .btn-try { background: var(--accent); color: #fff; }
+  .btn-try:hover { background: var(--link-hover); }
+  .btn-curl { background: var(--code-bg); color: var(--text); border: 1px solid var(--border-strong); }
+  .btn-curl:hover { background: var(--border); }
+  .response {
+    margin-top: 12px; padding: 12px;
+    background: var(--pre-bg); color: var(--pre-fg);
+    border-radius: 4px;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px; white-space: pre-wrap; min-height: 30px;
+  }
+  .status-2xx { border-left: 3px solid #16a34a; }
+  .status-4xx { border-left: 3px solid #ea580c; }
+  .status-5xx { border-left: 3px solid #dc2626; }
+
+  /* ─── Wireframe DSL — low-fidelity line-art mockups ─── */
+  .wf-scope {
+    --ink:#1f2937; --muted:#6b7280; --line:#c7cdd6; --soft:#f6f7f9; --panel:#fff;
+    color: var(--ink); background: #fff; padding: 16px; border-radius: 8px; margin: 16px 0;
+    font-family: Inter, system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    border: 1px solid var(--border);
+  }
+  .wf-scope *, .wf-scope *::before, .wf-scope *::after { box-sizing: border-box; }
+  .wf-scope code { background: transparent; color: inherit; padding: 0; }
+  .wf-frame { border: 2px solid var(--ink); border-radius: 20px; overflow: hidden; background: var(--panel); box-shadow: 0 18px 50px rgba(31,41,55,.12); }
+  .wf-panel { border: 1.8px solid var(--line); border-radius: 12px; background: #fff; padding: 12px; }
+  .wf-section-title { font-weight: 800; font-size: 14px; color: var(--ink); margin-bottom: 8px; }
+  .wf-helper { color: var(--muted); font-size: 12px; }
+  .wf-divider { height: 0; border: none; border-top: 1.5px solid var(--line); margin: 12px 0; }
+  .wf-pill { display: inline-grid; place-items: center; min-width: 56px; height: 28px; padding: 0 10px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; color: var(--ink); }
+  .wf-pill.is-active { border-color: var(--ink); background: var(--soft); font-weight: 700; }
+  .wf-btn { min-height: 34px; padding: 0 14px; border: 1.8px solid var(--line); border-radius: 999px; background: #fff; font-size: 13px; cursor: pointer; }
+  .wf-btn-primary { border-color: var(--ink); font-weight: 700; background: var(--soft); }
+  .wf-skeleton-pill { display: inline-block; width: 160px; height: 28px; border: 1.5px solid var(--line); border-radius: 999px; background: repeating-linear-gradient(90deg, #fff, #fff 10px, var(--soft) 10px, var(--soft) 20px); }
+  .wf-skeleton-line { display: block; height: 14px; flex: 1; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; }
+  .wf-skeleton-block { background: var(--soft); border: 1.8px solid var(--line); border-radius: 12px; min-height: 40px; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+  .wf-dot { display: inline-block; width: 18px; height: 18px; border: 1.8px solid var(--ink); border-radius: 50%; background: var(--soft); }
+  .wf-icon-slot { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1.5px dashed var(--line); border-radius: 8px; color: var(--muted); font-size: 10px; }
+  .wf-required { color: #b91c1c; font-weight: 700; }
+  .wf-badge { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1.8px solid var(--ink); border-radius: 50%; font-size: 11px; font-weight: 700; }
+  .wf-mobile { width: 360px; margin: 16px auto; background: #fff; border: 2px solid var(--ink); border-radius: 20px; overflow: hidden; }
+  .wf-statusbar { display: flex; justify-content: space-between; align-items: center; padding: 4px 16px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .wf-appbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid var(--line); background: #fbfbfc; }
+  .wf-appbar > .wf-section-title { flex: 1; margin: 0; font-size: 15px; }
+  .wf-banner { padding: 10px 16px; border-bottom: 1.5px solid var(--line); }
+  .wf-marquee { padding: 6px 16px; border-bottom: 1.5px solid var(--line); display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); overflow: hidden; }
+  .wf-stage { padding: 20px 16px; display: grid; place-items: center; min-height: 320px; }
+  .wf-info { display: flex; justify-content: space-around; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-actionbar { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-actionbar .wf-btn-primary { flex: 1; }
+  .wf-shortcuts { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-shortcuts .wf-btn { flex: 1; }
+  .wf-wheel { position: relative; width: 240px; height: 240px; border-radius: 50%; border: 2.5px solid var(--ink); overflow: hidden; background: conic-gradient(from -15deg, #fff 0 30deg, var(--soft) 30deg 60deg, #fff 60deg 90deg, var(--soft) 90deg 120deg, #fff 120deg 150deg, var(--soft) 150deg 180deg, #fff 180deg 210deg, var(--soft) 210deg 240deg, #fff 240deg 270deg, var(--soft) 270deg 300deg, #fff 300deg 330deg, var(--soft) 330deg 360deg); }
+  .wf-wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 20px solid var(--ink); z-index: 3; }
+  .wf-wheel-hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 70px; height: 70px; border-radius: 50%; border: 2.5px solid var(--ink); background: #fff; display: grid; place-items: center; font-weight: 800; font-size: 14px; z-index: 2; }
+  .wf-modal { width: 300px; margin: 16px auto; border: 2px solid var(--ink); border-radius: 16px; background: #fff; padding: 24px 20px; text-align: center; box-shadow: 0 18px 50px rgba(31,41,55,.12); }
+  .wf-modal-icon { width: 80px; height: 80px; margin: 0 auto 12px; border: 2px dashed var(--line); border-radius: 16px; display: grid; place-items: center; color: var(--muted); font-size: 11px; background: var(--soft); }
+  .wf-modal-title { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+  .wf-modal-body { font-size: 13px; color: var(--ink); margin-bottom: 4px; }
+  .wf-modal-meta { font-size: 11px; color: var(--muted); border: 1.5px dashed var(--line); border-radius: 8px; padding: 6px 8px; margin: 12px 0; }
+  .wf-modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .wf-empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+  .wf-countdown { font-family: monospace; font-size: 24px; font-weight: 800; letter-spacing: 2px; color: var(--ink); }
+
+  @media print {
+    .top-nav, .sidebar { display: none; }
+    .page-wrapper { display: block; }
+    main.content { padding: 0; }
+    .panel { display: block !important; }
+  }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>📋 {{ feature.name }} — 文件中心</h1>
-  <div class="lang">
-    <button class="active" data-lang="zh">繁中</button>
-    <button data-lang="en">EN</button>
-  </div>
-</header>
-
-<nav class="tabs" id="tabs">
-{% for s in sections %}
-  <button data-target="panel-{{ loop.index0 }}"{% if loop.first %} class="active"{% endif %}>{{ s.title }}</button>
-{% endfor %}
-{% if api_explorer %}
-  <button data-target="panel-api">🔧 API 試打</button>
-{% endif %}
-{% if prototype_path %}
-  <button data-target="panel-proto">🎮 互動原型</button>
-{% endif %}
+<nav class="top-nav">
+  <h1>📋 {{ feature.name }}</h1>
+  <span class="crumb">— 文件中心</span>
+  <span class="spacer"></span>
 </nav>
 
-<main>
-{% for s in sections %}
-  <div class="panel{% if loop.first %} active{% endif %}" id="panel-{{ loop.index0 }}">
-    {{ s.html | safe }}
-  </div>
-{% endfor %}
+<div class="page-wrapper">
 
-{% if api_explorer %}
-  <div class="panel" id="panel-api">
-    <h1>🔧 API 試打面板</h1>
-    <p>所有回應為前端 mock，斷網可用。</p>
-    {% for a in api_explorer %}
-    <div class="api-card" id="{{ a.id }}">
-      <div class="api-head">
-        <span class="method {{ a.method }}">{{ a.method }}</span>
-        <span class="api-path">{{ a.path }}</span>
-      </div>
-      <p style="color:#aaa;font-size:13px;">{{ a.desc }}</p>
-
-      {% if a.params %}
-      <div class="params">
-      {% for p in a.params %}
-        <label>{{ p.name }}{% if p.required %} <span style="color:#dc3545">*</span>{% endif %} <span style="color:#666">({{ p.type }})</span></label>
-        <input type="text" data-api="{{ a.id }}" data-param="{{ p.name }}" value="{{ p.default | default('') }}">
+  <aside class="sidebar">
+    <button class="sidebar__toggle" id="sidebarToggle" title="收合 / 展開 (Ctrl+\)">‹</button>
+    <div class="sidebar__tabs">
+      <button class="sidebar__tab active" data-panel="docs">📁 文件</button>
+      <button class="sidebar__tab" data-panel="toc">📑 本頁目錄</button>
+    </div>
+    <div class="sidebar__panel active" id="sidebar-docs">
+      {% for s in sections %}
+      <a class="sidebar__link{% if loop.first %} active{% endif %}" data-target="panel-{{ loop.index0 }}">{{ s.title }}</a>
       {% endfor %}
-      </div>
+      {% if api_explorer %}
+      <a class="sidebar__link" data-target="panel-api">🔧 API 試打</a>
       {% endif %}
-
-      {% if a.body %}
-      <label>Request Body
-        <select data-api="{{ a.id }}" data-preset>
-          {% for preset in a.body.presets %}
-          <option value="{{ loop.index0 }}">{{ preset.label }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <textarea data-api="{{ a.id }}" data-body>{{ a.body.presets[0].value }}</textarea>
+      {% if prototype_path %}
+      <a class="sidebar__link" data-target="panel-proto">🎮 互動原型</a>
       {% endif %}
+    </div>
+    <div class="sidebar__panel" id="sidebar-toc">
+      <!-- populated dynamically -->
+    </div>
+  </aside>
 
-      <div class="btns">
-        <button class="btn-try" onclick="tryApi('{{ a.id }}')">▶ Try It</button>
-        <button class="btn-curl" onclick="copyCurl('{{ a.id }}')">📋 Copy as cURL</button>
-      </div>
-      <div class="response" id="resp-{{ a.id }}">（尚未呼叫）</div>
+  <main class="content">
+    {% for s in sections %}
+    <div class="panel{% if loop.first %} active{% endif %}" id="panel-{{ loop.index0 }}">
+      {{ s.html | safe }}
     </div>
     {% endfor %}
-  </div>
-{% endif %}
 
-{% if prototype_path %}
-  <div class="panel" id="panel-proto">
-    <h1>🎮 互動原型</h1>
-    <iframe class="proto" src="{{ prototype_path }}"></iframe>
-  </div>
-{% endif %}
-</main>
+    {% if api_explorer %}
+    <div class="panel" id="panel-api">
+      <h1>🔧 API 試打面板</h1>
+      <p style="color: var(--text-muted)">點左側清單選一支 API 試打；所有回應為前端 mock，斷網可用。</p>
+      {% for a in api_explorer %}
+      <div class="api-card{% if not loop.first %} hidden{% endif %}" id="{{ a.id }}">
+        <div class="api-head">
+          <span class="method {{ a.method }}">{{ a.method }}</span>
+          <span class="api-path">{{ a.path }}</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 13px; margin: 4px 0 12px;">{{ a.desc }}</p>
+
+        {% if a.params %}
+        {% for p in a.params %}
+          <label>{{ p.name }}{% if p.required %} <span style="color:#dc2626">*</span>{% endif %}
+            <span style="color: var(--text-muted); font-weight: 400">({{ p.type }})</span></label>
+          <input type="text" data-api="{{ a.id }}" data-param="{{ p.name }}" value="{{ p.default | default('') }}">
+        {% endfor %}
+        {% endif %}
+
+        {% if a.body %}
+        <label>Request Body
+          <select data-api="{{ a.id }}" data-preset>
+            {% for preset in a.body.presets %}
+            <option value="{{ loop.index0 }}">{{ preset.label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <textarea data-api="{{ a.id }}" data-body>{{ a.body.presets[0].value }}</textarea>
+        {% endif %}
+
+        <div class="btns">
+          <button class="btn-try" onclick="tryApi('{{ a.id }}')">▶ Try It</button>
+          <button class="btn-curl" onclick="copyCurl('{{ a.id }}')">📋 Copy as cURL</button>
+        </div>
+        <div class="response" id="resp-{{ a.id }}">（尚未呼叫）</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if prototype_path %}
+    <div class="panel" id="panel-proto">
+      <h1>🎮 互動原型</h1>
+      <p style="color: var(--text-muted); margin: 16px 0 24px;">
+        互動原型是獨立 HTML 檔，需另開分頁體驗。
+      </p>
+      <a href="{{ prototype_path }}" target="_blank" rel="noopener"
+         style="display: inline-block; padding: 14px 28px; background: var(--accent); color: #fff;
+                font-weight: 600; border-radius: 6px; text-decoration: none; font-size: 15px;">
+        🚀 在新分頁開啟原型 →
+      </a>
+      <p style="color: var(--text-muted); margin-top: 24px; font-size: 13px;">
+        檔案路徑：<code>{{ prototype_path }}</code>
+      </p>
+    </div>
+    {% endif %}
+  </main>
+
+</div>
 
 <div class="lightbox" id="lightbox">
   <div class="lightbox-controls">
@@ -184,16 +487,17 @@ const API_CONFIG = {{ api_explorer | default([]) | tojson }};
 const RESPONSE_MAP = {};
 API_CONFIG.forEach(a => RESPONSE_MAP[a.id] = a.responses || {});
 
-mermaid.initialize({ startOnLoad: false, theme: 'default' });
+mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
 
-// Wrap all mermaid code blocks in containers and convert to mermaid divs
 function transformMermaid() {
   document.querySelectorAll('pre code.language-mermaid').forEach(code => {
+    const src = code.textContent;
     const wrap = document.createElement('div');
     wrap.className = 'diagram-container';
     const div = document.createElement('div');
     div.className = 'mermaid';
-    div.textContent = code.textContent;
+    div.textContent = src;
+    div.setAttribute('data-source', src);
     wrap.appendChild(div);
     wrap.addEventListener('click', () => openLightbox(wrap));
     code.parentElement.replaceWith(wrap);
@@ -207,35 +511,133 @@ async function renderMermaidIn(panel) {
   }
 }
 
-// Tabs
-document.querySelectorAll('#tabs button').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    const panel = document.getElementById(btn.dataset.target);
-    panel.classList.add('active');
-    await renderMermaidIn(panel);
-    location.hash = btn.dataset.target;
+// ─── Sidebar: collapse toggle ───
+const wrapper = document.querySelector('.page-wrapper');
+const toggleBtn = document.getElementById('sidebarToggle');
+toggleBtn.addEventListener('click', () => {
+  wrapper.classList.toggle('sidebar-collapsed');
+  toggleBtn.textContent = wrapper.classList.contains('sidebar-collapsed') ? '›' : '‹';
+});
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === '\\') { e.preventDefault(); toggleBtn.click(); }
+});
+
+// ─── Sidebar: 文件 / TOC tabs ───
+document.querySelectorAll('.sidebar__tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar__tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar__panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('sidebar-' + tab.dataset.panel).classList.add('active');
+    if (tab.dataset.panel === 'toc') buildToc();
   });
 });
 
-// Lightbox
-let lbScale = 1;
+// ─── TOC builder: scan current panel ───
+// Special case: API panel → list endpoints (click = show only that endpoint)
+function buildToc() {
+  const tocEl = document.getElementById('sidebar-toc');
+  const active = document.querySelector('.panel.active');
+  if (!active) { tocEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無</div>'; return; }
+
+  // API panel: list endpoints
+  if (active.id === 'panel-api') {
+    const cards = active.querySelectorAll('.api-card');
+    if (!cards.length) { tocEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無 API</div>'; return; }
+    let html = '';
+    cards.forEach((card, i) => {
+      const method = card.querySelector('.method')?.textContent || '';
+      const path = card.querySelector('.api-path')?.textContent || '';
+      const id = card.id;
+      const isActive = !card.classList.contains('hidden');
+      html += `<a class="toc__link toc__link--api${isActive ? ' active' : ''}" data-api-id="${id}">
+        <span style="display:inline-block;min-width:42px;font-size:10px;font-weight:700;color:#fff;background:${methodColor(method)};padding:2px 6px;border-radius:3px;margin-right:6px">${method}</span>${path}</a>`;
+    });
+    tocEl.innerHTML = html;
+    tocEl.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        const tgtId = a.dataset.apiId;
+        active.querySelectorAll('.api-card').forEach(c => c.classList.toggle('hidden', c.id !== tgtId));
+        tocEl.querySelectorAll('a').forEach(x => x.classList.toggle('active', x === a));
+      });
+    });
+    return;
+  }
+
+  // Default: scan h1-h4
+  const heads = active.querySelectorAll('h1, h2, h3, h4');
+  if (!heads.length) { tocEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">本頁無標題</div>'; return; }
+  let html = '';
+  heads.forEach((h, i) => {
+    if (!h.id) h.id = 'h-' + i + '-' + (h.textContent || '').replace(/\s+/g, '-').slice(0, 30);
+    html += `<a class="toc__link toc__link--${h.tagName.toLowerCase()}" href="#${h.id}">${h.textContent}</a>`;
+  });
+  tocEl.innerHTML = html;
+  tocEl.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const tgt = document.getElementById(a.getAttribute('href').slice(1));
+      if (tgt) tgt.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+}
+
+function methodColor(m) {
+  return { GET:'#16a34a', POST:'#2563eb', PUT:'#ea580c', PATCH:'#7c3aed', DELETE:'#dc2626' }[m] || '#64748b';
+}
+
+// ─── Section navigation (sidebar 文件 panel) ───
+function activateTab(panelName) {
+  document.querySelectorAll('.sidebar__tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.panel === panelName));
+  document.querySelectorAll('.sidebar__panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'sidebar-' + panelName));
+}
+
+document.querySelectorAll('.sidebar__link').forEach(link => {
+  link.addEventListener('click', async (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.sidebar__link').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    link.classList.add('active');
+    const panel = document.getElementById(link.dataset.target);
+    panel.classList.add('active');
+    await renderMermaidIn(panel);
+    location.hash = link.dataset.target;
+    // For API panel, auto-switch sidebar to TOC tab to show endpoint list
+    if (link.dataset.target === 'panel-api') {
+      activateTab('toc');
+      buildToc();
+    } else if (document.querySelector('.sidebar__tab[data-panel="toc"]').classList.contains('active')) {
+      buildToc();
+    }
+  });
+});
+
+// Lightbox — zoom + pan
+let lbScale = 1, lbX = 0, lbY = 0;
+function lbApply() {
+  document.getElementById('lightbox-inner').style.transform =
+    `translate(${lbX}px, ${lbY}px) scale(${lbScale})`;
+}
 function openLightbox(diagramWrap) {
   const inner = document.getElementById('lightbox-inner');
   inner.innerHTML = '';
-  const clone = diagramWrap.cloneNode(true);
-  clone.style.cursor = 'auto';
-  inner.appendChild(clone);
-  const node = clone.querySelector('.mermaid');
-  if (node) { node.removeAttribute('data-processed'); node.innerHTML = node.textContent; mermaid.run({ nodes: [node] }); }
-  lbScale = 1; inner.style.transform = 'scale(1)';
+  const source = diagramWrap.querySelector('.mermaid')?.getAttribute('data-source') || '';
+  const div = document.createElement('div');
+  div.className = 'mermaid';
+  div.textContent = source;
+  div.setAttribute('data-source', source);
+  inner.appendChild(div);
+  mermaid.run({ nodes: [div] });
+  lbScale = 1; lbX = 0; lbY = 0; lbApply();
   document.getElementById('lightbox').classList.add('show');
 }
 function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
-function lbZoom(d) { lbScale = Math.max(0.3, lbScale + d); document.getElementById('lightbox-inner').style.transform = `scale(${lbScale})`; }
-function lbReset() { lbScale = 1; document.getElementById('lightbox-inner').style.transform = 'scale(1)'; }
+function lbZoom(d) { lbScale = Math.max(0.2, Math.min(8, lbScale + d)); lbApply(); }
+function lbReset() { lbScale = 1; lbX = 0; lbY = 0; lbApply(); }
+
 document.addEventListener('keydown', e => {
   if (!document.getElementById('lightbox').classList.contains('show')) return;
   if (e.key === 'Escape') closeLightbox();
@@ -243,6 +645,32 @@ document.addEventListener('keydown', e => {
   if (e.key === '-') lbZoom(-0.2);
   if (e.key === '0') lbReset();
 });
+
+document.getElementById('lightbox').addEventListener('wheel', e => {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  e.preventDefault();
+  lbZoom(e.deltaY < 0 ? 0.15 : -0.15);
+}, { passive: false });
+
+(function () {
+  const lb = document.getElementById('lightbox');
+  let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+  lb.addEventListener('mousedown', e => {
+    if (e.target.closest('.lightbox-controls')) return;
+    dragging = true; sx = e.clientX; sy = e.clientY; ox = lbX; oy = lbY;
+    lb.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    lbX = ox + (e.clientX - sx);
+    lbY = oy + (e.clientY - sy);
+    lbApply();
+  });
+  window.addEventListener('mouseup', () => { dragging = false; lb.style.cursor = 'default'; });
+  lb.addEventListener('click', e => {
+    if (e.target === lb) closeLightbox();
+  });
+})();
 
 // API Try-It
 function getApiInputs(id) {
@@ -253,7 +681,6 @@ function getApiInputs(id) {
   return { cfg, params, body: body ? body.value : null };
 }
 function tryApi(id) {
-  const { cfg, params } = getApiInputs(id);
   const responses = RESPONSE_MAP[id] || {};
   const resp = responses['200'] || responses[Object.keys(responses)[0]] || { status: 200, body: '{}' };
   const respEl = document.getElementById(`resp-${id}`);
@@ -275,7 +702,6 @@ function copyCurl(id) {
   navigator.clipboard.writeText(cmd);
   alert('cURL 已複製');
 }
-// Body preset switcher
 document.querySelectorAll('select[data-preset]').forEach(sel => {
   sel.addEventListener('change', () => {
     const id = sel.dataset.api;
@@ -290,16 +716,15 @@ transformMermaid();
 renderMermaidIn(document.querySelector('.panel.active'));
 if (location.hash) {
   const target = location.hash.slice(1);
-  const tabBtn = document.querySelector(`#tabs button[data-target="${target}"]`);
-  if (tabBtn) tabBtn.click();
+  const link = document.querySelector(`.sidebar__link[data-target="${target}"]`);
+  if (link) link.click();
   else {
-    // anchor inside a panel
     const el = document.getElementById(target);
     if (el) {
       const panel = el.closest('.panel');
       if (panel) {
-        const btn = document.querySelector(`#tabs button[data-target="${panel.id}"]`);
-        if (btn) btn.click();
+        const link2 = document.querySelector(`.sidebar__link[data-target="${panel.id}"]`);
+        if (link2) link2.click();
         setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 300);
       }
     }

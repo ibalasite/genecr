@@ -6,7 +6,7 @@
 | ID | 名稱 | 類型 |
 |----|------|------|
 {% for a in assets %}
-| `{{ a.id }}` | {{ a.name }} | {{ a.type }} |
+| [`{{ a.id }}`](#{{ a.id }}) | {{ a.name }} | {{ a.type }} |
 {% endfor %}
 
 ---

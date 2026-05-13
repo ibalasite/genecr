@@ -33,7 +33,10 @@ from pathlib import Path
 import render as r
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_ROOT = REPO_ROOT / "output"
+# Outputs live in the USER'S cwd (where they invoked genecr), NOT in runtime.
+# This keeps the runtime install dir read-only/stateless and matches the rule
+# in bin/genecr-env.sh: "skills may only write output/ to the user's CWD".
+OUTPUT_ROOT = Path.cwd() / "output"
 
 
 @dataclass
@@ -147,6 +150,7 @@ def _substitute(raw: str, brief_file: Path, output_path: Path, type_: str, extra
     """Inline file CONTENTS (not paths) so the AI doesn't need Read tool / outside-cwd permission."""
     schema_path  = REPO_ROOT / "templates" / "schemas"  / f"{type_}.schema.json"
     example_path = REPO_ROOT / "templates" / "examples" / f"{type_}.input.json"
+    run_dir = output_path.parent
     out = (
         raw
         .replace("{type}",            type_)
@@ -154,6 +158,13 @@ def _substitute(raw: str, brief_file: Path, output_path: Path, type_: str, extra
         .replace("{schema_content}",  _read_file(schema_path)  or "(no schema for this type)")
         .replace("{example_content}", _read_file(example_path) or "(no example for this type)")
         .replace("{previous_json}",   _read_file(output_path))
+        # Cross-step content: any prior step's input.json can be embedded by name
+        .replace("{spec_basic_content}",    _read_file(run_dir / "spec-basic.input.json"))
+        .replace("{spec_advanced_content}", _read_file(run_dir / "spec-advanced.input.json"))
+        .replace("{assets_content}",        _read_file(run_dir / "assets.input.json"))
+        .replace("{bdd_content}",           _read_file(run_dir / "bdd.input.json"))
+        .replace("{scrum_content}",         _read_file(run_dir / "scrum.input.json"))
+        .replace("{prototype_content}",     _read_file(run_dir / "prototype.input.json"))
         # Legacy path-style placeholders (still substituted for any prompt that uses them)
         .replace("${GENECR_DIR}",       str(REPO_ROOT))
         .replace("${GENECR_TEMPLATES}", str(REPO_ROOT / "templates"))

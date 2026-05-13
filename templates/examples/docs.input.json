@@ -1,46 +1,24 @@
 {
-  "feature": {"name": "排行榜", "slug": "leaderboard"},
+  "feature": {"name": "<功能名稱>", "slug": "<feature-slug>"},
   "sections": [
-    {"title": "📋 企畫版", "md": "leaderboard-spec-basic.md"},
-    {"title": "⚙️ 技術版", "md": "leaderboard-spec-advanced.md"},
-    {"title": "🎨 資源清單", "md": "leaderboard-assets.md"},
-    {"title": "🧪 BDD", "md": "leaderboard-bdd.md"},
-    {"title": "📌 SCRUM", "md": "leaderboard-scrum.md"}
+    {"title": "📋 企畫版", "type": "spec-basic"},
+    {"title": "⚙️ 技術版", "type": "spec-advanced"},
+    {"title": "🎨 資源清單", "type": "assets"},
+    {"title": "🧪 BDD", "type": "bdd"},
+    {"title": "📌 SCRUM", "type": "scrum"}
   ],
   "api_explorer": [
     {
-      "id": "api-get-leaderboard",
+      "id": "api-xxx",
       "method": "GET",
-      "path": "/api/v1/leaderboard",
-      "desc": "取得排行榜資料",
+      "path": "/api/v1/<resource>",
+      "desc": "<一句話說明>",
       "params": [
-        {"name": "category", "in": "query", "type": "string", "default": "personal"},
-        {"name": "metric", "in": "query", "type": "string", "default": "bet"},
-        {"name": "period", "in": "query", "type": "string", "default": "7d"},
-        {"name": "limit", "in": "query", "type": "integer", "default": "100"}
+        {"name": "<param>", "in": "query", "type": "string", "default": "<default>"}
       ],
       "responses": {
-        "200": {
-          "status": 200,
-          "body": {"code": 200, "data": {"list": [{"rank": 1, "name": "Lucky888", "score": 9876543}], "my": {"rank": 152, "score": 12345}}}
-        }
-      }
-    },
-    {
-      "id": "api-claim-reward",
-      "method": "POST",
-      "path": "/api/v1/leaderboard/claim",
-      "desc": "領取週期結算獎勵",
-      "body": {
-        "presets": [
-          {"label": "Default - 正常領獎", "value": "{\n  \"period_id\": \"2026W19\",\n  \"category\": \"personal\",\n  \"metric\": \"bet\"\n}"},
-          {"label": "409 - 已領過", "value": "{\n  \"period_id\": \"2026W18\",\n  \"category\": \"personal\",\n  \"metric\": \"bet\"\n}"}
-        ]
-      },
-      "responses": {
-        "200": {"status": 200, "body": {"code": 200, "data": {"reward_coins": 100000, "reward_diamonds": 50}}}
+        "200": {"status": 200, "body": {"code": 200, "data": {}}}
       }
     }
-  ],
-  "prototype_path": "leaderboard-prototype.html"
+  ]
 }

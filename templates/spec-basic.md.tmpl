@@ -21,8 +21,25 @@
 
 ## 四、競業分析摘要
 {% for c in competitors %}
-- **{{ c.name }}**（{{ c.market }}）— {{ c.highlight }}
-  來源：{{ c.url }}
+### {{ loop.index }}. {{ c.name }} （{{ c.market }}）
+- **核心機制**：{{ c.mechanic | default(c.highlight) }}
+{% if c.rtp %}
+- **RTP / 倍率**：{{ c.rtp }}
+{% endif %}
+{% if c.payout %}
+- **獎勵結構**：{{ c.payout }}
+{% endif %}
+{% if c.user_flow %}
+- **玩家流程**：{{ c.user_flow }}
+{% endif %}
+{% if c.differentiation %}
+- **差異化亮點**：{{ c.differentiation }}
+{% endif %}
+{% if c.weakness %}
+- **可改進處**：{{ c.weakness }}
+{% endif %}
+- **參考連結**：[{{ c.url }}]({{ c.url }})
+
 {% endfor %}
 
 {% if comparison_table %}
@@ -78,6 +95,17 @@
 - **刷新機制**：{{ ui_misc.refresh }}
 - **擴充性註記**：{{ ui_misc.extensibility }}
 - **錯誤與邊界狀態**：{{ ui_misc.edge_cases }}
+
+{% if wireframes %}
+### 線框圖
+
+{% for w in wireframes %}
+**{{ loop.index }}. {{ w.name }}** — {{ w.desc }}
+
+{{ w.html | safe }}
+
+{% endfor %}
+{% endif %}
 
 ## 十一、文案對照表（多語）
 | 中 | 英 | 西 |

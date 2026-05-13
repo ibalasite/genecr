@@ -29,4 +29,10 @@ Rules:
 - For competitor research, use industry knowledge (do not attempt to read files).
 - All cross-reference IDs (api-xxx, sc-xxx, ASSET-xxx) must be self-consistent.
 
+## FILENAMES — IMPORTANT
+The pipeline computes all filenames from feature.slug. **Do NOT output any of**:
+- `sections[].md` (use only `{"title", "type"}` per section)
+- `prototype_path`
+Valid `type` values: `spec-basic`, `spec-advanced`, `assets`, `bdd`, `scrum`.
+
 Type for this step: docs

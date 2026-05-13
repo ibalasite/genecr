@@ -1,108 +1,63 @@
 {
-  "feature": {"name": "排行榜", "slug": "leaderboard"},
+  "feature": {"name": "<功能名稱>", "slug": "<feature-slug>"},
   "architecture": {
-    "overview": "玩家分數透過 Game Service 寫入 MongoDB；Leaderboard Service 每 15 分鐘從 MongoDB 聚合，結果寫入 Redis ZSet 供查詢。",
-    "diagram": "flowchart LR\n  C[Cocos Client] -->|HTTP| G[API Gateway]\n  G --> L[Leaderboard Service]\n  L --> R[(Redis ZSet)]\n  L --> M[(MongoDB)]\n  GS[Game Service] --> M",
-    "data_flow": "Client 拉取排行榜走 Redis；分數寫入走 MongoDB；聚合 worker 每 15 分鐘搬 MongoDB → Redis。"
+    "overview": "<系統概述：哪些 service、用什麼資料表、Redis 怎麼用>",
+    "diagram": "flowchart LR\n  C[Cocos Client] -->|HTTP| G[API Gateway]\n  G --> S[Feature Service]\n  S --> R[(Redis)]\n  S --> D[(MySQL)]",
+    "data_flow": "<Client ↔ Server 資料流說明>"
   },
   "client": {
-    "scene": "LeaderboardScene 含 TabBar / SegmentBar / TimeDropdown / ListView / MyRankBar 五個節點。",
+    "scene": "<Cocos Creator 場景結構>",
     "components": [
-      {"name": "LeaderboardView", "desc": "主控器，管理三層切換狀態"},
-      {"name": "RankItemRenderer", "desc": "ListView item，處理前三名特殊樣式"},
-      {"name": "MyRankBar", "desc": "底部固定 bar，未上榜顯示提示"}
+      {"name": "<ComponentName>", "desc": "<職責>"}
     ],
     "states": [
-      {"from": "Loading", "trigger": "API resolve", "to": "Showing"},
-      {"from": "Showing", "trigger": "切換條件", "to": "Loading"},
-      {"from": "Showing", "trigger": "下拉刷新", "to": "Loading"},
-      {"from": "Loading", "trigger": "API error", "to": "Error"}
+      {"from": "<State A>", "trigger": "<事件>", "to": "<State B>"}
     ],
-    "update_strategy": "開啟頁面時 HTTP 拉一次；切換條件重新拉；無 WebSocket 推播。",
-    "performance": "ListView 啟用 cell 復用；圖片 Atlas 打包；前三名動畫只在可見時播放。"
+    "update_strategy": "<HTTP polling / WebSocket / 開啟拉一次>",
+    "performance": "<效能考量>"
   },
   "apis": [
     {
-      "id": "api-get-leaderboard",
+      "id": "api-xxx",
       "method": "GET",
-      "path": "/api/v1/leaderboard",
-      "desc": "取得排行榜資料",
+      "path": "/api/v1/<resource>",
+      "desc": "<一句話>",
       "auth": "Bearer Token",
-      "reads": "Redis:lb:{cat}:{metric}:{period}",
-      "writes": "-",
+      "reads": "<例如 MySQL.<table_name> / Redis:<key-pattern>>",
+      "writes": "<例如 MySQL.<table_name> / Redis:<key-pattern>>",
       "query_params": [
-        {"name": "category", "type": "string", "default": "personal", "desc": "personal | guild"},
-        {"name": "metric", "type": "string", "default": "bet", "desc": "bet | win"},
-        {"name": "period", "type": "string", "default": "7d", "desc": "7d | 30d | all"},
-        {"name": "limit", "type": "integer", "default": "100", "desc": "1-100"}
+        {"name": "<param>", "type": "string", "default": "<default>", "desc": "<說明>"}
       ],
-      "response_200": "{\n  \"code\": 200,\n  \"data\": {\n    \"list\": [{\"rank\": 1, \"name\": \"Player001\", \"score\": 8888888}],\n    \"my\": {\"rank\": 152, \"score\": 12345}\n  }\n}",
+      "response_200": "{\n  \"code\": 200,\n  \"data\": { }\n}",
       "response_errors": [
-        {"code": "401", "desc": "未登入"},
-        {"code": "400", "desc": "參數錯誤（category/metric/period 不在白名單）"}
+        {"code": "401", "desc": "<未登入>"}
       ],
-      "flow": [
-        "驗證 Bearer Token",
-        "驗證 query params 是否在白名單",
-        "查 Redis ZSet `lb:{cat}:{metric}:{period}`，取前 limit 名",
-        "查當前玩家排名（ZREVRANK）",
-        "回傳 list + my"
-      ],
-      "perf": "p95 < 100ms / QPS 預估 500",
-      "related_bdd": ["sc-001", "sc-002", "sc-003"]
-    },
-    {
-      "id": "api-claim-reward",
-      "method": "POST",
-      "path": "/api/v1/leaderboard/claim",
-      "desc": "領取週期結算獎勵",
-      "auth": "Bearer Token",
-      "reads": "MongoDB.leaderboard_rewards",
-      "writes": "MongoDB.wallets, Redis:claimed:{user}:{period}",
-      "request_body": "{\n  \"period_id\": \"2026W19\",\n  \"category\": \"personal\",\n  \"metric\": \"bet\"\n}",
-      "response_200": "{\n  \"code\": 200,\n  \"data\": {\n    \"reward_coins\": 100000,\n    \"reward_diamonds\": 50\n  }\n}",
-      "response_errors": [
-        {"code": "409", "desc": "已領取過"},
-        {"code": "404", "desc": "未上榜或週期未結算"}
-      ],
-      "flow": [
-        "驗證 Bearer Token",
-        "查 Redis `claimed:{user}:{period}` 是否已領",
-        "查 MongoDB.leaderboard_rewards 確認排名與獎勵",
-        "MongoDB.wallets 加值（樂觀鎖 version+1）",
-        "Redis SET `claimed:{user}:{period}` EX 7d",
-        "回傳獎勵內容"
-      ],
-      "perf": "p95 < 200ms / QPS 預估 50",
-      "related_bdd": ["sc-004", "sc-005"]
+      "flow": ["<步驟 1>", "<步驟 2>"],
+      "perf": "<p95 < Xms / QPS Y>",
+      "related_bdd": ["sc-001"]
     }
   ],
   "data_models": [
     {
-      "name": "leaderboard_snapshots",
-      "kind": "MongoDB Collection",
-      "desc": "每 15 分鐘的聚合快照，做歷史追溯與獎勵結算依據。",
+      "name": "<table_name>",
+      "kind": "MySQL Table",
+      "desc": "<用途>",
       "fields": [
-        {"name": "_id", "type": "ObjectId", "desc": "PK"},
-        {"name": "category", "type": "string", "desc": "personal | guild"},
-        {"name": "metric", "type": "string", "desc": "bet | win"},
-        {"name": "period", "type": "string", "desc": "7d | 30d | all"},
-        {"name": "snapshot_at", "type": "datetime", "desc": "聚合時間"},
-        {"name": "entries", "type": "array", "desc": "[{user_id, score, rank}]"}
+        {"name": "id", "type": "BIGINT UNSIGNED PK AUTO_INCREMENT", "desc": "PK"},
+        {"name": "<col>", "type": "<MySQL type>", "desc": "<說明>"}
       ],
-      "indexes": "(category, metric, period, snapshot_at) DESC",
-      "apis": ["api-get-leaderboard"]
+      "indexes": "<INDEX/UNIQUE 設計>",
+      "apis": ["api-xxx"]
     }
   ],
   "business_logic": [
     {
-      "title": "聚合 Worker",
-      "desc": "Cron 每 15 分鐘執行，掃 MongoDB.bets 聚合到 leaderboard_snapshots，再寫入 Redis ZSet。",
-      "pseudocode": "for cat, metric, period in combinations:\n    rows = db.bets.aggregate(...)\n    snapshot.insert(...)\n    redis.zadd(f'lb:{cat}:{metric}:{period}', rows)\n    redis.expire(...)"
+      "title": "<邏輯名稱>",
+      "desc": "<說明>",
+      "pseudocode": "// pseudo-code"
     }
   ],
   "cache_strategy": [
-    {"key": "lb:{cat}:{metric}:{period}", "ttl": "20min", "desc": "ZSet，由聚合 worker 寫入"},
-    {"key": "claimed:{user}:{period}", "ttl": "7d", "desc": "防重複領獎旗標"}
+    {"key": "<redis-key-pattern>", "ttl": "<TTL>", "desc": "<用途>"}
   ]
 }

@@ -35,10 +35,22 @@
     },
     "competitors": {
       "type": "array",
+      "minItems": 6,
       "items": {
         "type": "object",
         "required": ["name", "market", "highlight", "url"],
-        "properties": {"name": {"type": "string"}, "market": {"type": "string"}, "highlight": {"type": "string"}, "url": {"type": "string"}}
+        "properties": {
+          "name":            {"type": "string"},
+          "market":          {"type": "string"},
+          "highlight":       {"type": "string"},
+          "url":             {"type": "string"},
+          "mechanic":        {"type": "string", "description": "核心機制細節"},
+          "rtp":             {"type": "string", "description": "RTP / 倍率區間 / 中獎機率"},
+          "payout":          {"type": "string", "description": "獎勵結構（最高倍、保底、特殊獎）"},
+          "user_flow":       {"type": "string", "description": "玩家從入口到領獎的步驟"},
+          "differentiation": {"type": "string", "description": "差異化亮點"},
+          "weakness":        {"type": "string", "description": "缺點 / 可改進處"}
+        }
       }
     },
     "comparison_table": {
@@ -147,6 +159,19 @@
       "type": "object",
       "required": ["art", "audio", "engineering"],
       "properties": {"art": {"type": "string"}, "audio": {"type": "string"}, "engineering": {"type": "string"}}
+    },
+    "wireframes": {
+      "type": "array",
+      "description": "Low-fidelity wireframes using the wf-* CSS DSL. Required for major UI screens.",
+      "items": {
+        "type": "object",
+        "required": ["name", "desc", "html"],
+        "properties": {
+          "name": {"type": "string", "description": "screen name, e.g. '主畫面' or '領獎彈窗'"},
+          "desc": {"type": "string", "description": "1-2 sentences explaining what this screen shows"},
+          "html": {"type": "string", "description": "HTML snippet using only wf-* classes from wireframe-dsl.md, wrapped in <div class=\"wf-scope\">…</div>"}
+        }
+      }
     }
   }
 }

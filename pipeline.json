@@ -51,7 +51,8 @@
       "prompt": "templates/prompts/prototype.prompt.md",
       "input":  "prototype.input.json",
       "output": "{slug}-prototype.html",
-      "stub_fixture": "templates/examples/prototype.input.json"
+      "stub_fixture": "templates/examples/prototype.input.json",
+      "depends_on": ["spec-basic"]
     },
     {
       "name": "docs",

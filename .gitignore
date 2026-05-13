@@ -1,23 +1,29 @@
-# User-generated output — produced by genecr in the user's CWD, must never be in the repo
+# Local state files (mirroring gendoc convention — name them, don't blanket .*)
+.gendoc-state*.json
+.skill-guard.json
+.skill-guard-queue
+.last-update-check
+.update-lock/
+.claude/
+.gstack/
+.source-dir
+skills-lock.json
+
+# User-generated output — produced in user's CWD, never in repo
 output/
 
-# All dotfiles/dotdirs — never push local state (.claude/, .gendoc-state.json, etc.)
-.*
-!.gitignore
-!.gitkeep
-
-# Local-only files
+# Local-only / draft artifacts
 *.pdf
 references/*
 !references/.gitkeep
 preview.html
 pdd *.md
-skills-lock.json
 
 # Python bytecode
 __pycache__/
 *.pyc
 
 # OS / editor noise
+.DS_Store
 Thumbs.db
 *.swp

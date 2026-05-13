@@ -322,116 +322,108 @@
       <button class="sidebar__toggle" id="sidebarCollapseBtn" type="button" aria-label="收合 / 展開側欄" title="收合 / 展開">⇤</button><div class="sidebar__tabs" role="tablist"><button class="sidebar__tab active" data-tab="docs" type="button" role="tab" aria-selected="true">📁 文件</button><button class="sidebar__tab" data-tab="toc" type="button" role="tab" aria-selected="false">📑 本頁目錄</button></div><div class="sidebar__panel active" data-panel="docs" role="tabpanel"><div class="sidebar__section">
 <a class="sidebar__link" href="index.html">🏠 首頁</a>
 <a class="sidebar__link active" href="prd.html">📝 產品需求文件 (PRD)</a>
-</div></div><div class="sidebar__panel" data-panel="toc" role="tabpanel"><ul class="toc-list"><li><a class="toc__link" href="#一產品願景">一、產品願景</a></li><li><a class="toc__link" href="#二核心功能需求">二、核心功能需求</a></li><li><a class="toc__link toc__link--h3" href="#21-競業調查">2.1 競業調查</a></li><li><a class="toc__link toc__link--h3" href="#22-輸出文件套件7-份">2.2 輸出文件套件（7 份）</a></li><li><a class="toc__link toc__link--h3" href="#23-語言">2.3 語言</a></li><li><a class="toc__link toc__link--h3" href="#24-技術棧">2.4 技術棧</a></li><li><a class="toc__link" href="#三品質規範">三、品質規範</a></li><li><a class="toc__link toc__link--h3" href="#31-線框圖標準">3.1 線框圖標準</a></li><li><a class="toc__link toc__link--h3" href="#32-工程圖標準">3.2 工程圖標準</a></li><li><a class="toc__link toc__link--h3" href="#33-html-文件-docshtml">3.3 HTML 文件（*-docs.html）</a></li><li><a class="toc__link toc__link--h3" href="#34-互動原型-prototypehtml">3.4 互動原型（*-prototype.html）</a></li><li><a class="toc__link" href="#四已知-issues待修正">四、已知 Issues（待修正）</a></li><li><a class="toc__link toc__link--h3" href="#issue-1企畫文件缺少線框圖">Issue #1：企畫文件缺少線框圖</a></li><li><a class="toc__link toc__link--h3" href="#issue-2html-寬度未自適應">Issue #2：HTML 寬度未自適應</a></li><li><a class="toc__link toc__link--h3" href="#issue-3語言切換只改部分內容">Issue #3：語言切換只改部分內容</a></li><li><a class="toc__link toc__link--h3" href="#issue-4文件缺少原型連結">Issue #4：文件缺少原型連結</a></li><li><a class="toc__link toc__link--h3" href="#issue-5資源清單數量不一致">Issue #5：資源清單數量不一致</a></li><li><a class="toc__link toc__link--h3" href="#issue-6bdd-未全展開">Issue #6：BDD 未全展開</a></li><li><a class="toc__link toc__link--h3" href="#issue-7prototype-未響應式">Issue #7：Prototype 未響應式</a></li><li><a class="toc__link toc__link--h3" href="#issue-8競業分析缺少可點擊連結">Issue #8：競業分析缺少可點擊連結</a></li><li><a class="toc__link" href="#五mermaid-圖規範">五、Mermaid 圖規範</a></li><li><a class="toc__link" href="#六線框圖-dsl-規範企畫版">六、線框圖 DSL 規範（企畫版）</a></li><li><a class="toc__link" href="#七未來規劃">七、未來規劃</a></li></ul></div>
+</div></div><div class="sidebar__panel" data-panel="toc" role="tabpanel"><ul class="toc-list"><li><a class="toc__link" href="#一產品願景">一、產品願景</a></li><li><a class="toc__link" href="#二核心架構">二、核心架構</a></li><li><a class="toc__link toc__link--h3" href="#21-流程program-orchestrated">2.1 流程（program-orchestrated）</a></li><li><a class="toc__link toc__link--h3" href="#22-7-份產出">2.2 7 份產出</a></li><li><a class="toc__link toc__link--h3" href="#23-技術棧強制套用">2.3 技術棧（強制套用）</a></li><li><a class="toc__link" href="#三實作層">三、實作層</a></li><li><a class="toc__link toc__link--h3" href="#31-pipeline-driver">3.1 Pipeline driver</a></li><li><a class="toc__link toc__link--h3" href="#32-output-慣例">3.2 OUTPUT 慣例</a></li><li><a class="toc__link toc__link--h3" href="#33-templates">3.3 Templates</a></li><li><a class="toc__link toc__link--h3" href="#34-skills">3.4 Skills</a></li><li><a class="toc__link" href="#四品質規範">四、品質規範</a></li><li><a class="toc__link toc__link--h3" href="#41-docshtml">4.1 docs.html</a></li><li><a class="toc__link toc__link--h3" href="#42-prototypehtml">4.2 prototype.html</a></li><li><a class="toc__link toc__link--h3" href="#43-spec-basic-線框圖">4.3 spec-basic 線框圖</a></li><li><a class="toc__link toc__link--h3" href="#44-競業分析">4.4 競業分析</a></li><li><a class="toc__link toc__link--h3" href="#45-bdd">4.5 BDD</a></li><li><a class="toc__link" href="#五資料邊界鐵律">五、資料邊界（鐵律）</a></li><li><a class="toc__link" href="#六change-log">六、Change Log</a></li><li><a class="toc__link" href="#七未來規劃">七、未來規劃</a></li></ul></div>
     </aside>
     <div class="sidebar-resizer" id="sidebarResizer"></div>
     <main class="doc-content"><h1 id="genecr--完整產品需求文件prd">GeneCR — 完整產品需求文件（PRD）</h1>
-<blockquote><p>版本：v1.1 ｜ 日期：2026-05-13</p></blockquote>
+<blockquote><p>版本：v2.0 ｜ 日期：2026-05-14</p></blockquote>
 <blockquote><p>作者：Evans（sayyogames.com）</p></blockquote>
 <hr>
 <h2 id="一產品願景">一、產品願景</h2>
-<p>GeneCR 的目標是讓 iGaming 公司的企畫人員，能透過一行指令，產出讓 <strong>整個開發團隊都能直接使用</strong> 的需求文件套件。</p>
-<p><strong>使用對象：</strong></p>
-<ul><li>企畫（Product Manager / Game Designer）</li><li>美術 / 動畫師 / 音效師</li><li>Client 工程師（Cocos Creator）</li><li>Server 工程師（Node.js）</li><li>QA 工程師</li><li>SCRUM Master / Project Manager</li></ul>
+<p>GeneCR 讓 iGaming 公司的企畫人員，能透過一句 brief，產出讓<strong>整個開發團隊都能直接使用</strong>的需求文件套件。</p>
+<p><strong>使用對象</strong>：企畫 / 美術 / 動畫師 / 音效師 / Client 工程師（Cocos）/ Server 工程師（Node.js）/ QA / SCRUM Master。</p>
+<p><strong>核心價值</strong>：</p>
+<ul><li>一行 brief → 7 份文件，省去 1-2 週重複撰寫成本</li><li>程式控制流程、jsonschema 驗證、AI 只負責內容，結果穩定可預測</li><li>Host-neutral：Claude Code 與 Codex CLI 通吃</li></ul>
 <hr>
-<h2 id="二核心功能需求">二、核心功能需求</h2>
-<h3 id="21-競業調查">2.1 競業調查</h3>
-<ul><li>強制調查指定競業：TaDa Gaming、SlotsMaker</li><li>按市場擴展調查：北美、哥斯大黎加、東南亞、台灣</li><li>每個競業必須記錄<strong>來源 URL</strong>，可點擊開新分頁</li><li>至少 6 個以上不同平台案例</li></ul>
-<h3 id="22-輸出文件套件7-份">2.2 輸出文件套件（7 份）</h3>
-<p>每次執行必須完整輸出以下 7 份文件到 <code>./output/&lt;feature-slug&gt;/</code>：</p>
+<h2 id="二核心架構">二、核心架構</h2>
+<h3 id="21-流程program-orchestrated">2.1 流程（program-orchestrated）</h3>
+<pre><code class="">brief（自然語言）
+   ↓
+pipeline.py 依 pipeline.json 控制
+   ↓
+[step 1..7] 對每一 step：
+   AI generate → jsonschema validate → fail? → AI fix（最多 3 次）→ pass → renderer
+   ↓
+output/&lt;slug&gt;/&lt;datetime&gt;/&lt;slug&gt;-&lt;type&gt;.md|.html</code></pre>
+<p><strong>關鍵</strong>：流程由程式控制，AI 只做「內容生成」「修錯」兩件事；schema 由程式判斷對錯；檔名 / 路徑由程式產生（AI 不能干擾）。</p>
+<h3 id="22-7-份產出">2.2 7 份產出</h3>
 <table>
-<tr><th>#</th><th>檔案</th><th>說明</th></tr>
-<tr><td>1</td><td><code>*-spec-basic.md</code></td><td>企畫版規格書（含線框圖 DSL）</td></tr>
-<tr><td>2</td><td><code>*-spec-advanced.md</code></td><td>技術規格書（Mermaid 圖、API 規格）</td></tr>
-<tr><td>3</td><td><code>*-assets.md</code></td><td>完整資源清單＋AI Prompt</td></tr>
-<tr><td>4</td><td><code>*-bdd.md</code></td><td>完整 BDD（Gherkin，中英文）</td></tr>
-<tr><td>5</td><td><code>*-scrum.md</code></td><td>SCRUM 故事卡＋Sprint 規劃</td></tr>
-<tr><td>6</td><td><code>*-docs.html</code></td><td>切換式 HTML 文件（<strong>見品質規範</strong>）</td></tr>
-<tr><td>7</td><td><code>*-prototype.html</code></td><td>互動原型（<strong>見品質規範</strong>）</td></tr>
+<tr><th>#</th><th>檔案</th><th>內容</th></tr>
+<tr><td>1</td><td><code>&lt;slug&gt;-spec-basic.md</code></td><td>企畫版規格書 — 含 wireframes（wf-* DSL）+ 6+ 競業深度分析（mechanic / RTP / payout / user_flow / differentiation / weakness）</td></tr>
+<tr><td>2</td><td><code>&lt;slug&gt;-spec-advanced.md</code></td><td>技術規格書 — Mermaid 架構圖 + Cocos client 設計 + API 列表 + MySQL schema + Redis cache 策略</td></tr>
+<tr><td>3</td><td><code>&lt;slug&gt;-assets.md</code></td><td>資源清單 + 完整 AI Prompt（圖像 / 音效）</td></tr>
+<tr><td>4</td><td><code>&lt;slug&gt;-bdd.md</code></td><td>BDD（Gherkin 中英文 + 每個 scenario 配 sequenceDiagram + 標註涉及 API + 資料來源）</td></tr>
+<tr><td>5</td><td><code>&lt;slug&gt;-scrum.md</code></td><td>SCRUM 故事卡（5 群組：基礎/美術/邏輯/獎勵/QA）</td></tr>
+<tr><td>6</td><td><code>&lt;slug&gt;-prototype.html</code></td><td>互動原型 — AI 自由產 inline HTML/CSS/JS（依 spec-basic 的 wireframes 設計），零依賴、375px mobile-first</td></tr>
+<tr><td>7</td><td><code>&lt;slug&gt;-docs.html</code></td><td>整合 docs — gendoc-style sidebar（📁 文件 / 📑 本頁目錄）+ API explorer（sidebar 點 endpoint 試打 + Copy cURL）</td></tr>
 </table>
-<h3 id="23-語言">2.3 語言</h3>
-<ul><li>所有文件雙語：<strong>繁體中文 + 英文</strong></li><li>HTML 文件提供語言切換按鈕，<strong>必須切換全部內容</strong>（包含 Tab 名稱、章節標題、正文、表格、BDD）</li></ul>
-<h3 id="24-技術棧">2.4 技術棧</h3>
-<ul><li>Client：Cocos Creator</li><li>Server：Node.js + Fastify</li><li>DB：MongoDB + Redis</li><li>動畫：Spine / DragonBones</li><li>音效：WAV / OGG</li></ul>
+<h3 id="23-技術棧強制套用">2.3 技術棧（強制套用）</h3>
+<table>
+<tr><th>層</th><th>技術</th><th>Driver</th></tr>
+<tr><td>Client</td><td>Cocos Creator</td><td>—</td></tr>
+<tr><td>Server</td><td>Node.js + Express</td><td>—</td></tr>
+<tr><td>DB</td><td>MySQL</td><td>mysql2 / Sequelize</td></tr>
+<tr><td>Cache</td><td>Redis</td><td>ioredis</td></tr>
+</table>
+<p>prompts 明確帶這套 stack；spec-advanced / bdd / scrum 一律按此產出。</p>
 <hr>
-<h2 id="三品質規範">三、品質規範</h2>
-<h3 id="31-線框圖標準">3.1 線框圖標準</h3>
-<ul><li>企畫版文件<strong>必須包含低保真 wireframe</strong>（參考 <code>preview.html</code> 的 wireframe DSL 樣式）</li><li>線框圖需涵蓋：主畫面、獲獎彈窗、後台設定頁、倒數狀態</li><li>風格：白底、黑色邊框、placeholder 標示、skeleton 元素</li><li>圖文並排：每個畫面線框圖旁邊有對應的功能說明</li></ul>
-<h3 id="32-工程圖標準">3.2 工程圖標準</h3>
-<ul><li><strong>禁止使用 ASCII art</strong>，改用 <strong>Mermaid 語法</strong></li><li>每個 API endpoint 必須有對應的 <strong>Sequence Diagram</strong></li><li>API 文件需有互動式 input/output 展示（在 HTML 中可修改 input 看 output 格式）</li></ul>
-<h3 id="33-html-文件-docshtml">3.3 HTML 文件（*-docs.html）</h3>
-<ul><li>版面 <strong>100% 寬度響應式</strong>，不得有固定小寬度限制</li><li>語言切換必須影響<strong>所有內容</strong>（Tab、標題、正文、表格、BDD、資源清單）</li><li>含一個「開啟原型」按鈕，點擊後在<strong>新視窗</strong>開啟 <code>*-prototype.html</code></li><li>BDD section 所有 Scenario <strong>全展開</strong>，不使用 Accordion 收折</li><li>資源清單數量與文件目錄一致，<strong>全部完整列出</strong></li><li>競業分析的每個競業名稱/連結可<strong>點擊開新分頁</strong></li></ul>
-<h3 id="34-互動原型-prototypehtml">3.4 互動原型（*-prototype.html）</h3>
-<ul><li><strong>完全響應式</strong>，自適應瀏覽器寬度（不得有固定小寬度）</li><li>在桌機/平板/手機上都應正常顯示</li><li>不依賴外部 CDN（完全離線可用）</li><li>左上角有操作說明面板</li></ul>
+<h2 id="三實作層">三、實作層</h2>
+<h3 id="31-pipeline-driver">3.1 Pipeline driver</h3>
+<p><code>tools/renderer/pipeline.py</code>：</p>
+<ul><li>讀 <code>pipeline.json</code>（步驟定義 + 依賴）</li><li>為每 step 組合 prompt（內嵌 brief / schema / example / 上一步輸出 / 上次 errors）</li><li>呼叫 <code>claude -p</code> 子程序</li><li>jsonschema 驗證；fail 進 fix loop（最多 N 次，預設 3）</li><li>pass 後呼叫 <code>render.py</code> 渲染</li></ul>
+<h3 id="32-output-慣例">3.2 OUTPUT 慣例</h3>
+<p><code>OUTPUT_ROOT = Path.cwd() / &quot;output&quot;</code>：</p>
+<ul><li>寫到使用者 CWD，不污染 runtime</li><li>路徑：<code>&lt;cwd&gt;/output/&lt;feature.slug&gt;/&lt;YYYYMMDD-HHMMSS&gt;/</code></li><li>每次 <code>--new</code> 開新時間戳；不帶 <code>--new</code> 自動 resume 最新一次未完成 run</li></ul>
+<h3 id="33-templates">3.3 Templates</h3>
+<pre><code class="">templates/
+├── *.tmpl                      # Jinja2 模板（7 份）
+├── schemas/&lt;type&gt;.schema.json  # JSON Schema（驗證 input.json）
+├── examples/&lt;type&gt;.input.json  # canonical example（placeholder，純結構參考）
+└── prompts/
+    ├── &lt;type&gt;.prompt.md        # 7 份 generate prompt
+    ├── _fix.prompt.md          # 通用 fix prompt（吃 errors + previous_json）
+    └── wireframe-dsl.md        # wf-* CSS class 規範（給 spec-basic 內嵌）</code></pre>
+<h3 id="34-skills">3.4 Skills</h3>
+<table>
+<tr><th>Skill</th><th>觸發</th><th>動作</th></tr>
+<tr><td><code>/genecr-flow &quot;&lt;brief&gt;&quot;</code></td><td>主流程</td><td>AI 萃取 slug+name → 跑 pipeline.py</td></tr>
+<tr><td><code>/genecr-upgrade</code></td><td>同 host 升級</td><td>自動偵測當前 host（看 skill base dir）→ git pull + redeploy</td></tr>
+</table>
+<p>兩個 skill 都依「Base directory for this skill」header 決定 host，<strong>不用 for-loop 跨 host 偵測</strong>。</p>
 <hr>
-<h2 id="四已知-issues待修正">四、已知 Issues（待修正）</h2>
-<h3 id="issue-1企畫文件缺少線框圖">Issue #1：企畫文件缺少線框圖</h3>
-<p><strong>問題</strong>：spec-basic.md 和 docs.html 企畫版全為文字，缺少低保真線框圖</p>
-<p><strong>期望</strong>：參考 <code>preview.html</code> 的 wireframe 風格，每個畫面都要有線框圖，圖文並排</p>
-<p><strong>影響</strong>：企畫版、HTML 文件的企畫 Tab</p>
-<p><strong>優先級</strong>：P0</p>
-<h3 id="issue-2html-寬度未自適應">Issue #2：HTML 寬度未自適應</h3>
-<p><strong>問題</strong>：<code>lucky-wheel-docs.html</code> 內容區域有 <code>max-width: 420px</code> 限制，在桌機上顯示偏小</p>
-<p><strong>期望</strong>：寬度 100%，左右 padding 合理，所有 grid 響應式</p>
-<p><strong>影響</strong>：docs.html</p>
-<p><strong>優先級</strong>：P0</p>
-<h3 id="issue-3語言切換只改部分內容">Issue #3：語言切換只改部分內容</h3>
-<p><strong>問題</strong>：點擊「繁中/EN」按鈕，只有少部分文字切換，Tab 名稱、表格內容、BDD 等未切換</p>
-<p><strong>期望</strong>：所有內容（Tab、標題、正文、表格、BDD Scenario、資源名稱）都要切換</p>
-<p><strong>影響</strong>：docs.html</p>
-<p><strong>優先級</strong>：P0</p>
-<h3 id="issue-4文件缺少原型連結">Issue #4：文件缺少原型連結</h3>
-<p><strong>問題</strong>：docs.html 沒有連結到 prototype.html</p>
-<p><strong>期望</strong>：在文件頂部或浮動按鈕，點擊後在新視窗開啟 prototype.html</p>
-<p><strong>影響</strong>：docs.html</p>
-<p><strong>優先級</strong>：P1</p>
-<h3 id="issue-5資源清單數量不一致">Issue #5：資源清單數量不一致</h3>
-<p><strong>問題</strong>：資源統計寫「20 圖片 + 6 動畫 + 8 音效 + 4 特效 = 38 個」，但 HTML 中只展開了 4 個</p>
-<p><strong>期望</strong>：所有 38 個資源條目完整列出，每個都有完整 AI Prompt</p>
-<p><strong>影響</strong>：docs.html 的資源清單 Tab</p>
-<p><strong>優先級</strong>：P0</p>
-<h3 id="issue-6bdd-未全展開">Issue #6：BDD 未全展開</h3>
-<p><strong>問題</strong>：docs.html 中 BDD Scenario 使用 Accordion 收折，只展開部分案例</p>
-<p><strong>期望</strong>：所有 14 個 Scenario 全部展開，讓人一眼看到完整測試範圍</p>
-<p><strong>影響</strong>：docs.html 的 BDD Tab</p>
-<p><strong>優先級</strong>：P0</p>
-<h3 id="issue-7prototype-未響應式">Issue #7：Prototype 未響應式</h3>
-<p><strong>問題</strong>：prototype.html 有 <code>max-width: 420px</code> 限制，在大螢幕上小小一個</p>
-<p><strong>期望</strong>：完全響應式，桌機時展開為大版面（可左右分欄：左邊互動，右邊說明）</p>
-<p><strong>影響</strong>：prototype.html</p>
-<p><strong>優先級</strong>：P0</p>
-<h3 id="issue-8競業分析缺少可點擊連結">Issue #8：競業分析缺少可點擊連結</h3>
-<p><strong>問題</strong>：競業分析表格沒有連結，無法直接查看競業平台</p>
-<p><strong>期望</strong>：每個競業名稱都是可點擊連結，<code>target=&quot;_blank&quot;</code> 開新分頁</p>
-<p><strong>影響</strong>：docs.html 企畫版、spec-basic.md</p>
-<p><strong>優先級</strong>：P1</p>
+<h2 id="四品質規範">四、品質規範</h2>
+<h3 id="41-docshtml">4.1 docs.html</h3>
+<ul><li>gendoc-style：頂導覽（深色 slate）+ 左 sidebar（白底）+ 右 main（白底，full viewport）</li><li>Sidebar 兩 tab：📁 文件 / 📑 本頁目錄；可收合（Ctrl+\\）</li><li>切到 API panel 時，📑 本頁目錄自動列 endpoints；點 endpoint 載入該支試打表單</li><li>API 試打：path/query params 自動偵測（<code>{xxx}</code> → input）+ Request Body preset + Try It（前端 mock）+ Copy cURL（inline 顯示）</li><li>Mermaid 圖：點圖開 lightbox，支援滾輪 zoom / 拖曳 pan / +/-/0/ESC 鍵</li><li>表格：自然寬，超寬時內捲不撐爆頁面</li><li>互動原型：因 file:// 安全策略，按鈕在新分頁開啟（不 iframe）</li></ul>
+<h3 id="42-prototypehtml">4.2 prototype.html</h3>
+<ul><li>完全自由設計（AI 從 spec-basic.wireframes + user_journey 建構）</li><li>零外部依賴（無 CDN、無 link、無遠端 img）</li><li>Mobile-first 375px viewport，深色背景 + iGaming 視覺</li><li>至少 3 個互動 step（含浮動操作說明面板）</li></ul>
+<h3 id="43-spec-basic-線框圖">4.3 spec-basic 線框圖</h3>
+<ul><li>每份 spec-basic 必須含 <code>wireframes</code> 陣列（3-6 張）</li><li>HTML 用 <code>wf-*</code> DSL class（<code>&lt;div class=&quot;wf-scope&quot;&gt;…&lt;/div&gt;</code>），無彩色、無漸層、無陰影 &gt; 18px</li><li>主要：<code>.wf-mobile</code> / <code>.wf-modal</code> / <code>.wf-frame</code> / <code>.wf-stage</code> / <code>.wf-pill</code> / <code>.wf-btn</code> / <code>.wf-skeleton-*</code></li></ul>
+<h3 id="44-競業分析">4.4 競業分析</h3>
+<ul><li>至少 6 競業，跨市場（亞洲/北美/LATAM/東南亞）</li><li>每個競業填 6 欄：<code>mechanic</code> / <code>rtp</code> / <code>payout</code> / <code>user_flow</code> / <code>differentiation</code> / <code>weakness</code></li><li>URL 必填且渲染為可點連結</li></ul>
+<h3 id="45-bdd">4.5 BDD</h3>
+<ul><li>每個核心 scenario 至少 3 種：正常 / 邊界 / 異常</li><li>每個 scenario 附 Mermaid sequenceDiagram（用 MySQL / Redis）</li><li>涉及 API 用 <code>[api-xxx]</code> 連結到技術版錨點</li></ul>
 <hr>
-<h2 id="五mermaid-圖規範">五、Mermaid 圖規範</h2>
-<p>所有技術文件必須使用 Mermaid 語法，範例：</p>
-<div class="diagram-container"><pre class="mermaid">sequenceDiagram
-    participant C as Client (Cocos)
-    participant S as Server (Node.js)
-    participant DB as MongoDB
-    participant R as Redis
-
-    C-&gt;&gt;S: POST /api/v1/spin/daily
-    S-&gt;&gt;R: GET spin:last:{userId}
-    R--&gt;&gt;S: null (未轉過)
-    S-&gt;&gt;S: 加權隨機 + 保底邏輯
-    S-&gt;&gt;DB: 寫入 spin_logs
-    S-&gt;&gt;R: SET spin:last:{userId}
-    S--&gt;&gt;C: {prizeId, prizeValue, nextSpinAt}
-    C-&gt;&gt;C: 播放動畫
-    C-&gt;&gt;C: 顯示結果彈窗</pre></div>
+<h2 id="五資料邊界鐵律">五、資料邊界（鐵律）</h2>
+<table>
+<tr><th>動作</th><th>位置</th><th>規範</th></tr>
+<tr><td>讀 templates / tools / schemas</td><td><code>$GENECR_DIR</code>（runtime）</td><td>✅ 唯一來源</td></tr>
+<tr><td>寫產出</td><td><code>$CWD/output/&lt;slug&gt;/&lt;datetime&gt;/</code></td><td>✅ 唯一可寫</td></tr>
+<tr><td>寫 runtime</td><td>runtime 任何位置</td><td>❌ 絕不</td></tr>
+<tr><td>讀 dev tree（C:/Projects/genecr）</td><td>—</td><td>❌ skill 不依賴</td></tr>
+</table>
 <hr>
-<h2 id="六線框圖-dsl-規範企畫版">六、線框圖 DSL 規範（企畫版）</h2>
-<p>線框圖使用與 <code>preview.html</code> 相同的低保真 wireframe 風格：</p>
-<ul><li>白底背景（<code>#f6f7f9</code>）</li><li>黑色邊框（<code>var(--ink): #1f2937</code>）</li><li>Skeleton placeholder（條紋填充）</li><li>每個畫面有標題說明</li></ul>
+<h2 id="六change-log">六、Change Log</h2>
+<table>
+<tr><th>版本</th><th>日期</th><th>變更摘要</th></tr>
+<tr><td>v2.0</td><td>2026-05-14</td><td><strong>架構重寫</strong>：pipeline.json + tools/renderer 為核心。新增 generate→validate→fix loop、brief 萃取 feature.json、wireframes（wf-* DSL）、6+ 競業深度欄位、gendoc-style docs.html（sidebar tabs + API explorer）、setup 對齊 gendoc 慣例（_deploy_tools / upgrade re-exec / _find_python）。Tech stack 從 Fastify+MongoDB → Express+MySQL。新增 <code>/genecr-flow</code> skill。</td></tr>
+<tr><td>v1.1</td><td>2026-05-13</td><td>lucky-wheel 範例下記錄 8 個 P0/P1 issue（線框、寬度、雙語、原型連結、資源完整性、BDD 全展、prototype 響應、競業連結）</td></tr>
+<tr><td>v1.0</td><td>2026-05-12</td><td>初版，定義 7 份產出、Cocos + Node.js + Fastify + MongoDB tech stack</td></tr>
+</table>
 <hr>
 <h2 id="七未來規劃">七、未來規劃</h2>
-<ul><li style="list-style:none"><input type="checkbox" disabled> PDF 自動生成功能</li><li style="list-style:none"><input type="checkbox" disabled> 自動截取競業平台截圖</li><li style="list-style:none"><input type="checkbox" disabled> 多語言輸出（日文、韓文、英文版）</li><li style="list-style:none"><input type="checkbox" disabled> 與 JIRA / Linear 整合（自動建立 Story）</li><li style="list-style:none"><input type="checkbox" disabled> 節慶主題自動切換（聖誕、農曆新年）</li></ul>
+<ul><li style="list-style:none"><input type="checkbox" disabled> 雙語產出（中＋英 + es / pt-BR / ja）</li><li style="list-style:none"><input type="checkbox" disabled> PDF 自動產生</li><li style="list-style:none"><input type="checkbox" disabled> 自動截取競業平台截圖（Playwright）</li><li style="list-style:none"><input type="checkbox" disabled> 與 JIRA / Linear 整合（自動建立 Story）</li><li style="list-style:none"><input type="checkbox" disabled> 節慶主題模式（聖誕、農曆新年）</li><li style="list-style:none"><input type="checkbox" disabled> 多 LLM 適配（OpenAI / Gemini，目前綁 Claude CLI）</li></ul>
 <hr>
-<p><em>文件版本：v1.1 ｜ 由 GeneCR 專案維護</em></p></main>
+<p><em>文件版本：v2.0 ｜ 由 GeneCR 專案維護</em></p></main>
   </div>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';

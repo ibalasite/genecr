@@ -1,56 +1,65 @@
 # genecr — iGaming 功能需求文件自動生成器
 
 > **G**ame D**e**sign **C**reation + **R**equirements
-> 讓一份需求文件，同時服務企畫、工程、美術、QA。
+> 一句 brief，產出讓**整個團隊都能直接用**的 7 份文件套件。
 
-把一個 iGaming 功能需求，自動轉成讓**整個開發團隊都能直接使用**的完整文件套件：
-企畫基礎版、進階技術版、資源清單＋AI Prompt、BDD 測試案例、SCRUM 故事卡、
-切換式 HTML 文件、可互動 HTML 原型。
+把一個 iGaming 功能需求，自動轉成完整文件套件：
+企畫版（含線框圖）、技術版（API + Mermaid）、資源清單＋AI Prompt、BDD、SCRUM、互動原型、整合 docs.html。
 
-**Host-neutral**：同時支援 [Claude Code](https://claude.com/claude-code) 與 [Codex CLI](https://github.com/openai/codex)，skill 內容不綁死任何一家。
+**Host-neutral**：同時支援 [Claude Code](https://claude.com/claude-code) 與 [Codex CLI](https://github.com/openai/codex)。
 
 ---
 
-## 目錄結構
+## 架構
 
 ```
 genecr/
 ├── README.md
-├── SKILL.md                       # 主 skill — 章節骨架 / i18n 詞表已內聯，無外部檔依賴
-├── setup                          # bash (Git Bash / macOS / Linux)，支援 claude|codex|all
-├── setup.ps1                      # PowerShell (Windows)
-├── bin/
-│   ├── genecr-env.sh              # host-neutral：從自身位置反推 $GENECR_DIR
-│   └── genecr-env.ps1
-├── skills/
-│   └── genecr-upgrade/            # 子 skill — 部署時 copy 到 host 的 skills/
-├── templates/                     # 所有必要 asset 一次帶齊（完全離線）
-│   ├── wireframe-dsl.md           # 低保真線框圖 DSL 規範（必讀）
-│   ├── wireframe-snippets.html    # DSL 對應的 CSS + HTML 範例（複製貼上即用）
-│   ├── genecr-template.html       # 切換式 HTML 文件 master template（system font，無 CDN）
-│   └── mermaid.min.js             # mermaid v11 離線版（2.5 MB，禁止 CDN 規則所需）
-├── tools/bin/
-├── assets/
-├── evals/
-├── references/                    # 本機保留（公司範本等），預設 gitignore
-└── output/                        # 使用者執行 genecr 後產生的文件（gitignore）
+├── pipeline.json              # 流程定義（7 step + AI 設定 + 依賴）
+├── setup / setup.ps1          # host 安裝（claude | codex | all）— 仿 gendoc 慣例
+├── bin/genecr-env.{sh,ps1}    # runtime 路徑探測（GENECR_DIR/TEMPLATES/...）
+├── skills/                    # 部署到 host 的 sub skills
+│   ├── genecr-flow/           # /genecr-flow "<brief>" — 跑完整 pipeline
+│   └── genecr-upgrade/        # /genecr-upgrade — git pull + redeploy
+├── templates/                 # 一切由 pipeline 讀取（離線）
+│   ├── *.tmpl                 # 7 份 Jinja2 模板（spec-basic / spec-advanced / assets / bdd / scrum / prototype / docs）
+│   ├── schemas/               # JSON Schema — 用於 generate→validate→fix loop
+│   ├── examples/              # canonical 範例 input.json（純 placeholder，不綁特定 feature）
+│   ├── prompts/               # 7 份 AI prompt（含 _fix.prompt.md fix-loop 通用版）
+│   └── wireframe-dsl.md       # 低保真線框圖 DSL（wf-* class 規範）
+└── tools/
+    ├── renderer/              # 源碼
+    │   ├── pipeline.py        # 流程驅動：brief → generate → validate → fix → render
+    │   ├── render.py          # 單 type 渲染（template + JSON → 輸出檔）
+    │   ├── orchestrate.py     # 一次跑 7 step（manifest 模式）
+    │   ├── build.sh           # 由 setup _deploy_tools 自動呼叫，cp .py → ../bin/
+    │   └── requirements.txt   # jinja2 / jsonschema / markdown
+    └── bin/                   # 由 build.sh 同步，**正式執行入口**
+        └── (render.py, pipeline.py, orchestrate.py — 自動產生)
+
+# 使用者執行後產出（在 user 的 CWD，不污染 runtime）
+output/<feature-slug>/<YYYYMMDD-HHMMSS>/
+├── brief.txt                  # 使用者需求描述
+├── feature.json               # {slug, name}（從 brief 萃取）
+├── *.combined.prompt.md       # AI 看到的最終 prompt（含 brief / schema / example 內嵌）
+├── *.input.json               # AI 產出的結構化資料
+├── <slug>-spec-basic.md       # 企畫版（含 wireframes、6+ 競業深度分析）
+├── <slug>-spec-advanced.md    # 技術版（API、Mermaid、MySQL schema）
+├── <slug>-assets.md           # 資源清單 + AI Prompt
+├── <slug>-bdd.md              # BDD（Gherkin + sequence diagram）
+├── <slug>-scrum.md            # SCRUM 故事卡
+├── <slug>-prototype.html      # 互動原型（zero-dep, mobile-first）
+└── <slug>-docs.html           # 整合 docs（sidebar + tab + API explorer）
 ```
 
-**部署行為**：
-1. `git clone <REPO_URL> <host-skills-dir>/genecr`（每個 host 各 clone 一份）
-2. 跑 `setup [claude|codex|all]` 把 `genecr/skills/*/` 部署到該 host 的 `skills/`
-3. 主 skill `genecr` 從 runtime root 的 `SKILL.md` 直接生效（host 掃 `skills/*/SKILL.md`）
+**鐵律**：
+- runtime（`$GENECR_DIR`）只讀；不寫任何使用者資料進 runtime
+- 所有產出寫到 user CWD 下的 `./output/<slug>/<datetime>/`
+- skill 開頭一律 `source "$GENECR_DIR/bin/genecr-env.sh"`
 
-**資料來源邊界（鐵律）**：
-- Skill 執行時，**只**從 runtime（由 `$GENECR_DIR` 定位）讀 templates / tools
-- **絕不**從開發者的工作樹（如 `C:/projects/genecr/`）讀任何檔案
-- 產出物**只**寫到使用者當前工作目錄下的 `./output/[feature-slug]/`
-- 所有 skill 開頭必須 `source "$GENECR_DIR/bin/genecr-env.sh"`（**不可**寫死 `~/.claude/...`）
-
-**離線保證**：
-- ❌ 不抓 Google Fonts / cdn.jsdelivr / unpkg / cdnjs（templates 已淨化）
-- ❌ 不依賴 `references/` 內任何檔（章節結構 + i18n 詞表已內聯進 SKILL.md）
-- ✅ 唯一需要網路的是**競業調查**階段的 WebSearch / WebFetch（可選，斷網會跳過）
+**離線**：
+- ❌ 不抓 CDN（mermaid.min.js 內附；docs.html 用內聯 mermaid）
+- ✅ 唯一需要網路：跑時 AI 自己選擇是否用 web research（可斷網跳過）
 
 ---
 
@@ -58,117 +67,135 @@ genecr/
 
 ### 🟣 Claude Code
 
-#### macOS / Linux / Windows (Git Bash)
-
 ```bash
 git clone https://github.com/ibalasite/genecr.git ~/.claude/skills/genecr
 ~/.claude/skills/genecr/setup claude
 ```
 
-#### Windows (PowerShell)
-
-```powershell
-git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.claude\skills\genecr"
-& "$env:USERPROFILE\.claude\skills\genecr\setup.ps1" claude
-```
-
 ### 🟢 Codex CLI
-
-#### macOS / Linux / Windows (Git Bash)
 
 ```bash
 git clone https://github.com/ibalasite/genecr.git ~/.codex/skills/genecr
 ~/.codex/skills/genecr/setup codex
 ```
 
-#### Windows (PowerShell)
-
-```powershell
-git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.codex\skills\genecr"
-& "$env:USERPROFILE\.codex\skills\genecr\setup.ps1" codex
-```
-
-### 🔁 兩個都要
+### 🔁 兩個都裝
 
 ```bash
-# 任一已 clone 的 runtime 都可以執行 all（會把兩邊都裝起來）
 ~/.claude/skills/genecr/setup install all
-# 或 PowerShell
-& "$env:USERPROFILE\.claude\skills\genecr\setup.ps1" install all
 ```
 
-安裝完成後**重啟 Claude Code / Codex** 讓新 skill 生效。
-往後對話說「升級 genecr」即會自動執行 `setup upgrade`（git pull + redeploy 當前 host）。
+### Windows PowerShell
+
+```powershell
+git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.claude\skills\genecr"
+& "$env:USERPROFILE\.claude\skills\genecr\setup.ps1" claude
+```
+
+`setup` 內部依序：`git clone` → `_deploy_skills`（部署 sub skills）→ `_deploy_tools`（跑 `tools/renderer/build.sh` 把 .py 拷到 `tools/bin/`）。
+
+安裝完**重啟** Claude Code / Codex 讓 skill 生效。
 
 ---
 
 ## 使用
 
-安裝後，在 Claude Code 或 Codex 任意對話中描述 iGaming 功能需求即可觸發，例如：
+### 一行觸發
 
-> 我要建立 iGaming 排行榜機制，週排行榜，玩家下注金額累積積分，前 10 名可以領獎
+在 Claude Code / Codex 任意對話：
 
-genecr 會自動：
-1. 深度競業調查（北美 / 哥斯大黎加 / 東南亞 / 台灣）
-2. 產出 7 份文件到當前工作目錄 `./output/[feature-slug]/`：
-   - `*-spec-basic.md`（企畫版規格書 + wireframe）
-   - `*-spec-advanced.md`（技術版）
-   - `*-assets.md`（資源清單 + AI Prompt）
-   - `*-bdd.md`（BDD + sequenceDiagram）
-   - `*-scrum.md`（SCRUM 故事卡）
-   - `*-docs.html`（切換式 HTML 文件，含 API 試打面板，**離線** mermaid）
-   - `*-prototype.html`（互動原型）
+```
+/genecr-flow 老玩家每儲值 1000 送刮刮券，玩遊戲也會掉，20-5000 倍大獎，未中獎有幸運代號每週抽，不能讓代理商損失
+```
 
-詳細產出規格請見 [`SKILL.md`](./SKILL.md)。
+或自然語言「**genecr 跑流程做 X 功能**」。
 
-### Codex 注意事項（sandbox / approval）
+### 流程內部（程式控制，不靠 AI 協調）
 
-Codex 對檔案與命令更重視 sandbox。genecr 執行期間會：
+```
+1. AI 從 brief 萃取 SLUG + NAME → feature.json
+2. pipeline.py 依 pipeline.json 順序跑 7 step：
+   spec-basic → spec-advanced → assets → bdd → scrum → prototype → docs
+   （prototype 依賴 spec-basic；docs 最後合併）
+3. 每個 step：
+   a. AI generate（讀 brief + schema + example，全部內嵌進 prompt）
+   b. jsonschema 驗證（程式判斷，AI 不參與）
+   c. 過 → renderer 用 Jinja2 template 渲染成 .md / .html
+   d. 不過 → AI fix（讀 errors + 上次 JSON），最多 3 次
+4. docs.html 最後集成所有 .md + API explorer（sidebar tab：📁 文件 / 📑 本頁目錄）
+```
 
-| 動作 | 範圍 | 是否需要 approval |
-|------|------|-----------------|
-| 讀取 `$GENECR_*` 內所有檔案 | runtime（已安裝目錄） | ❌ |
-| 寫入 `./output/<slug>/` | user CWD | 視 Codex 設定 |
-| `git pull`（升級 skill 時） | runtime | ✅（網路） |
-| WebSearch / WebFetch 競業調查 | 外網 | ✅（網路） |
-| 寫入 `~/.claude/...` 或 `~/.codex/...` | home | ✅（升級 / 安裝時） |
+### 直接呼叫 pipeline.py（進階）
 
-如果 Codex 在 sandbox 模式下，建議：競業調查可改用本地 references；升級指令在 host 外手動執行。
+```bash
+# 在自己專案目錄下，輸出寫到 ./output/
+python ~/.claude/skills/genecr/tools/bin/pipeline.py \
+  ~/.claude/skills/genecr/pipeline.json \
+  --new --slug bingo --name "賓果" "我想做一個隨時可以買賓果的遊戲..."
+
+# 旗標
+--status     # 看最近一次 run 的進度（純看檔案存在性）
+--watch      # 持續監看，每 2s 一次
+--new        # 強制新時間戳（否則 resume 最新一次未完成 run）
+```
+
+---
+
+## 技術棧（產出文件套用）
+
+| 層 | 技術 |
+|---|---|
+| Client | Cocos Creator |
+| Server | Node.js + Express |
+| DB | MySQL |
+| Cache | Redis |
+
+prompts 對 AI 明確指定，產出的 spec-advanced / bdd / scrum 都以此為準。
 
 ---
 
 ## 升級
 
 ```bash
-# 任一 host 的 runtime 都可以執行 upgrade
 ~/.claude/skills/genecr/setup upgrade           # 只升 claude
 ~/.codex/skills/genecr/setup upgrade            # 只升 codex
 ~/.claude/skills/genecr/setup upgrade all       # 兩邊都升
 
-# 對話內：說「升級 genecr」會自動跑（會自動偵測當前 host）
+# 或對話內：「升級 genecr」會觸發 /genecr-upgrade（同 host 自動偵測）
 ```
+
+升級流程：`git pull` → `exec setup _post_upgrade <host>`（gendoc-style re-exec，新版 setup 立即生效）→ `_deploy_skills` + `_deploy_tools`（rebuild tools/bin/）。
 
 ---
 
 ## 開發
 
-`~/.claude/skills/genecr/` 或 `~/.codex/skills/genecr/` 本身就是 git working tree，直接在那裡編輯：
+`~/.claude/skills/genecr/` 本身就是 git working tree。但**建議**：
 
 ```bash
-cd ~/.claude/skills/genecr   # 或 ~/.codex/skills/genecr
+git clone https://github.com/ibalasite/genecr.git ~/dev/genecr
+cd ~/dev/genecr
 # ...edit...
-./setup upgrade              # 把 skills/* 重新部署到當前 host
-# 滿意後 git commit && git push
+
+# 直接跑 source（不必先 build）：
+python tools/renderer/pipeline.py pipeline.json --new --slug X --name Y "brief"
+
+# 同步 source → bin（部署檢查）：
+BIN_DIR="$(pwd)/tools/bin" PACKAGE_DIR="$(pwd)/tools/renderer" PY="python" \
+  bash tools/renderer/build.sh
+
+git push
+# 別處跑 /genecr-upgrade 即拉到最新
 ```
 
-別的機器跑 `setup upgrade` 即會 git pull 同步。
+**不要直接編輯 runtime（`~/.claude/skills/genecr/`）**：每次 `/genecr-upgrade` 會被覆蓋。
 
 ---
 
 ## 解除安裝
 
 ```bash
-~/.claude/skills/genecr/setup uninstall          # 移除 claude
-~/.codex/skills/genecr/setup uninstall           # 移除 codex
+~/.claude/skills/genecr/setup uninstall          # 只移除 claude
+~/.codex/skills/genecr/setup uninstall           # 只移除 codex
 ~/.claude/skills/genecr/setup uninstall all      # 兩邊都移除
 ```

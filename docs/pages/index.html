@@ -322,68 +322,140 @@
       <button class="sidebar__toggle" id="sidebarCollapseBtn" type="button" aria-label="收合 / 展開側欄" title="收合 / 展開">⇤</button><div class="sidebar__tabs" role="tablist"><button class="sidebar__tab active" data-tab="docs" type="button" role="tab" aria-selected="true">📁 文件</button><button class="sidebar__tab" data-tab="toc" type="button" role="tab" aria-selected="false">📑 本頁目錄</button></div><div class="sidebar__panel active" data-panel="docs" role="tabpanel"><div class="sidebar__section">
 <a class="sidebar__link active" href="index.html">🏠 首頁</a>
 <a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
-</div></div><div class="sidebar__panel" data-panel="toc" role="tabpanel"><ul class="toc-list"><li><a class="toc__link" href="#目錄結構仿-gendoc">目錄結構（仿 gendoc）</a></li><li><a class="toc__link" href="#安裝">安裝</a></li><li><a class="toc__link toc__link--h3" href="#macos--linux--windows-git-bash">macOS / Linux / Windows (Git Bash)</a></li><li><a class="toc__link toc__link--h3" href="#windows-powershell">Windows (PowerShell)</a></li><li><a class="toc__link" href="#使用">使用</a></li><li><a class="toc__link" href="#開發">開發</a></li></ul></div>
+</div></div><div class="sidebar__panel" data-panel="toc" role="tabpanel"><ul class="toc-list"><li><a class="toc__link" href="#架構">架構</a></li><li><a class="toc__link" href="#安裝">安裝</a></li><li><a class="toc__link toc__link--h3" href="#claude-code">🟣 Claude Code</a></li><li><a class="toc__link toc__link--h3" href="#codex-cli">🟢 Codex CLI</a></li><li><a class="toc__link toc__link--h3" href="#兩個都裝">🔁 兩個都裝</a></li><li><a class="toc__link toc__link--h3" href="#windows-powershell">Windows PowerShell</a></li><li><a class="toc__link" href="#使用">使用</a></li><li><a class="toc__link toc__link--h3" href="#一行觸發">一行觸發</a></li><li><a class="toc__link toc__link--h3" href="#流程內部程式控制不靠-ai-協調">流程內部（程式控制，不靠 AI 協調）</a></li><li><a class="toc__link toc__link--h3" href="#直接呼叫-pipelinepy進階">直接呼叫 pipeline.py（進階）</a></li><li><a class="toc__link" href="#技術棧產出文件套用">技術棧（產出文件套用）</a></li><li><a class="toc__link" href="#升級">升級</a></li><li><a class="toc__link" href="#開發">開發</a></li><li><a class="toc__link" href="#解除安裝">解除安裝</a></li></ul></div>
     </aside>
     <div class="sidebar-resizer" id="sidebarResizer"></div>
     <main class="doc-content"><h1 id="genecr--igaming-功能需求文件自動生成器">genecr — iGaming 功能需求文件自動生成器</h1>
 <blockquote><p><strong>G</strong>ame D<strong>e</strong>sign <strong>C</strong>reation + <strong>R</strong>equirements</p></blockquote>
-<blockquote><p>讓一份需求文件，同時服務企畫、工程、美術、QA。</p></blockquote>
-<p>把一個 iGaming 功能需求，自動轉成讓<strong>整個開發團隊都能直接使用</strong>的完整文件套件：</p>
-<p>企畫基礎版、進階技術版、資源清單＋AI Prompt、BDD 測試案例、SCRUM 故事卡、</p>
-<p>切換式 HTML 文件、可互動 HTML 原型。</p>
+<blockquote><p>一句 brief，產出讓<strong>整個團隊都能直接用</strong>的 7 份文件套件。</p></blockquote>
+<p>把一個 iGaming 功能需求，自動轉成完整文件套件：</p>
+<p>企畫版（含線框圖）、技術版（API + Mermaid）、資源清單＋AI Prompt、BDD、SCRUM、互動原型、整合 docs.html。</p>
+<p><strong>Host-neutral</strong>：同時支援 <a href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a> 與 <a href="https://github.com/openai/codex" target="_blank" rel="noopener">Codex CLI</a>。</p>
 <hr>
-<h2 id="目錄結構仿-gendoc">目錄結構（仿 gendoc）</h2>
+<h2 id="架構">架構</h2>
 <pre><code class="">genecr/
 ├── README.md
-├── SKILL.md         # 主 skill 定義（runtime root 即 genecr skill 本身）
-├── setup            # bash 安裝腳本 (Windows Git Bash / macOS / Linux)
-├── setup.ps1        # PowerShell 安裝腳本 (Windows 原生)
-├── bin/
-│   ├── genecr-env.sh    # 路徑單一來源（source 後取得 GENECR_DIR 等）
-│   └── genecr-env.ps1   # PowerShell 版
-├── skills/
-│   └── genecr-upgrade/  # 子 skill — 部署時 copy 到 ~/.claude/skills/genecr-upgrade/
-├── templates/       # 共用範本（如 genecr-template.html、lightbox 片段）
-├── tools/
-│   └── bin/         # 工具腳本（預留）
-├── assets/          # skill 靜態資源
-├── evals/           # evals.json
-├── references/      # 參考文件
-└── output/          # 使用者執行 genecr 後產生的文件成果（**不部署**，git ignore）</code></pre>
-<p><strong>部署行為</strong>（與 gendoc 同模式）：</p>
-<ol><li><code>git clone &lt;REPO_URL&gt; ~/.claude/skills/genecr</code>（runtime 即 git working tree）</li><li>跑 <code>setup</code> 把 <code>~/.claude/skills/genecr/skills/*/</code> 每個子目錄部署到 <code>~/.claude/skills/</code></li><li>主 skill <code>genecr</code> 從 runtime root 的 <code>SKILL.md</code> 直接生效（Claude Code 會掃描 <code>~/.claude/skills/*/SKILL.md</code>）</li></ol>
-<p><strong>資料來源邊界（鐵律）</strong>：</p>
-<ul><li>Skill 執行時，<strong>只</strong>從 runtime（<code>~/.claude/skills/genecr/</code>，由 <code>$GENECR_*</code> 環境變數定位）讀 templates / tools / references</li><li><strong>絕不</strong>從開發者的工作樹（如 <code>C:/projects/genecr/</code>）讀任何檔案</li><li>產出物<strong>只</strong>寫到使用者當前工作目錄下的 <code>./output/[feature-slug]/</code></li><li>所有 skill 開頭必須 <code>source &quot;$HOME/.claude/skills/genecr/bin/genecr-env.sh&quot;</code></li></ul>
+├── pipeline.json              # 流程定義（7 step + AI 設定 + 依賴）
+├── setup / setup.ps1          # host 安裝（claude | codex | all）— 仿 gendoc 慣例
+├── bin/genecr-env.{sh,ps1}    # runtime 路徑探測（GENECR_DIR/TEMPLATES/...）
+├── skills/                    # 部署到 host 的 sub skills
+│   ├── genecr-flow/           # /genecr-flow &quot;&lt;brief&gt;&quot; — 跑完整 pipeline
+│   └── genecr-upgrade/        # /genecr-upgrade — git pull + redeploy
+├── templates/                 # 一切由 pipeline 讀取（離線）
+│   ├── *.tmpl                 # 7 份 Jinja2 模板（spec-basic / spec-advanced / assets / bdd / scrum / prototype / docs）
+│   ├── schemas/               # JSON Schema — 用於 generate→validate→fix loop
+│   ├── examples/              # canonical 範例 input.json（純 placeholder，不綁特定 feature）
+│   ├── prompts/               # 7 份 AI prompt（含 _fix.prompt.md fix-loop 通用版）
+│   └── wireframe-dsl.md       # 低保真線框圖 DSL（wf-* class 規範）
+└── tools/
+    ├── renderer/              # 源碼
+    │   ├── pipeline.py        # 流程驅動：brief → generate → validate → fix → render
+    │   ├── render.py          # 單 type 渲染（template + JSON → 輸出檔）
+    │   ├── orchestrate.py     # 一次跑 7 step（manifest 模式）
+    │   ├── build.sh           # 由 setup _deploy_tools 自動呼叫，cp .py → ../bin/
+    │   └── requirements.txt   # jinja2 / jsonschema / markdown
+    └── bin/                   # 由 build.sh 同步，**正式執行入口**
+        └── (render.py, pipeline.py, orchestrate.py — 自動產生)
+
+# 使用者執行後產出（在 user 的 CWD，不污染 runtime）
+output/&lt;feature-slug&gt;/&lt;YYYYMMDD-HHMMSS&gt;/
+├── brief.txt                  # 使用者需求描述
+├── feature.json               # {slug, name}（從 brief 萃取）
+├── *.combined.prompt.md       # AI 看到的最終 prompt（含 brief / schema / example 內嵌）
+├── *.input.json               # AI 產出的結構化資料
+├── &lt;slug&gt;-spec-basic.md       # 企畫版（含 wireframes、6+ 競業深度分析）
+├── &lt;slug&gt;-spec-advanced.md    # 技術版（API、Mermaid、MySQL schema）
+├── &lt;slug&gt;-assets.md           # 資源清單 + AI Prompt
+├── &lt;slug&gt;-bdd.md              # BDD（Gherkin + sequence diagram）
+├── &lt;slug&gt;-scrum.md            # SCRUM 故事卡
+├── &lt;slug&gt;-prototype.html      # 互動原型（zero-dep, mobile-first）
+└── &lt;slug&gt;-docs.html           # 整合 docs（sidebar + tab + API explorer）</code></pre>
+<p><strong>鐵律</strong>：</p>
+<ul><li>runtime（<code>$GENECR_DIR</code>）只讀；不寫任何使用者資料進 runtime</li><li>所有產出寫到 user CWD 下的 <code>./output/&lt;slug&gt;/&lt;datetime&gt;/</code></li><li>skill 開頭一律 <code>source &quot;$GENECR_DIR/bin/genecr-env.sh&quot;</code></li></ul>
+<p><strong>離線</strong>：</p>
+<ul><li>❌ 不抓 CDN（mermaid.min.js 內附；docs.html 用內聯 mermaid）</li><li>✅ 唯一需要網路：跑時 AI 自己選擇是否用 web research（可斷網跳過）</li></ul>
 <hr>
 <h2 id="安裝">安裝</h2>
-<p>首次安裝先 clone repo 到 <code>~/.claude/skills/genecr</code>：</p>
-<pre><code class="language-bash">git clone https://github.com/ibalasite/genecr.git ~/.claude/skills/genecr</code></pre>
-<p>然後執行 setup：</p>
-<h3 id="macos--linux--windows-git-bash">macOS / Linux / Windows (Git Bash)</h3>
-<pre><code class="language-bash">~/.claude/skills/genecr/setup            # install（預設）
-~/.claude/skills/genecr/setup upgrade    # git pull + 重新部署
-~/.claude/skills/genecr/setup uninstall  # 移除</code></pre>
-<h3 id="windows-powershell">Windows (PowerShell)</h3>
-<pre><code class="language-powershell">&amp; &quot;$env:USERPROFILE\.claude\skills\genecr\setup.ps1&quot;            # install
-&amp; &quot;$env:USERPROFILE\.claude\skills\genecr\setup.ps1&quot; upgrade
-&amp; &quot;$env:USERPROFILE\.claude\skills\genecr\setup.ps1&quot; uninstall</code></pre>
-<p>安裝完成後<strong>重啟 Claude Code</strong>讓新 skill 生效。</p>
-<p>往後在對話說「升級 genecr」即會自動執行 <code>setup upgrade</code>（git pull + redeploy）。</p>
+<h3 id="claude-code">🟣 Claude Code</h3>
+<pre><code class="language-bash">git clone https://github.com/ibalasite/genecr.git ~/.claude/skills/genecr
+~/.claude/skills/genecr/setup claude</code></pre>
+<h3 id="codex-cli">🟢 Codex CLI</h3>
+<pre><code class="language-bash">git clone https://github.com/ibalasite/genecr.git ~/.codex/skills/genecr
+~/.codex/skills/genecr/setup codex</code></pre>
+<h3 id="兩個都裝">🔁 兩個都裝</h3>
+<pre><code class="language-bash">~/.claude/skills/genecr/setup install all</code></pre>
+<h3 id="windows-powershell">Windows PowerShell</h3>
+<pre><code class="language-powershell">git clone https://github.com/ibalasite/genecr.git &quot;$env:USERPROFILE\.claude\skills\genecr&quot;
+&amp; &quot;$env:USERPROFILE\.claude\skills\genecr\setup.ps1&quot; claude</code></pre>
+<p><code>setup</code> 內部依序：<code>git clone</code> → <code>_deploy_skills</code>（部署 sub skills）→ <code>_deploy_tools</code>（跑 <code>tools/renderer/build.sh</code> 把 .py 拷到 <code>tools/bin/</code>）。</p>
+<p>安裝完<strong>重啟</strong> Claude Code / Codex 讓 skill 生效。</p>
 <hr>
 <h2 id="使用">使用</h2>
-<p>安裝後，在 Claude Code 任意對話中描述 iGaming 功能需求即可觸發，例如：</p>
-<blockquote><p>我要建立 iGaming 排行榜機制，週排行榜，玩家下注金額累積積分，前 10 名可以領獎</p></blockquote>
-<p>genecr 會自動：</p>
-<ol><li>深度競業調查（北美 / 哥斯大黎加 / 東南亞 / 台灣）</li><li>產出 7 份文件到當前工作目錄 <code>./output/[feature-slug]/</code></li></ol>
-<p>詳細產出規格請見 <a href="./skills/genecr/SKILL.md" target="_blank" rel="noopener"><code>skills/genecr/SKILL.md</code></a>。</p>
+<h3 id="一行觸發">一行觸發</h3>
+<p>在 Claude Code / Codex 任意對話：</p>
+<pre><code class="">/genecr-flow 老玩家每儲值 1000 送刮刮券，玩遊戲也會掉，20-5000 倍大獎，未中獎有幸運代號每週抽，不能讓代理商損失</code></pre>
+<p>或自然語言「<strong>genecr 跑流程做 X 功能</strong>」。</p>
+<h3 id="流程內部程式控制不靠-ai-協調">流程內部（程式控制，不靠 AI 協調）</h3>
+<pre><code class="">1. AI 從 brief 萃取 SLUG + NAME → feature.json
+2. pipeline.py 依 pipeline.json 順序跑 7 step：
+   spec-basic → spec-advanced → assets → bdd → scrum → prototype → docs
+   （prototype 依賴 spec-basic；docs 最後合併）
+3. 每個 step：
+   a. AI generate（讀 brief + schema + example，全部內嵌進 prompt）
+   b. jsonschema 驗證（程式判斷，AI 不參與）
+   c. 過 → renderer 用 Jinja2 template 渲染成 .md / .html
+   d. 不過 → AI fix（讀 errors + 上次 JSON），最多 3 次
+4. docs.html 最後集成所有 .md + API explorer（sidebar tab：📁 文件 / 📑 本頁目錄）</code></pre>
+<h3 id="直接呼叫-pipelinepy進階">直接呼叫 pipeline.py（進階）</h3>
+<pre><code class="language-bash"># 在自己專案目錄下，輸出寫到 ./output/
+python ~/.claude/skills/genecr/tools/bin/pipeline.py \
+  ~/.claude/skills/genecr/pipeline.json \
+  --new --slug bingo --name &quot;賓果&quot; &quot;我想做一個隨時可以買賓果的遊戲...&quot;
+
+# 旗標
+--status     # 看最近一次 run 的進度（純看檔案存在性）
+--watch      # 持續監看，每 2s 一次
+--new        # 強制新時間戳（否則 resume 最新一次未完成 run）</code></pre>
+<hr>
+<h2 id="技術棧產出文件套用">技術棧（產出文件套用）</h2>
+<table>
+<tr><th>層</th><th>技術</th></tr>
+<tr><td>Client</td><td>Cocos Creator</td></tr>
+<tr><td>Server</td><td>Node.js + Express</td></tr>
+<tr><td>DB</td><td>MySQL</td></tr>
+<tr><td>Cache</td><td>Redis</td></tr>
+</table>
+<p>prompts 對 AI 明確指定，產出的 spec-advanced / bdd / scrum 都以此為準。</p>
+<hr>
+<h2 id="升級">升級</h2>
+<pre><code class="language-bash">~/.claude/skills/genecr/setup upgrade           # 只升 claude
+~/.codex/skills/genecr/setup upgrade            # 只升 codex
+~/.claude/skills/genecr/setup upgrade all       # 兩邊都升
+
+# 或對話內：「升級 genecr」會觸發 /genecr-upgrade（同 host 自動偵測）</code></pre>
+<p>升級流程：<code>git pull</code> → <code>exec setup _post_upgrade &lt;host&gt;</code>（gendoc-style re-exec，新版 setup 立即生效）→ <code>_deploy_skills</code> + <code>_deploy_tools</code>（rebuild tools/bin/）。</p>
 <hr>
 <h2 id="開發">開發</h2>
-<p><code>~/.claude/skills/genecr/</code> 本身就是 git working tree，直接在那裡編輯 <code>SKILL.md</code> / <code>templates/</code> / <code>skills/</code>：</p>
-<pre><code class="language-bash">cd ~/.claude/skills/genecr
+<p><code>~/.claude/skills/genecr/</code> 本身就是 git working tree。但<strong>建議</strong>：</p>
+<pre><code class="language-bash">git clone https://github.com/ibalasite/genecr.git ~/dev/genecr
+cd ~/dev/genecr
 # ...edit...
-./setup upgrade   # 把 skills/* 重新部署到 ~/.claude/skills/
-# 滿意後 git commit &amp;&amp; git push</code></pre>
-<p>別的機器跑 <code>setup upgrade</code> 即會 git pull 同步。</p><section style="margin-top:2.5rem"><h2 style="font-size:1rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem">文件導覽</h2><div class="index-grid"><a class="index-card" href="prd.html"><span class="index-card__icon">📝</span><span class="index-card__title">產品需求文件 (PRD)</span></a></div></section><section style="margin-top:3rem;padding:1.5rem;background:#fff;border:1px solid var(--border);border-radius:8px;"><h2 style="margin-top:0">📊 專案健康狀態</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-top:1rem"><div style="text-align:center;padding:1rem;background:var(--page-bg);border-radius:6px"><div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.25rem">已完成 STEP</div><div style="font-size:1.5rem;font-weight:700;color:var(--accent)">0/20</div></div></div></section></main>
+
+# 直接跑 source（不必先 build）：
+python tools/renderer/pipeline.py pipeline.json --new --slug X --name Y &quot;brief&quot;
+
+# 同步 source → bin（部署檢查）：
+BIN_DIR=&quot;$(pwd)/tools/bin&quot; PACKAGE_DIR=&quot;$(pwd)/tools/renderer&quot; PY=&quot;python&quot; \
+  bash tools/renderer/build.sh
+
+git push
+# 別處跑 /genecr-upgrade 即拉到最新</code></pre>
+<p><strong>不要直接編輯 runtime（<code>~/.claude/skills/genecr/</code>）</strong>：每次 <code>/genecr-upgrade</code> 會被覆蓋。</p>
+<hr>
+<h2 id="解除安裝">解除安裝</h2>
+<pre><code class="language-bash">~/.claude/skills/genecr/setup uninstall          # 只移除 claude
+~/.codex/skills/genecr/setup uninstall           # 只移除 codex
+~/.claude/skills/genecr/setup uninstall all      # 兩邊都移除</code></pre><section style="margin-top:2.5rem"><h2 style="font-size:1rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem">文件導覽</h2><div class="index-grid"><a class="index-card" href="prd.html"><span class="index-card__icon">📝</span><span class="index-card__title">產品需求文件 (PRD)</span></a></div></section><section style="margin-top:3rem;padding:1.5rem;background:#fff;border:1px solid var(--border);border-radius:8px;"><h2 style="margin-top:0">📊 專案健康狀態</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-top:1rem"><div style="text-align:center;padding:1rem;background:var(--page-bg);border-radius:6px"><div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.25rem">已完成 STEP</div><div style="font-size:1.5rem;font-weight:700;color:var(--accent)">0/20</div></div></div></section></main>
   </div>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';

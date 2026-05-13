@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "spec-basic input",
+  "type": "object",
+  "required": ["feature", "change_log", "related_docs", "summary", "competitors", "axes", "matrix", "fields", "rules", "user_journey", "ui_sections", "ui_misc", "i18n", "help_page", "timeline", "resources"],
+  "properties": {
+    "feature": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {"type": "string"},
+        "slug": {"type": "string"}
+      }
+    },
+    "change_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "author", "note"],
+        "properties": {"date": {"type": "string"}, "author": {"type": "string"}, "note": {"type": "string"}}
+      }
+    },
+    "related_docs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "desc", "status"],
+        "properties": {"file": {"type": "string"}, "desc": {"type": "string"}, "status": {"type": "string"}}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["what", "why", "audience"],
+      "properties": {"what": {"type": "string"}, "why": {"type": "string"}, "audience": {"type": "string"}}
+    },
+    "competitors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "market", "highlight", "url"],
+        "properties": {"name": {"type": "string"}, "market": {"type": "string"}, "highlight": {"type": "string"}, "url": {"type": "string"}}
+      }
+    },
+    "comparison_table": {
+      "type": "object",
+      "properties": {
+        "competitors": {"type": "array", "items": {"type": "string"}},
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["item", "us", "others"],
+            "properties": {"item": {"type": "string"}, "us": {"type": "string"}, "others": {"type": "array", "items": {"type": "string"}}}
+          }
+        }
+      }
+    },
+    "axes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "options"],
+        "properties": {
+          "name": {"type": "string"},
+          "options": {"type": "array", "items": {"type": "object", "required": ["name", "desc"], "properties": {"name": {"type": "string"}, "desc": {"type": "string"}}}}
+        }
+      }
+    },
+    "matrix": {
+      "type": "object",
+      "required": ["description", "row_axis", "col_axis", "cols", "rows"],
+      "properties": {
+        "description": {"type": "string"},
+        "row_axis": {"type": "string"},
+        "col_axis": {"type": "string"},
+        "cols": {"type": "array", "items": {"type": "string"}},
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "cells", "time"],
+            "properties": {"label": {"type": "string"}, "cells": {"type": "array", "items": {"type": "string"}}, "time": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "desc"],
+        "properties": {"name": {"type": "string"}, "desc": {"type": "string"}, "example": {"type": "string"}}
+      }
+    },
+    "rules": {
+      "type": "object",
+      "required": ["trigger", "data", "sorting", "anti_cheat"],
+      "properties": {"trigger": {"type": "string"}, "data": {"type": "string"}, "sorting": {"type": "string"}, "anti_cheat": {"type": "string"}}
+    },
+    "user_journey": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action", "detail", "emotion"],
+        "properties": {"action": {"type": "string"}, "detail": {"type": "string"}, "emotion": {"type": "string"}}
+      }
+    },
+    "ui_sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "detail"],
+        "properties": {"name": {"type": "string"}, "detail": {"type": "string"}}
+      }
+    },
+    "ui_misc": {
+      "type": "object",
+      "required": ["refresh", "extensibility", "edge_cases"],
+      "properties": {"refresh": {"type": "string"}, "extensibility": {"type": "string"}, "edge_cases": {"type": "string"}}
+    },
+    "i18n": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["zh", "en", "es"],
+        "properties": {"zh": {"type": "string"}, "en": {"type": "string"}, "es": {"type": "string"}}
+      }
+    },
+    "help_page": {
+      "type": "object",
+      "required": ["hook", "bullets", "steps"],
+      "properties": {
+        "hook": {"type": "string"},
+        "bullets": {"type": "array", "items": {"type": "string"}},
+        "steps": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["phase", "content", "duration"],
+        "properties": {"phase": {"type": "string"}, "content": {"type": "string"}, "duration": {"type": "string"}}
+      }
+    },
+    "resources": {
+      "type": "object",
+      "required": ["art", "audio", "engineering"],
+      "properties": {"art": {"type": "string"}, "audio": {"type": "string"}, "engineering": {"type": "string"}}
+    }
+  }
+}

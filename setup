@@ -90,6 +90,33 @@ _deploy_skills() {
   done
 }
 
+# ── per-package setup dispatch ────────────────────────
+# After host install/upgrade/uninstall, walk $runtime/tools/<pkg>/ and call
+# each package's setup.sh (preferred) or setup.ps1 with the same target.
+# Packages without either script are skipped.
+_run_pkg_scripts() {
+  local runtime="$1" target="$2"
+  [[ -d "$runtime/tools" ]] || return 0
+  for pkg_dir in "$runtime/tools"/*/; do
+    [[ -d "$pkg_dir" ]] || continue
+    local name; name="$(basename "$pkg_dir")"
+    [[ "$name" == "bin" ]] && continue
+    local sh="$pkg_dir/setup.sh"
+    local ps1="$pkg_dir/setup.ps1"
+    if [[ -f "$sh" ]]; then
+      log "── pkg:$name :: $target ──"
+      chmod +x "$sh" 2>/dev/null || true
+      "$sh" "$target"
+    elif [[ -f "$ps1" ]] && command -v pwsh >/dev/null 2>&1; then
+      log "── pkg:$name :: $target (pwsh) ──"
+      pwsh -ExecutionPolicy Bypass -File "$ps1" "$target"
+    elif [[ -f "$ps1" ]] && command -v powershell >/dev/null 2>&1; then
+      log "── pkg:$name :: $target (powershell) ──"
+      powershell -ExecutionPolicy Bypass -File "$ps1" "$target"
+    fi
+  done
+}
+
 # ── install ───────────────────────────────────────────
 _install_one() {
   local host="$1"
@@ -108,6 +135,7 @@ _install_one() {
   mkdir -p "$(dirname "$runtime")"
   git clone "$REPO_URL" "$runtime"
   _deploy_skills "$runtime" "$skills_dst"
+  _run_pkg_scripts "$runtime" install
 
   log ""
   log "[install:$host] 完成。重啟 $host 讓 skills 生效。"
@@ -127,6 +155,7 @@ _upgrade_one() {
   log "[upgrade:$host] git pull..."
   git -C "$runtime" pull --ff-only
   _deploy_skills "$runtime" "$skills_dst"
+  _run_pkg_scripts "$runtime" upgrade
   log "[upgrade:$host] 完成。"
 }
 
@@ -135,6 +164,7 @@ _uninstall_one() {
   local host="$1"
   local runtime; runtime="$(_host_dir "$host")"
   local skills_dst; skills_dst="$(_host_skills_dir "$host")"
+  _run_pkg_scripts "$runtime" uninstall
   log "[uninstall:$host] 移除 deployed skills..."
   if [[ -d "$runtime/skills" ]]; then
     for skill_dir in "$runtime/skills"/*/; do

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ feature.name }} — 文件</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+         background: #1a1a2e; color: #e8e8f0; line-height: 1.7; }
+  header { background: linear-gradient(90deg, #2a1a4e, #1a1a2e); padding: 20px 32px;
+           border-bottom: 2px solid #ffd700; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { color: #ffd700; margin: 0; font-size: 22px; }
+  .lang { display: flex; gap: 8px; }
+  .lang button { padding: 6px 14px; background: transparent; color: #ffd700;
+                 border: 1px solid #ffd700; border-radius: 4px; cursor: pointer; }
+  .lang button.active { background: #ffd700; color: #1a1a2e; }
+
+  nav.tabs { display: flex; background: #0f0f1e; border-bottom: 1px solid #333;
+             overflow-x: auto; padding: 0 16px; }
+  nav.tabs button { padding: 14px 20px; border: none; background: transparent;
+                    color: #888; cursor: pointer; font-size: 14px; white-space: nowrap;
+                    border-bottom: 2px solid transparent; }
+  nav.tabs button.active { color: #ffd700; border-bottom-color: #ffd700; background: rgba(255,215,0,0.05); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  h1, h2, h3, h4 { color: #ffd700; margin-top: 1.5em; }
+  h2 { border-bottom: 1px solid #333; padding-bottom: 8px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th, td { border: 1px solid #333; padding: 8px 12px; text-align: left; }
+  th { background: #2a1a4e; color: #ffd700; }
+  code { background: #0a0a14; color: #ff6b35; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+  pre { background: #0a0a14; padding: 14px; border-radius: 6px; overflow-x: auto;
+        border-left: 3px solid #ffd700; }
+  pre code { background: transparent; color: #cce; padding: 0; }
+  a { color: #ff6b35; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  blockquote { border-left: 3px solid #ffd700; padding-left: 14px; margin: 12px 0; color: #aaa; }
+
+  /* Mermaid diagram container */
+  .diagram-container { background: #fff; border-radius: 8px; padding: 16px; margin: 12px 0;
+                       cursor: zoom-in; transition: transform 0.2s; }
+  .diagram-container:hover { transform: scale(1.005); box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+
+  /* Lightbox */
+  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none;
+              z-index: 1000; justify-content: center; align-items: center; }
+  .lightbox.show { display: flex; }
+  .lightbox-inner { background: #fff; padding: 24px; border-radius: 8px;
+                    max-width: 95vw; max-height: 90vh; overflow: auto;
+                    transform-origin: center; }
+  .lightbox-controls { position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; }
+  .lightbox-controls button { background: #ffd700; color: #1a1a2e; border: none;
+                              padding: 8px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+  /* API Try-It panel */
+  .api-card { background: #0f0f1e; border: 1px solid #333; border-radius: 8px;
+              padding: 16px; margin: 16px 0; }
+  .api-head { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .method { padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+  .method.GET { background: #28a745; color: #fff; }
+  .method.POST { background: #007bff; color: #fff; }
+  .method.PUT { background: #fd7e14; color: #fff; }
+  .method.PATCH { background: #6f42c1; color: #fff; }
+  .method.DELETE { background: #dc3545; color: #fff; }
+  .api-path { color: #ffd700; font-family: monospace; }
+  .api-card label { display: block; font-size: 12px; color: #aaa; margin-top: 8px; }
+  .api-card input, .api-card textarea, .api-card select {
+    width: 100%; padding: 6px; background: #1a1a2e; color: #e8e8f0;
+    border: 1px solid #333; border-radius: 4px; font-family: monospace; font-size: 13px;
+  }
+  .api-card textarea { min-height: 80px; }
+  .api-card .btns { margin-top: 12px; display: flex; gap: 8px; }
+  .api-card button { padding: 8px 14px; border: none; border-radius: 4px;
+                     font-weight: bold; cursor: pointer; }
+  .btn-try { background: #ffd700; color: #1a1a2e; }
+  .btn-curl { background: #ff6b35; color: #fff; }
+  .response { margin-top: 12px; padding: 10px; background: #0a0a14; border-radius: 4px;
+              font-family: monospace; font-size: 12px; white-space: pre-wrap; min-height: 30px; }
+  .status-2xx { border-left: 3px solid #28a745; }
+  .status-4xx { border-left: 3px solid #ffc107; }
+  .status-5xx { border-left: 3px solid #dc3545; }
+
+  iframe.proto { width: 100%; height: 80vh; border: 1px solid #ffd700; border-radius: 8px; background: #000; }
+
+  @media print { nav.tabs, header, .lang { display: none; } .panel { display: block !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 {{ feature.name }} — 文件中心</h1>
+  <div class="lang">
+    <button class="active" data-lang="zh">繁中</button>
+    <button data-lang="en">EN</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+{% for s in sections %}
+  <button data-target="panel-{{ loop.index0 }}"{% if loop.first %} class="active"{% endif %}>{{ s.title }}</button>
+{% endfor %}
+{% if api_explorer %}
+  <button data-target="panel-api">🔧 API 試打</button>
+{% endif %}
+{% if prototype_path %}
+  <button data-target="panel-proto">🎮 互動原型</button>
+{% endif %}
+</nav>
+
+<main>
+{% for s in sections %}
+  <div class="panel{% if loop.first %} active{% endif %}" id="panel-{{ loop.index0 }}">
+    {{ s.html | safe }}
+  </div>
+{% endfor %}
+
+{% if api_explorer %}
+  <div class="panel" id="panel-api">
+    <h1>🔧 API 試打面板</h1>
+    <p>所有回應為前端 mock，斷網可用。</p>
+    {% for a in api_explorer %}
+    <div class="api-card" id="{{ a.id }}">
+      <div class="api-head">
+        <span class="method {{ a.method }}">{{ a.method }}</span>
+        <span class="api-path">{{ a.path }}</span>
+      </div>
+      <p style="color:#aaa;font-size:13px;">{{ a.desc }}</p>
+
+      {% if a.params %}
+      <div class="params">
+      {% for p in a.params %}
+        <label>{{ p.name }}{% if p.required %} <span style="color:#dc3545">*</span>{% endif %} <span style="color:#666">({{ p.type }})</span></label>
+        <input type="text" data-api="{{ a.id }}" data-param="{{ p.name }}" value="{{ p.default | default('') }}">
+      {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if a.body %}
+      <label>Request Body
+        <select data-api="{{ a.id }}" data-preset>
+          {% for preset in a.body.presets %}
+          <option value="{{ loop.index0 }}">{{ preset.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <textarea data-api="{{ a.id }}" data-body>{{ a.body.presets[0].value }}</textarea>
+      {% endif %}
+
+      <div class="btns">
+        <button class="btn-try" onclick="tryApi('{{ a.id }}')">▶ Try It</button>
+        <button class="btn-curl" onclick="copyCurl('{{ a.id }}')">📋 Copy as cURL</button>
+      </div>
+      <div class="response" id="resp-{{ a.id }}">（尚未呼叫）</div>
+    </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if prototype_path %}
+  <div class="panel" id="panel-proto">
+    <h1>🎮 互動原型</h1>
+    <iframe class="proto" src="{{ prototype_path }}"></iframe>
+  </div>
+{% endif %}
+</main>
+
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-controls">
+    <button onclick="lbZoom(0.2)">+</button>
+    <button onclick="lbZoom(-0.2)">−</button>
+    <button onclick="lbReset()">⤺</button>
+    <button onclick="closeLightbox()">✕</button>
+  </div>
+  <div class="lightbox-inner" id="lightbox-inner"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+const API_CONFIG = {{ api_explorer | default([]) | tojson }};
+const RESPONSE_MAP = {};
+API_CONFIG.forEach(a => RESPONSE_MAP[a.id] = a.responses || {});
+
+mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+// Wrap all mermaid code blocks in containers and convert to mermaid divs
+function transformMermaid() {
+  document.querySelectorAll('pre code.language-mermaid').forEach(code => {
+    const wrap = document.createElement('div');
+    wrap.className = 'diagram-container';
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = code.textContent;
+    wrap.appendChild(div);
+    wrap.addEventListener('click', () => openLightbox(wrap));
+    code.parentElement.replaceWith(wrap);
+  });
+}
+
+async function renderMermaidIn(panel) {
+  const nodes = panel.querySelectorAll('.mermaid:not([data-processed="true"])');
+  if (nodes.length) {
+    try { await mermaid.run({ nodes: Array.from(nodes) }); } catch (e) { console.error(e); }
+  }
+}
+
+// Tabs
+document.querySelectorAll('#tabs button').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const panel = document.getElementById(btn.dataset.target);
+    panel.classList.add('active');
+    await renderMermaidIn(panel);
+    location.hash = btn.dataset.target;
+  });
+});
+
+// Lightbox
+let lbScale = 1;
+function openLightbox(diagramWrap) {
+  const inner = document.getElementById('lightbox-inner');
+  inner.innerHTML = '';
+  const clone = diagramWrap.cloneNode(true);
+  clone.style.cursor = 'auto';
+  inner.appendChild(clone);
+  const node = clone.querySelector('.mermaid');
+  if (node) { node.removeAttribute('data-processed'); node.innerHTML = node.textContent; mermaid.run({ nodes: [node] }); }
+  lbScale = 1; inner.style.transform = 'scale(1)';
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
+function lbZoom(d) { lbScale = Math.max(0.3, lbScale + d); document.getElementById('lightbox-inner').style.transform = `scale(${lbScale})`; }
+function lbReset() { lbScale = 1; document.getElementById('lightbox-inner').style.transform = 'scale(1)'; }
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === '+' || e.key === '=') lbZoom(0.2);
+  if (e.key === '-') lbZoom(-0.2);
+  if (e.key === '0') lbReset();
+});
+
+// API Try-It
+function getApiInputs(id) {
+  const cfg = API_CONFIG.find(a => a.id === id);
+  const params = {};
+  document.querySelectorAll(`input[data-api="${id}"]`).forEach(el => params[el.dataset.param] = el.value);
+  const body = document.querySelector(`textarea[data-api="${id}"]`);
+  return { cfg, params, body: body ? body.value : null };
+}
+function tryApi(id) {
+  const { cfg, params } = getApiInputs(id);
+  const responses = RESPONSE_MAP[id] || {};
+  const resp = responses['200'] || responses[Object.keys(responses)[0]] || { status: 200, body: '{}' };
+  const respEl = document.getElementById(`resp-${id}`);
+  respEl.textContent = '⏳ Loading...';
+  respEl.className = 'response';
+  setTimeout(() => {
+    respEl.className = 'response status-' + String(resp.status)[0] + 'xx';
+    respEl.textContent = `HTTP ${resp.status}\n\n${typeof resp.body === 'string' ? resp.body : JSON.stringify(resp.body, null, 2)}`;
+  }, 200);
+}
+function copyCurl(id) {
+  const { cfg, params, body } = getApiInputs(id);
+  let path = cfg.path;
+  Object.entries(params).forEach(([k, v]) => path = path.replace(`{${k}}`, v));
+  const qs = (cfg.params || []).filter(p => p.in === 'query' && params[p.name]).map(p => `${p.name}=${encodeURIComponent(params[p.name])}`).join('&');
+  if (qs) path += '?' + qs;
+  let cmd = `curl -X ${cfg.method} 'https://api.example.com${path}'`;
+  if (body) cmd += ` -H 'Content-Type: application/json' -d '${body}'`;
+  navigator.clipboard.writeText(cmd);
+  alert('cURL 已複製');
+}
+// Body preset switcher
+document.querySelectorAll('select[data-preset]').forEach(sel => {
+  sel.addEventListener('change', () => {
+    const id = sel.dataset.api;
+    const cfg = API_CONFIG.find(a => a.id === id);
+    const ta = document.querySelector(`textarea[data-api="${id}"]`);
+    ta.value = cfg.body.presets[Number(sel.value)].value;
+  });
+});
+
+// Init
+transformMermaid();
+renderMermaidIn(document.querySelector('.panel.active'));
+if (location.hash) {
+  const target = location.hash.slice(1);
+  const tabBtn = document.querySelector(`#tabs button[data-target="${target}"]`);
+  if (tabBtn) tabBtn.click();
+  else {
+    // anchor inside a panel
+    const el = document.getElementById(target);
+    if (el) {
+      const panel = el.closest('.panel');
+      if (panel) {
+        const btn = document.querySelector(`#tabs button[data-target="${panel.id}"]`);
+        if (btn) btn.click();
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 300);
+      }
+    }
+  }
+}
+</script>
+</body>
+</html>

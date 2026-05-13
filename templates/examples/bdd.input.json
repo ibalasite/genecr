@@ -1,0 +1,51 @@
+{
+  "feature": {"name": "排行榜", "slug": "leaderboard"},
+  "scenarios": [
+    {
+      "id": "sc-001",
+      "title": "玩家進入排行榜看到預設榜單",
+      "kind": "正常",
+      "gherkin_zh": "Given 玩家已登入大廳\nWhen 玩家點擊排行榜入口\nThen 顯示『個人 / 下注金額 / 7 日』榜單前 100 名\nAnd 底部顯示『我的排名』",
+      "gherkin_en": "Given the player is logged in\nWhen the player taps the Leaderboard entry\nThen the default Personal/Bet/7d top 100 is shown\nAnd 'My Rank' is shown at the bottom",
+      "sequence_diagram": "sequenceDiagram\n  participant C as Client\n  participant G as Gateway\n  participant L as Leaderboard Svc\n  participant R as Redis\n  C->>G: GET /api/v1/leaderboard?category=personal&metric=bet&period=7d\n  G->>L: forward\n  L->>R: ZREVRANGE lb:personal:bet:7d 0 99\n  R-->>L: [...]\n  L->>R: ZREVRANK lb:personal:bet:7d {user_id}\n  R-->>L: 152\n  L-->>G: 200 {list, my}\n  G-->>C: 200 OK",
+      "apis": ["api-get-leaderboard"],
+      "data_sources": ["Redis ZSet `lb:personal:bet:7d`", "Redis ZREVRANK 取個人排名"]
+    },
+    {
+      "id": "sc-002",
+      "title": "玩家未上榜時顯示『未上榜』",
+      "kind": "邊界",
+      "gherkin_zh": "Given 玩家分數未進入前 100\nWhen 玩家進入排行榜\nThen 底部『我的排名』顯示『未上榜，再加把勁！』",
+      "sequence_diagram": "sequenceDiagram\n  participant C as Client\n  participant L as Leaderboard Svc\n  participant R as Redis\n  C->>L: GET /api/v1/leaderboard\n  L->>R: ZREVRANK lb:... {user_id}\n  R-->>L: nil\n  L-->>C: 200 {list, my: null}",
+      "apis": ["api-get-leaderboard"],
+      "data_sources": ["Redis ZREVRANK 回 nil"]
+    },
+    {
+      "id": "sc-003",
+      "title": "Redis 失效時退化讀 MongoDB",
+      "kind": "異常",
+      "gherkin_zh": "Given Redis 連線失敗\nWhen 玩家拉取排行榜\nThen Service 退化讀 MongoDB.leaderboard_snapshots 最新一筆\nAnd 回應夾帶 stale=true 標記",
+      "sequence_diagram": "sequenceDiagram\n  participant C as Client\n  participant L as Leaderboard Svc\n  participant R as Redis\n  participant M as MongoDB\n  C->>L: GET /api/v1/leaderboard\n  L->>R: ZREVRANGE\n  R--xL: timeout\n  L->>M: find latest snapshot\n  M-->>L: snapshot doc\n  L-->>C: 200 {list, stale:true}",
+      "apis": ["api-get-leaderboard"],
+      "data_sources": ["MongoDB.leaderboard_snapshots fallback"]
+    },
+    {
+      "id": "sc-004",
+      "title": "玩家領取週期獎勵成功",
+      "kind": "正常",
+      "gherkin_zh": "Given 週期已結算且玩家上榜\nWhen 玩家點擊領獎按鈕\nThen 錢包加值\nAnd 顯示獎勵彈窗",
+      "sequence_diagram": "sequenceDiagram\n  participant C as Client\n  participant L as Leaderboard Svc\n  participant R as Redis\n  participant M as MongoDB\n  C->>L: POST /api/v1/leaderboard/claim\n  L->>R: GET claimed:{user}:{period}\n  R-->>L: nil\n  L->>M: find leaderboard_rewards\n  M-->>L: {coins:100000}\n  L->>M: wallets +coins (version+1)\n  L->>R: SET claimed:{user}:{period} EX 7d\n  L-->>C: 200 {reward_coins:100000}",
+      "apis": ["api-claim-reward"],
+      "data_sources": ["Redis claimed flag", "MongoDB.leaderboard_rewards", "MongoDB.wallets"]
+    },
+    {
+      "id": "sc-005",
+      "title": "重複領取被擋下",
+      "kind": "異常",
+      "gherkin_zh": "Given 玩家已領過此週期獎勵\nWhen 玩家再次點擊領獎\nThen 回傳 409\nAnd 客戶端顯示『已領取』",
+      "sequence_diagram": "sequenceDiagram\n  participant C as Client\n  participant L as Leaderboard Svc\n  participant R as Redis\n  C->>L: POST /api/v1/leaderboard/claim\n  L->>R: GET claimed:{user}:{period}\n  R-->>L: \"1\"\n  L-->>C: 409 Already Claimed",
+      "apis": ["api-claim-reward"],
+      "data_sources": ["Redis claimed flag"]
+    }
+  ]
+}

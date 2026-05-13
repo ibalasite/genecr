@@ -1,0 +1,38 @@
+# {{ feature.name }} 資源清單與 AI Prompt
+
+共 {{ assets | length }} 個資源。
+
+## 索引
+| ID | 名稱 | 類型 |
+|----|------|------|
+{% for a in assets %}
+| `{{ a.id }}` | {{ a.name }} | {{ a.type }} |
+{% endfor %}
+
+---
+
+{% for a in assets %}
+### <a id="{{ a.id }}"></a> [{{ a.id }}] {{ a.name }}
+- **類型**：{{ a.type }}
+- **用途**：{{ a.usage }}
+- **規格**：
+{% for s in a.spec %}
+  - {{ s }}
+{% endfor %}
+{% if a.image_prompt %}
+- **AI 圖像 Prompt**（英文）：
+  > {{ a.image_prompt }}
+
+  **Negative**：{{ a.image_negative | default('low quality, blurry, watermark') }}
+{% endif %}
+{% if a.audio_prompt %}
+- **AI 音效 Prompt**：
+  > {{ a.audio_prompt }}
+{% endif %}
+{% if a.reference %}
+- **參考競業**：[{{ a.reference.platform }}]({{ a.reference.url }})
+{% endif %}
+
+---
+
+{% endfor %}

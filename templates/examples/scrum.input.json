@@ -1,0 +1,100 @@
+{
+  "feature": {"name": "排行榜", "slug": "leaderboard"},
+  "epic": {
+    "title": "排行榜活動系統",
+    "desc": "三軸切換榜單、週期結算派獎、防作弊與快取最佳化。"
+  },
+  "groups": [
+    {"key": "infra", "name": "基礎建設", "icon": "🏗️"},
+    {"key": "art", "name": "美術與動畫", "icon": "🎨"},
+    {"key": "logic", "name": "遊戲邏輯", "icon": "🎮"},
+    {"key": "reward", "name": "獎勵系統", "icon": "🏆"},
+    {"key": "qa", "name": "QA 測試", "icon": "🧪"}
+  ],
+  "stories": [
+    {
+      "id": 1,
+      "group": "infra",
+      "title": "建立 Leaderboard Service 骨架",
+      "role": "後端工程師",
+      "want": "一個獨立 Node.js 服務含 Redis/MongoDB 連線",
+      "benefit": "後續 API 都掛在此服務下",
+      "acceptance": ["服務能啟動並通過健康檢查", "Redis/MongoDB 連線設定可由環境變數覆寫"],
+      "points": 3,
+      "teams": ["Server"],
+      "tech_notes": "Fastify + ioredis + mongoose"
+    },
+    {
+      "id": 2,
+      "group": "infra",
+      "title": "GET /api/v1/leaderboard",
+      "role": "後端工程師",
+      "want": "提供排行榜查詢 API",
+      "benefit": "客戶端能拉資料",
+      "acceptance": ["三軸參數驗證", "p95 < 100ms", "未上榜回傳 my=null"],
+      "points": 5,
+      "teams": ["Server"],
+      "depends_on": [1]
+    },
+    {
+      "id": 3,
+      "group": "infra",
+      "title": "聚合 Worker（15 分鐘 cron）",
+      "role": "後端工程師",
+      "want": "定期把 bets 聚合到 leaderboard_snapshots 並寫入 Redis",
+      "benefit": "查詢走 Redis 才能達到 p95 < 100ms",
+      "acceptance": ["每 15 分鐘穩定執行", "失敗有 alert", "聚合時間 < 30 秒"],
+      "points": 8,
+      "teams": ["Server"],
+      "depends_on": [1]
+    },
+    {
+      "id": 4,
+      "group": "art",
+      "title": "排行榜主背景與光暈",
+      "role": "美術",
+      "want": "提供主背景與前三名光環粒子",
+      "benefit": "達成設計稿視覺",
+      "acceptance": ["背景對齊規格 1080x1920", "光環粒子可循環"],
+      "points": 3,
+      "teams": ["美術"],
+      "assets": ["ASSET-001", "ASSET-002"]
+    },
+    {
+      "id": 5,
+      "group": "logic",
+      "title": "Cocos LeaderboardScene 三層切換",
+      "role": "客戶端工程師",
+      "want": "實作 Tab/Segment/Dropdown 三層切換 + 列表",
+      "benefit": "玩家能瀏覽所有榜單",
+      "acceptance": ["切換不卡頓", "ListView 復用", "斷網顯示快取"],
+      "points": 8,
+      "teams": ["Client"],
+      "depends_on": [2, 4]
+    },
+    {
+      "id": 6,
+      "group": "reward",
+      "title": "POST /api/v1/leaderboard/claim",
+      "role": "後端工程師",
+      "want": "領獎 API + 防重複",
+      "benefit": "週期結算後玩家能領獎",
+      "acceptance": ["重領回 409", "錢包加值有樂觀鎖"],
+      "points": 5,
+      "teams": ["Server"],
+      "depends_on": [3]
+    },
+    {
+      "id": 7,
+      "group": "qa",
+      "title": "BDD 自動化測試",
+      "role": "QA",
+      "want": "覆蓋 sc-001 ~ sc-005 全部 Scenario",
+      "benefit": "回歸測試可自動化",
+      "acceptance": ["5 個 Scenario 全綠", "整合 CI"],
+      "points": 5,
+      "teams": ["QA"],
+      "depends_on": [2, 6]
+    }
+  ]
+}

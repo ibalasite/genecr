@@ -1,0 +1,119 @@
+# {{ feature.name }} 技術規格書
+
+## 一、系統架構概覽
+{{ architecture.overview }}
+
+```mermaid
+{{ architecture.diagram }}
+```
+
+**Client ↔ Server 資料流**：{{ architecture.data_flow }}
+
+## 二、Cocos Creator Client 實作要點
+- **建議場景結構**：{{ client.scene }}
+- **主要 Components**：
+{% for c in client.components %}
+  - `{{ c.name }}` — {{ c.desc }}
+{% endfor %}
+- **動畫狀態機**：
+
+| 狀態 | 觸發 | 下一狀態 |
+|------|------|---------|
+{% for s in client.states %}
+| {{ s.from }} | {{ s.trigger }} | {{ s.to }} |
+{% endfor %}
+
+- **資料更新**：{{ client.update_strategy }}
+- **效能考量**：{{ client.performance }}
+
+## 三、Node.js Server API 規格
+
+### API 端點列表
+| ID | Method | Endpoint | 說明 | 認證 | 讀 | 寫 |
+|----|--------|----------|------|------|----|----|
+{% for a in apis %}
+| `{{ a.id }}` | {{ a.method }} | {{ a.path }} | {{ a.desc }} | {{ a.auth }} | {{ a.reads | default('-') }} | {{ a.writes | default('-') }} |
+{% endfor %}
+
+### 各 API 詳細規格
+
+{% for a in apis %}
+#### <a id="{{ a.id }}"></a> [{{ a.id }}] {{ a.method }} {{ a.path }}
+- **說明**：{{ a.desc }}
+- **認證**：{{ a.auth }}
+{% if a.path_params %}
+- **Path Params**：
+{% for p in a.path_params %}
+  - `{{ p.name }}` {{ p.type }}{% if p.required %} required{% endif %} — {{ p.desc }}
+{% endfor %}
+{% endif %}
+{% if a.query_params %}
+- **Query Params**：
+{% for p in a.query_params %}
+  - `{{ p.name }}` {{ p.type }}{% if 'default' in p %} default={{ p.default }}{% endif %} — {{ p.desc }}
+{% endfor %}
+{% endif %}
+{% if a.request_body %}
+- **Request Body**：
+```json
+{{ a.request_body }}
+```
+{% endif %}
+- **Response 200**：
+```json
+{{ a.response_200 }}
+```
+{% if a.response_errors %}
+- **Errors**：
+{% for e in a.response_errors %}
+  - `{{ e.code }}` {{ e.desc }}
+{% endfor %}
+{% endif %}
+- **後端流程**：
+{% for step in a.flow %}
+  {{ loop.index }}. {{ step }}
+{% endfor %}
+- **效能要求**：{{ a.perf }}
+- **相關 BDD**：{% for b in a.related_bdd %}[`{{ b }}`](./{{ feature.slug }}-bdd.md#{{ b }}){% if not loop.last %}, {% endif %}{% endfor %}
+
+{% endfor %}
+
+## 四、資料模型
+
+{% for m in data_models %}
+### {{ m.name }}（{{ m.kind }}）
+{{ m.desc }}
+
+| 欄位 | 型別 | 說明 |
+|------|------|------|
+{% for f in m.fields %}
+| `{{ f.name }}` | {{ f.type }} | {{ f.desc }} |
+{% endfor %}
+
+**索引**：{{ m.indexes | default('-') }}
+**讀寫 API**：{% for a in m.apis %}`{{ a }}`{% if not loop.last %}, {% endif %}{% endfor %}
+
+{% endfor %}
+
+## 五、業務邏輯
+
+{% for b in business_logic %}
+### {{ b.title }}
+{{ b.desc }}
+
+{% if b.pseudocode %}
+```
+{{ b.pseudocode }}
+```
+{% endif %}
+{% endfor %}
+
+## 六、Cache 策略
+{% for c in cache_strategy %}
+- **{{ c.key }}** ({{ c.ttl }}) — {{ c.desc }}
+{% endfor %}
+
+## 七、相關文件
+- 資源清單：[`{{ feature.slug }}-assets.md`](./{{ feature.slug }}-assets.md)
+- BDD 測試：[`{{ feature.slug }}-bdd.md`](./{{ feature.slug }}-bdd.md)
+- SCRUM：[`{{ feature.slug }}-scrum.md`](./{{ feature.slug }}-scrum.md)

@@ -11,8 +11,7 @@ output/
 preview.html
 pdd *.md
 skills-lock.json
-docs/*
-!docs/pages/
+docs/
 
 # OS / editor noise
 .DS_Store

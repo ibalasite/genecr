@@ -13,10 +13,6 @@ preview.html
 pdd *.md
 skills-lock.json
 
-# tools/bin/ contents are produced by tools/<pkg>/setup.sh — never commit
-tools/bin/*
-!tools/bin/.gitkeep
-
 # Python bytecode
 __pycache__/
 *.pyc

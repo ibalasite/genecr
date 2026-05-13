@@ -358,7 +358,7 @@
 ├── setup / setup.ps1          # host 安裝（claude | codex | all）— 仿 gendoc 慣例
 ├── bin/genecr-env.{sh,ps1}    # runtime 路徑探測（GENECR_DIR/TEMPLATES/...）
 ├── skills/                    # 部署到 host 的 sub skills
-│   ├── genecr-flow/           # /genecr-flow &quot;&lt;brief&gt;&quot; — 跑完整 pipeline
+│   ├── genecr/           # /genecr &quot;&lt;brief&gt;&quot; — 跑完整 pipeline
 │   └── genecr-upgrade/        # /genecr-upgrade — git pull + redeploy
 ├── templates/                 # 一切由 pipeline 讀取（離線）
 │   ├── *.tmpl                 # 7 份 Jinja2 模板（spec-basic / spec-advanced / assets / bdd / scrum / prototype / docs）
@@ -412,7 +412,7 @@ output/&lt;feature-slug&gt;/&lt;YYYYMMDD-HHMMSS&gt;/
 <h2 id="使用">使用</h2>
 <h3 id="一行觸發">一行觸發</h3>
 <p>在 Claude Code / Codex 任意對話：</p>
-<pre><code class="">/genecr-flow 老玩家每儲值 1000 送刮刮券，玩遊戲也會掉，20-5000 倍大獎，未中獎有幸運代號每週抽，不能讓代理商損失</code></pre>
+<pre><code class="">/genecr 老玩家每儲值 1000 送刮刮券，玩遊戲也會掉，20-5000 倍大獎，未中獎有幸運代號每週抽，不能讓代理商損失</code></pre>
 <p>或自然語言「<strong>genecr 跑流程做 X 功能</strong>」。</p>
 <h3 id="流程內部程式控制不靠-ai-協調">流程內部（程式控制，不靠 AI 協調）</h3>
 <pre><code class="">1. AI 從 brief 萃取 SLUG + NAME → feature.json
@@ -473,7 +473,7 @@ python ~/.claude/skills/genecr/tools/bin/pipeline.py \
 <h3 id="3-常見指令對照">3. 常見指令對照</h3>
 <table>
 <tr><th>我想…</th><th>指令</th></tr>
-<tr><td>跑一份新文件</td><td><code>/genecr-flow &quot;&lt;brief&gt;&quot;</code></td></tr>
+<tr><td>跑一份新文件</td><td><code>/genecr &quot;&lt;brief&gt;&quot;</code></td></tr>
 <tr><td>看上一次跑到哪</td><td><code>python tools/bin/pipeline.py --status</code></td></tr>
 <tr><td>接續中斷的 run</td><td><code>python tools/bin/pipeline.py</code>（不帶 <code>--new</code> 自動 resume）</td></tr>
 <tr><td>同 feature 開新時間戳重跑</td><td><code>python tools/bin/pipeline.py --new --slug X --name Y &quot;&lt;brief&gt;&quot;</code></td></tr>
@@ -530,7 +530,7 @@ cat &quot;$RUN/&lt;step&gt;.input.json&quot;</code></pre>
 ~/.codex/skills/genecr/setup codex</code></pre>
 <p><strong>使用</strong>：</p>
 <pre><code class=""># 在 Codex CLI 對話中
-/genecr-flow 老玩家每儲值 1000 送刮刮券…</code></pre>
+/genecr 老玩家每儲值 1000 送刮刮券…</code></pre>
 <p><strong>Sandbox 注意事項</strong>：</p>
 <table>
 <tr><th>動作</th><th>影響</th><th>對策</th></tr>
@@ -549,7 +549,7 @@ cat &quot;$RUN/&lt;step&gt;.input.json&quot;</code></pre>
   },
   ...
 }</code></pre>
-<p><strong>多 host 切換</strong>：兩邊都裝後，<code>/genecr-flow</code> skill 自動識別當前 host（看 skill base directory 路徑含 <code>.claude</code> / <code>.codex</code>），不會跨 host 干擾。</p>
+<p><strong>多 host 切換</strong>：兩邊都裝後，<code>/genecr</code> skill 自動識別當前 host（看 skill base directory 路徑含 <code>.claude</code> / <code>.codex</code>），不會跨 host 干擾。</p>
 <p><strong>競業調查</strong>：若 Codex 在純離線 sandbox，AI 無法做 web research，會 fallback 用內建知識。產出仍可用但較少現役競品 URL。</p>
 <hr>
 <h2 id="技術棧產出文件套用">技術棧（產出文件套用）</h2>

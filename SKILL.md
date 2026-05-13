@@ -1,15 +1,15 @@
 ---
-name: genecr-flow
+name: genecr
 description: |
   跑 genecr 完整 pipeline：使用者描述功能需求，自動產出 7 份文件
   （企畫版/技術版/資源/BDD/SCRUM/原型/docs.html）。
   呼叫時機：user 說「genecr 跑流程」「跑 genecr pipeline」「生成完整文件」
-  「我想做一個 X 遊戲」「/genecr-flow 我想做 …」。
+  「我想做一個 X 遊戲」「/genecr 我想做 …」。
 allowed-tools:
   - Bash
 ---
 
-# genecr-flow — 跑完整 pipeline（同 host）
+# genecr — 跑完整 pipeline（同 host）
 
 ## 1. 決定 host
 
@@ -53,7 +53,7 @@ python "$GENECR_TOOLS/pipeline.py" "$PIPELINE_JSON" \
 `pipeline.py` 會印 `Run: output/<slug>/<datetime>` + 7 step 狀態。告訴使用者：
 
 ```
-✅ genecr-flow 完成！產出在：
+✅ genecr 完成！產出在：
    $GENECR_DIR/output/<slug>/<datetime>/
 
   📋 spec-basic.md / spec-advanced.md

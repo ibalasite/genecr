@@ -96,7 +96,7 @@ templates/
 
 | Skill | 觸發 | 動作 |
 |---|---|---|
-| `/genecr-flow "<brief>"` | 主流程 | AI 萃取 slug+name → 跑 pipeline.py |
+| `/genecr "<brief>"` | 主流程 | AI 萃取 slug+name → 跑 pipeline.py |
 | `/genecr-upgrade` | 同 host 升級 | 自動偵測當前 host（看 skill base dir）→ git pull + redeploy |
 
 兩個 skill 都依「Base directory for this skill」header 決定 host，**不用 for-loop 跨 host 偵測**。
@@ -157,7 +157,7 @@ templates/
 
 | 版本 | 日期 | 變更摘要 |
 |---|---|---|
-| v2.0 | 2026-05-14 | **架構重寫**：pipeline.json + tools/renderer 為核心。新增 generate→validate→fix loop、brief 萃取 feature.json、wireframes（wf-* DSL）、6+ 競業深度欄位、gendoc-style docs.html（sidebar tabs + API explorer）、setup 對齊 gendoc 慣例（_deploy_tools / upgrade re-exec / _find_python）。Tech stack 從 Fastify+MongoDB → Express+MySQL。新增 `/genecr-flow` skill。 |
+| v2.0 | 2026-05-14 | **架構重寫**：pipeline.json + tools/renderer 為核心。新增 generate→validate→fix loop、brief 萃取 feature.json、wireframes（wf-* DSL）、6+ 競業深度欄位、gendoc-style docs.html（sidebar tabs + API explorer）、setup 對齊 gendoc 慣例（_deploy_tools / upgrade re-exec / _find_python）。Tech stack 從 Fastify+MongoDB → Express+MySQL。新增 `/genecr` skill。 |
 | v1.1 | 2026-05-13 | lucky-wheel 範例下記錄 8 個 P0/P1 issue（線框、寬度、雙語、原型連結、資源完整性、BDD 全展、prototype 響應、競業連結）|
 | v1.0 | 2026-05-12 | 初版，定義 7 份產出、Cocos + Node.js + Fastify + MongoDB tech stack |
 

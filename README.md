@@ -40,7 +40,7 @@ genecr/
 ├── setup / setup.ps1          # host 安裝（claude | codex | all）— 仿 gendoc 慣例
 ├── bin/genecr-env.{sh,ps1}    # runtime 路徑探測（GENECR_DIR/TEMPLATES/...）
 ├── skills/                    # 部署到 host 的 sub skills
-│   ├── genecr-flow/           # /genecr-flow "<brief>" — 跑完整 pipeline
+│   ├── genecr/           # /genecr "<brief>" — 跑完整 pipeline
 │   └── genecr-upgrade/        # /genecr-upgrade — git pull + redeploy
 ├── templates/                 # 一切由 pipeline 讀取（離線）
 │   ├── *.tmpl                 # 7 份 Jinja2 模板（spec-basic / spec-advanced / assets / bdd / scrum / prototype / docs）
@@ -126,7 +126,7 @@ git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.claude\skil
 在 Claude Code / Codex 任意對話：
 
 ```
-/genecr-flow 老玩家每儲值 1000 送刮刮券，玩遊戲也會掉，20-5000 倍大獎，未中獎有幸運代號每週抽，不能讓代理商損失
+/genecr 老玩家每儲值 1000 送刮刮券，玩遊戲也會掉，20-5000 倍大獎，未中獎有幸運代號每週抽，不能讓代理商損失
 ```
 
 或自然語言「**genecr 跑流程做 X 功能**」。
@@ -217,7 +217,7 @@ AI 只能猜。產出會很泛、缺商業細節。
 
 | 我想… | 指令 |
 |---|---|
-| 跑一份新文件 | `/genecr-flow "<brief>"` |
+| 跑一份新文件 | `/genecr "<brief>"` |
 | 看上一次跑到哪 | `python tools/bin/pipeline.py --status` |
 | 接續中斷的 run | `python tools/bin/pipeline.py`（不帶 `--new` 自動 resume） |
 | 同 feature 開新時間戳重跑 | `python tools/bin/pipeline.py --new --slug X --name Y "<brief>"` |
@@ -303,7 +303,7 @@ git clone https://github.com/ibalasite/genecr.git ~/.codex/skills/genecr
 
 ```
 # 在 Codex CLI 對話中
-/genecr-flow 老玩家每儲值 1000 送刮刮券…
+/genecr 老玩家每儲值 1000 送刮刮券…
 ```
 
 **Sandbox 注意事項**：
@@ -342,7 +342,7 @@ codex exec -s workspace-write --skip-git-repo-check -o {output} < {prompt}
 
 或暫時：`codex exec --dangerously-bypass-approvals-and-sandbox ...`（**不建議常用**）。
 
-**多 host 切換**：兩邊都裝後，`/genecr-flow` skill 自動識別當前 host（看 skill base directory 路徑含 `.claude` / `.codex`），不會跨 host 干擾。
+**多 host 切換**：兩邊都裝後，`/genecr` skill 自動識別當前 host（看 skill base directory 路徑含 `.claude` / `.codex`），不會跨 host 干擾。
 
 **競業調查**：若 Codex 在純離線 sandbox，AI 無法做 web research，會 fallback 用內建知識。產出仍可用但較少現役競品 URL。
 

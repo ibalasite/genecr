@@ -386,7 +386,7 @@ output/&lt;slug&gt;/&lt;datetime&gt;/&lt;slug&gt;-&lt;type&gt;.md|.html</code></
 <h3 id="34-skills">3.4 Skills</h3>
 <table>
 <tr><th>Skill</th><th>觸發</th><th>動作</th></tr>
-<tr><td><code>/genecr-flow &quot;&lt;brief&gt;&quot;</code></td><td>主流程</td><td>AI 萃取 slug+name → 跑 pipeline.py</td></tr>
+<tr><td><code>/genecr &quot;&lt;brief&gt;&quot;</code></td><td>主流程</td><td>AI 萃取 slug+name → 跑 pipeline.py</td></tr>
 <tr><td><code>/genecr-upgrade</code></td><td>同 host 升級</td><td>自動偵測當前 host（看 skill base dir）→ git pull + redeploy</td></tr>
 </table>
 <p>兩個 skill 都依「Base directory for this skill」header 決定 host，<strong>不用 for-loop 跨 host 偵測</strong>。</p>
@@ -415,7 +415,7 @@ output/&lt;slug&gt;/&lt;datetime&gt;/&lt;slug&gt;-&lt;type&gt;.md|.html</code></
 <h2 id="六change-log">六、Change Log</h2>
 <table>
 <tr><th>版本</th><th>日期</th><th>變更摘要</th></tr>
-<tr><td>v2.0</td><td>2026-05-14</td><td><strong>架構重寫</strong>：pipeline.json + tools/renderer 為核心。新增 generate→validate→fix loop、brief 萃取 feature.json、wireframes（wf-* DSL）、6+ 競業深度欄位、gendoc-style docs.html（sidebar tabs + API explorer）、setup 對齊 gendoc 慣例（_deploy_tools / upgrade re-exec / _find_python）。Tech stack 從 Fastify+MongoDB → Express+MySQL。新增 <code>/genecr-flow</code> skill。</td></tr>
+<tr><td>v2.0</td><td>2026-05-14</td><td><strong>架構重寫</strong>：pipeline.json + tools/renderer 為核心。新增 generate→validate→fix loop、brief 萃取 feature.json、wireframes（wf-* DSL）、6+ 競業深度欄位、gendoc-style docs.html（sidebar tabs + API explorer）、setup 對齊 gendoc 慣例（_deploy_tools / upgrade re-exec / _find_python）。Tech stack 從 Fastify+MongoDB → Express+MySQL。新增 <code>/genecr</code> skill。</td></tr>
 <tr><td>v1.1</td><td>2026-05-13</td><td>lucky-wheel 範例下記錄 8 個 P0/P1 issue（線框、寬度、雙語、原型連結、資源完整性、BDD 全展、prototype 響應、競業連結）</td></tr>
 <tr><td>v1.0</td><td>2026-05-12</td><td>初版，定義 7 份產出、Cocos + Node.js + Fastify + MongoDB tech stack</td></tr>
 </table>

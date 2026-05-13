@@ -1889,7 +1889,7 @@ And agent daily cost is incremented
   C-&gt;&gt;S: POST /game/round/settle
   S-&gt;&gt;R: GET agent:cost:daily:{aid}
   R--&gt;&gt;S: current cost
-  S-&gt;&gt;S: rng &lt; P &amp;&amp; cost &lt; cap ?
+  S-&gt;&gt;S: rng  &lt; P &amp;&amp; cost  &lt; cap ?
   alt drop hit
     S-&gt;&gt;D: INSERT scratch_tickets (source=gameplay)
     S-&gt;&gt;R: INCRBY agent:cost:daily:{aid}
@@ -2306,9 +2306,21 @@ API_CONFIG.forEach(a => RESPONSE_MAP[a.id] = a.responses || {});
 
 mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
 
+function sanitizeMermaidSrc(src) {
+  if (!/^\s*sequenceDiagram/m.test(src)) return src;
+  return src.split('
+').map(line => {
+    const m = line.match(/^(\s*[^:]*-?->>?\s*[^:]+:)(.*)$/);
+    if (!m) return line;
+    const msg = m[2].replace(/</g, '#lt;').replace(/>/g, '#gt;');
+    return m[1] + msg;
+  }).join('
+');
+}
+
 function transformMermaid() {
   document.querySelectorAll('pre code.language-mermaid').forEach(code => {
-    const src = code.textContent;
+    const src = sanitizeMermaidSrc(code.textContent);
     const wrap = document.createElement('div');
     wrap.className = 'diagram-container';
     const div = document.createElement('div');

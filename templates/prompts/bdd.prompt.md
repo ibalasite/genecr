@@ -32,4 +32,10 @@ Rules:
 - For competitor research, use industry knowledge (do not attempt to read files).
 - All cross-reference IDs (api-xxx, sc-xxx, ASSET-xxx) must be self-consistent.
 
+## MERMAID SEQUENCE DIAGRAM
+For every `sequence_diagram` field, write naturally — including comparison operators
+(`<`, `>`, `<=`, `>=`). The renderer will escape these to mermaid's `#lt;` / `#gt;`
+codes automatically so they display as real `<` / `>` characters without being
+parsed as HTML.
+
 Type for this step: bdd

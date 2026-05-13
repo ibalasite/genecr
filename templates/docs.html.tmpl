@@ -463,9 +463,22 @@ API_CONFIG.forEach(a => RESPONSE_MAP[a.id] = a.responses || {});
 
 mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
 
+function sanitizeMermaidSrc(src) {
+  // In sequenceDiagram, mermaid parses raw <, > in message labels as HTML tags
+  // and the diagram breaks. Replace them in message text (after `:` on arrow lines)
+  // with mermaid's own escape codes #lt; / #gt; so they render as real < > characters.
+  if (!/^\s*sequenceDiagram/m.test(src)) return src;
+  return src.split('\n').map(line => {
+    const m = line.match(/^(\s*[^:]*-?->>?\s*[^:]+:)(.*)$/);
+    if (!m) return line;
+    const msg = m[2].replace(/</g, '#lt;').replace(/>/g, '#gt;');
+    return m[1] + msg;
+  }).join('\n');
+}
+
 function transformMermaid() {
   document.querySelectorAll('pre code.language-mermaid').forEach(code => {
-    const src = code.textContent;
+    const src = sanitizeMermaidSrc(code.textContent);
     const wrap = document.createElement('div');
     wrap.className = 'diagram-container';
     const div = document.createElement('div');

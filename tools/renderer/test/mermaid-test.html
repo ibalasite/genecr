@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>Mermaid Sanitize Test — genecr</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  h2 { border-bottom: 1px solid #ccc; padding-bottom: 0.3rem; margin-top: 2rem; }
+  .case { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin: 1rem 0; background: #fafafa; }
+  .label { font-weight: 600; color: #1e3a8a; margin-bottom: 0.5rem; }
+  .mermaid { background: #fff; padding: 0.5rem; border-radius: 4px; }
+  .expect { font-size: 0.9rem; color: #555; margin-top: 0.5rem; }
+  code { background: #eef; padding: 0 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<h1>Mermaid Sanitize Test</h1>
+<p>測試 <code>sanitizeMermaidSrc()</code>（複製自 <code>templates/docs.html.tmpl</code>）。在瀏覽器打開此檔案 — 三張圖都應正常渲染，<strong>不破圖</strong>。</p>
+
+<div class="case">
+  <div class="label">Case 1：正常箭頭（baseline）</div>
+  <pre><code class="language-mermaid">sequenceDiagram
+  participant C as Client
+  participant S as Server
+  C->>S: GET /info
+  S-->>C: 200 OK
+</code></pre>
+  <div class="expect">期望：標準 sequence 圖渲染。</div>
+</div>
+
+<div class="case">
+  <div class="label">Case 2：message 含 <code>&lt;</code> <code>&gt;</code> <code>&gt;=</code></div>
+  <pre><code class="language-mermaid">sequenceDiagram
+  participant C as Client
+  participant S as Server
+  participant R as Redis
+  C->>S: POST /grab
+  S->>R: GET pool
+  R-->>S: remaining >= 0
+  S->>R: check endTs < now
+  R-->>S: count > limit
+  S-->>C: 200 {ok}
+</code></pre>
+  <div class="expect">期望：message 內顯示真正的 <code>&gt;=</code>、<code>&lt;</code>、<code>&gt;</code> 字元。</div>
+</div>
+
+<div class="case">
+  <div class="label">Case 3：含 <code>&lt;=</code></div>
+  <pre><code class="language-mermaid">sequenceDiagram
+  participant A as A
+  participant B as B
+  A->>B: x <= 100 ?
+  B-->>A: yes (count <= max)
+</code></pre>
+  <div class="expect">期望：message 內顯示真正的 <code>&lt;=</code>。</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+
+// ↓↓↓ 從 templates/docs.html.tmpl 複製過來的函式 ↓↓↓
+function sanitizeMermaidSrc(src) {
+  if (!/^\s*sequenceDiagram/m.test(src)) return src;
+  return src.split('\n').map(line => {
+    const m = line.match(/^(\s*[^:]*-?->>?\s*[^:]+:)(.*)$/);
+    if (!m) return line;
+    const msg = m[2].replace(/</g, '#lt;').replace(/>/g, '#gt;');
+    return m[1] + msg;
+  }).join('\n');
+}
+
+function transformMermaid() {
+  document.querySelectorAll('pre code.language-mermaid').forEach(code => {
+    const src = sanitizeMermaidSrc(code.textContent);
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = src;
+    code.parentElement.replaceWith(div);
+  });
+}
+
+transformMermaid();
+mermaid.run();
+</script>
+
+</body>
+</html>

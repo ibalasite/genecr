@@ -16,8 +16,6 @@ skills-lock.json
 # tools/bin/ contents are produced by tools/<pkg>/setup.sh — never commit
 tools/bin/*
 !tools/bin/.gitkeep
-!tools/bin/genecr-env.sh
-!tools/bin/genecr-env.ps1
 
 # Python bytecode
 __pycache__/

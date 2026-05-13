@@ -537,7 +537,33 @@ sequenceDiagram
 
 ### Phase 4：輸出前自我檢查
 
-產出所有文件後，確認：
+**🚨 反偷工鐵律（docs.html 每個分頁必須自我完整）**：
+- ❌ 禁止寫「（節錄）」「（摘要）」「完整列表見 X.md」「詳見 Y 分頁」之類的省略句
+- ❌ 禁止在 docs.html 任一分頁用「see XX」「見 .md」「節錄」「摘要」引導讀者去看別處
+- ✅ docs.html 是**自包含完整文件**，每個分頁的內容必須等同於對應的 .md 全文（不是節錄）
+- ✅ 競業分析有 13 個平台就列 13 個，不是列 2 個 +「完整見另一分頁」
+- ✅ 資源清單有 41 條就展開 41 個 card，不是表格列 5 筆 +「完整見 .md」
+- ✅ SCRUM 有 18 張卡就展開 18 張完整卡（含 AC、SP、依賴），不是表頭
+
+產出所有文件後，跑以下 bash 自審把結果**打到對話**（用 python 不是 bash grep，避免 Windows 編碼問題）：
+
+```bash
+python3 << 'AUDIT'
+import pathlib, re
+docs = pathlib.Path("output/<slug>/<slug>-docs.html").read_text(encoding="utf-8")
+violations = []
+for bad in ["（節錄）", "（摘要）", "節錄", "完整列表見", "詳見.*分頁", "見「.*」分頁"]:
+    if re.search(bad, docs):
+        violations.append(f"❌ 找到偷工字眼: {bad}")
+if violations:
+    for v in violations: print(v)
+    print("❌ 違反反偷工鐵律 — 必須修到 0 出現")
+else:
+    print("✓ 無偷工字眼")
+AUDIT
+```
+
+接下來確認：
 - [ ] 競業分析有實際引用來源 URL
 - [ ] 企畫版沒有未說明的工程術語
 - [ ] BDD 每個功能都有正常/邊界/異常三種情境

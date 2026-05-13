@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GeneCR — {{功能名稱}} 文件套件</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- No CDN. System fonts only — works fully offline per SKILL.md rule. -->
 <style>
 /* ============================================================
    DESIGN TOKENS — ui-ux-pro-max · OLED Dark Luxury iGaming
@@ -45,9 +44,9 @@
   --border:       #2a2a3a;
   --border-gold:  rgba(202,138,4,.35);
 
-  /* Typography */
-  --font-display: 'Righteous', sans-serif;
-  --font-body:    'Poppins', sans-serif;
+  /* Typography — system fonts only, no CDN */
+  --font-display: system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  --font-body:    system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
 
   /* Transitions */
   --t-fast: 150ms ease;

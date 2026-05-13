@@ -73,6 +73,51 @@ function Deploy-Skills($runtime, $skillsDst) {
     }
 }
 
+function Find-Python {
+    # Windows MS Store stub for "python3" exits non-zero or opens the Store.
+    # Try python3 first, fall back to python, verify it's actually Python 3.
+    foreach ($cand in @("python3", "python")) {
+        $cmd = Get-Command $cand -ErrorAction SilentlyContinue
+        if (-not $cmd) { continue }
+        try {
+            $ver = & $cand --version 2>&1
+            if ($ver -match "^Python 3") { return $cand }
+        } catch {}
+    }
+    return $null
+}
+
+function Deploy-Tools($runtime) {
+    # gendoc-style: walk $runtime/tools/<pkg>/, deploy each into tools/bin/.
+    #   1. tools/<pkg>/build.sh exists  → run it (BIN_DIR / PACKAGE_DIR injected)
+    #   2. else cp tools/<pkg>/<pkg>.py → tools/bin/<pkg>.py (single-file convention)
+    $toolsDir = Join-Path $runtime "tools"
+    if (-not (Test-Path $toolsDir)) { return }
+    $binDir = Join-Path $toolsDir "bin"
+    New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+    Log "[deploy] tools\<pkg>\ -> $binDir"
+    Get-ChildItem -Path $toolsDir -Directory | Where-Object { $_.Name -ne "bin" } | ForEach-Object {
+        $pkg = $_.Name
+        $build = Join-Path $_.FullName "build.sh"
+        $entry = Join-Path $_.FullName "$pkg.py"
+        if (Test-Path $build) {
+            Log "  - build $pkg (build.sh)"
+            $bash = Get-Command bash -ErrorAction SilentlyContinue
+            if (-not $bash) { Write-Warning "  ! bash not in PATH; skipped $pkg/build.sh"; return }
+            $py = Find-Python
+            if (-not $py) { Write-Warning "  ! Python 3 not found; skipped $pkg/build.sh"; return }
+            $env:BIN_DIR = $binDir
+            $env:PACKAGE_DIR = $_.FullName
+            $env:PY = $py
+            & $bash.Source $build
+            Remove-Item Env:BIN_DIR; Remove-Item Env:PACKAGE_DIR; Remove-Item Env:PY
+        } elseif (Test-Path $entry) {
+            Copy-Item -Force $entry (Join-Path $binDir "$pkg.py")
+            Log "  - $pkg\$pkg.py -> bin\$pkg.py"
+        }
+    }
+}
+
 function Install-One($host) {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Error "git required"; exit 1 }
     $runtime  = Get-HostDir $host
@@ -86,6 +131,7 @@ function Install-One($host) {
     if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
     git clone $RepoUrl $runtime
     Deploy-Skills $runtime $skillsDst
+    Deploy-Tools $runtime
     Log ""
     Log "[install:$host] done. Restart $host to activate skills."
 }
@@ -99,7 +145,16 @@ function Upgrade-One($host) {
     }
     Log "[upgrade:$host] git pull..."
     git -C $runtime pull --ff-only
+    # Re-invoke freshly-pulled setup.ps1 so newly-added functions take effect (gendoc pattern).
+    & (Join-Path $runtime "setup.ps1") "_post_upgrade" $host
+    exit
+}
+
+function Post-Upgrade($host) {
+    $runtime  = Get-HostDir $host
+    $skillsDst = Get-HostSkillsDir $host
     Deploy-Skills $runtime $skillsDst
+    Deploy-Tools $runtime
     Log "[upgrade:$host] done."
 }
 
@@ -123,6 +178,7 @@ switch ($Command.ToLower()) {
     "install"   { foreach ($h in Resolve-Targets $Target) { Install-One $h } }
     "upgrade"   { foreach ($h in Resolve-Targets $Target) { Upgrade-One $h } }
     "uninstall" { foreach ($h in Resolve-Targets $Target) { Uninstall-One $h } }
+    "_post_upgrade" { Post-Upgrade $Target }
     "claude"    { foreach ($h in Resolve-Targets "claude") { Install-One $h } }
     "codex"     { foreach ($h in Resolve-Targets "codex")  { Install-One $h } }
     "all"       { foreach ($h in Resolve-Targets "all")    { Install-One $h } }

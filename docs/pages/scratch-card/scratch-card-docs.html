@@ -1,0 +1,2665 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>老玩家儲值刮刮樂 — 文件中心</title>
+<style>
+  /* ─── Tokens (gendoc-style: dark nav + light content) ─── */
+  :root {
+    --nav-bg: #1e293b;
+    --nav-fg: #f1f5f9;
+    --nav-accent: #60a5fa;
+    --nav-h: 56px;
+
+    --bg: #f8fafc;
+    --panel-bg: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --link: #2563eb;
+    --link-hover: #1d4ed8;
+    --code-bg: #f1f5f9;
+    --code-fg: #c7254e;
+    --pre-bg: #0f172a;
+    --pre-fg: #e2e8f0;
+    --th-bg: #f1f5f9;
+    --row-alt: #fafbfc;
+    --accent: #2563eb;
+
+    --content-max: 1400px;
+    --sidebar-w: 240px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+                 "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    line-height: 1.7; font-size: 15px;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+
+  /* ─── Top nav ─── */
+  .top-nav {
+    position: sticky; top: 0; z-index: 50;
+    height: var(--nav-h);
+    background: var(--nav-bg); color: var(--nav-fg);
+    display: flex; align-items: center;
+    padding: 0 24px; gap: 24px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.1);
+  }
+  .top-nav h1 { font-size: 16px; font-weight: 600; margin: 0; color: #fff; }
+  .top-nav .crumb { color: #94a3b8; font-size: 14px; }
+  .top-nav .spacer { flex: 1; }
+  .top-nav .lang { display: flex; gap: 4px; }
+  .top-nav .lang button {
+    padding: 4px 10px; font-size: 12px;
+    background: transparent; color: #cbd5e1;
+    border: 1px solid #475569; border-radius: 4px; cursor: pointer;
+  }
+  .top-nav .lang button.active { background: var(--nav-accent); color: #fff; border-color: var(--nav-accent); }
+  .top-nav .lang button:hover:not(.active) { background: #334155; color: #fff; }
+
+  /* ─── Layout: sidebar + content (full viewport, gendoc-style) ─── */
+  .page-wrapper {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    width: 100%;
+    min-height: calc(100vh - var(--nav-h));
+    transition: grid-template-columns .15s;
+  }
+  .page-wrapper.sidebar-collapsed {
+    grid-template-columns: 36px 1fr;
+  }
+  @media (max-width: 768px) {
+    .page-wrapper { grid-template-columns: 36px 1fr; }
+  }
+
+  /* ─── Sidebar (with tabs + collapse) ─── */
+  .sidebar {
+    position: sticky; top: var(--nav-h);
+    align-self: start;
+    height: calc(100vh - var(--nav-h));
+    background: var(--panel-bg);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: visible;
+  }
+  .sidebar__toggle {
+    position: absolute; top: 6px; right: 6px;
+    background: var(--code-bg); color: var(--text-muted);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    padding: 2px 8px; font-size: 13px; line-height: 1; cursor: pointer; z-index: 3;
+  }
+  .sidebar__toggle:hover { background: var(--border); color: var(--text); }
+  .page-wrapper.sidebar-collapsed .sidebar__tabs,
+  .page-wrapper.sidebar-collapsed .sidebar__panel { display: none; }
+  .page-wrapper.sidebar-collapsed .sidebar__toggle { left: 6px; right: auto; top: 6px; }
+
+  .sidebar__tabs {
+    display: flex; gap: 2px; padding: 6px 36px 0 6px;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    flex: 0 0 auto;
+  }
+  .sidebar__tab {
+    flex: 1; padding: 6px 8px; font-size: 12px;
+    border: 1px solid transparent; border-bottom: none;
+    border-radius: 4px 4px 0 0; cursor: pointer; background: transparent;
+    color: var(--text-muted); font-family: inherit; text-align: center;
+    transition: background .15s, color .15s;
+  }
+  .sidebar__tab:hover { color: var(--text); background: var(--code-bg); }
+  .sidebar__tab.active {
+    background: var(--panel-bg); color: var(--link);
+    border-color: var(--border); font-weight: 600; margin-bottom: -1px;
+  }
+
+  .sidebar__panel {
+    display: none; flex: 1 1 auto;
+    overflow-y: auto; overflow-x: hidden;
+    padding: 8px 0; font-size: 14px;
+    scrollbar-width: thin;
+  }
+  .sidebar__panel.active { display: block; }
+  .sidebar__panel::-webkit-scrollbar { width: 6px; }
+  .sidebar__panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 3px; }
+
+  .sidebar__link {
+    display: block;
+    padding: 8px 16px;
+    color: var(--text); text-decoration: none;
+    border-left: 3px solid transparent;
+    font-size: 14px; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sidebar__link:hover { background: var(--code-bg); }
+  .sidebar__link.active {
+    background: #eff6ff; color: var(--link);
+    border-left-color: var(--accent); font-weight: 600;
+  }
+
+  /* TOC links — indent by heading depth */
+  .toc__link { display: block; padding: 4px 16px;
+    color: var(--text); text-decoration: none; font-size: 13px;
+    border-left: 2px solid transparent;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .toc__link:hover { background: var(--code-bg); color: var(--link); }
+  .toc__link.active { background: #eff6ff; color: var(--link); border-left-color: var(--accent); font-weight: 500; }
+  .toc__link--h2 { padding-left: 16px; font-weight: 600; }
+  .toc__link--h3 { padding-left: 32px; font-size: 12px; color: var(--text-muted); }
+  .toc__link--h4 { padding-left: 48px; font-size: 12px; color: var(--text-muted); }
+
+  /* ─── Main content area (full width, responsive) ─── */
+  main.content {
+    background: var(--panel-bg);
+    padding: 32px 48px 96px;
+    min-width: 0;
+    width: 100%;
+  }
+  @media (max-width: 768px) { main.content { padding: 20px 16px 64px; } }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .panel [id] { scroll-margin-top: calc(var(--nav-h) + 16px); }
+
+  /* ─── Typography ─── */
+  h1, h2, h3, h4, h5 { color: var(--text); font-weight: 700; line-height: 1.3; }
+  h1 { font-size: 28px; margin: 8px 0 24px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+  h2 { font-size: 22px; margin: 36px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 18px; margin: 28px 0 12px; }
+  h4 { font-size: 16px; margin: 20px 0 10px; }
+  p, ul, ol { margin: 12px 0; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+
+  a { color: var(--link); text-decoration: none; }
+  a:hover { color: var(--link-hover); text-decoration: underline; }
+
+  blockquote {
+    margin: 16px 0; padding: 12px 16px;
+    border-left: 4px solid var(--accent);
+    background: #eff6ff; color: var(--text);
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* ─── Code ─── */
+  code {
+    background: var(--code-bg); color: var(--code-fg);
+    padding: 2px 6px; border-radius: 3px;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular,
+                 Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--pre-bg); color: var(--pre-fg);
+    padding: 16px; border-radius: 8px; overflow-x: auto;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px; line-height: 1.55;
+    margin: 16px 0;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; font-size: inherit; }
+
+  /* ─── Tables (gendoc style: light theme, scroll if too wide) ─── */
+  .panel { max-width: 100%; }
+  .panel table {
+    border-collapse: collapse;
+    margin: 16px 0;
+    width: auto;
+    background: var(--panel-bg);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    border-radius: 6px;
+    overflow: hidden;
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .panel th, .panel td {
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    line-height: 1.6;
+    word-break: break-word;
+    max-width: 480px;
+    font-size: 14px;
+  }
+  .panel th {
+    background: var(--th-bg);
+    color: var(--text);
+    font-weight: 600;
+    white-space: nowrap;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  .panel tbody tr:nth-child(even) { background: var(--row-alt); }
+
+  /* ─── Mermaid diagrams ─── */
+  .diagram-container {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; margin: 16px 0;
+    cursor: zoom-in; transition: box-shadow .15s;
+  }
+  .diagram-container:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+
+  /* ─── Lightbox (mermaid zoom) ─── */
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(15,23,42,.92);
+    display: none; z-index: 1000;
+    justify-content: center; align-items: center;
+  }
+  .lightbox.show { display: flex; }
+  .lightbox-inner {
+    background: #fff; padding: 32px; border-radius: 8px;
+    max-width: 95vw; max-height: 90vh; overflow: auto;
+    transform-origin: center;
+  }
+  .lightbox-controls { position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 1001; }
+  .lightbox-controls button {
+    background: #fff; color: var(--text); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 4px; font-weight: 600; cursor: pointer;
+  }
+  .lightbox-controls button:hover { background: var(--code-bg); }
+
+  /* ─── API try-it card ─── */
+  .api-card {
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 20px; margin: 20px 0;
+  }
+  .api-card.hidden { display: none; }
+  .api-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .method {
+    padding: 4px 10px; border-radius: 4px;
+    font-weight: 700; font-size: 11px; letter-spacing: 0.05em; color: #fff;
+  }
+  .method.GET { background: #16a34a; }
+  .method.POST { background: #2563eb; }
+  .method.PUT { background: #ea580c; }
+  .method.PATCH { background: #7c3aed; }
+  .method.DELETE { background: #dc2626; }
+  .api-path {
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    color: var(--text); font-size: 14px; font-weight: 600;
+  }
+  .api-card label { display: block; font-size: 12px; color: var(--text-muted); margin-top: 10px; font-weight: 600; }
+  .api-card input, .api-card textarea, .api-card select {
+    width: 100%; padding: 8px 10px;
+    background: #fff; color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 13px; margin-top: 4px;
+  }
+  .api-card textarea { min-height: 100px; resize: vertical; }
+  .api-card .btns { margin-top: 14px; display: flex; gap: 8px; }
+  .api-card button {
+    padding: 8px 16px; border: none; border-radius: 4px;
+    font-weight: 600; cursor: pointer; font-size: 13px;
+  }
+  .btn-try, .btn-curl {
+    padding: 10px 20px; border-radius: 4px;
+    font-weight: 600; font-size: 14px; cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-try { background: var(--accent); color: #fff; border: none; }
+  .btn-try:hover { background: var(--link-hover); }
+  .btn-curl { background: var(--code-bg); color: var(--text); border: 1px solid var(--border-strong); }
+  .btn-curl:hover { background: var(--border); }
+  .response {
+    margin-top: 12px; padding: 12px;
+    background: var(--pre-bg); color: var(--pre-fg);
+    border-radius: 4px;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px; white-space: pre-wrap; min-height: 30px;
+  }
+  .status-2xx { border-left: 3px solid #16a34a; }
+  .status-4xx { border-left: 3px solid #ea580c; }
+  .status-5xx { border-left: 3px solid #dc2626; }
+
+  /* ─── Wireframe DSL — low-fidelity line-art mockups ─── */
+  .wf-scope {
+    --ink:#1f2937; --muted:#6b7280; --line:#c7cdd6; --soft:#f6f7f9; --panel:#fff;
+    color: var(--ink); background: #fff; padding: 16px; border-radius: 8px; margin: 16px 0;
+    font-family: Inter, system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    border: 1px solid var(--border);
+  }
+  .wf-scope *, .wf-scope *::before, .wf-scope *::after { box-sizing: border-box; }
+  .wf-scope code { background: transparent; color: inherit; padding: 0; }
+  .wf-frame { border: 2px solid var(--ink); border-radius: 20px; overflow: hidden; background: var(--panel); box-shadow: 0 18px 50px rgba(31,41,55,.12); }
+  .wf-panel { border: 1.8px solid var(--line); border-radius: 12px; background: #fff; padding: 12px; }
+  .wf-section-title { font-weight: 800; font-size: 14px; color: var(--ink); margin-bottom: 8px; }
+  .wf-helper { color: var(--muted); font-size: 12px; }
+  .wf-divider { height: 0; border: none; border-top: 1.5px solid var(--line); margin: 12px 0; }
+  .wf-pill { display: inline-grid; place-items: center; min-width: 56px; height: 28px; padding: 0 10px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; color: var(--ink); }
+  .wf-pill.is-active { border-color: var(--ink); background: var(--soft); font-weight: 700; }
+  .wf-btn { min-height: 34px; padding: 0 14px; border: 1.8px solid var(--line); border-radius: 999px; background: #fff; font-size: 13px; cursor: pointer; }
+  .wf-btn-primary { border-color: var(--ink); font-weight: 700; background: var(--soft); }
+  .wf-skeleton-pill { display: inline-block; width: 160px; height: 28px; border: 1.5px solid var(--line); border-radius: 999px; background: repeating-linear-gradient(90deg, #fff, #fff 10px, var(--soft) 10px, var(--soft) 20px); }
+  .wf-skeleton-line { display: block; height: 14px; flex: 1; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; }
+  .wf-skeleton-block { background: var(--soft); border: 1.8px solid var(--line); border-radius: 12px; min-height: 40px; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+  .wf-dot { display: inline-block; width: 18px; height: 18px; border: 1.8px solid var(--ink); border-radius: 50%; background: var(--soft); }
+  .wf-icon-slot { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1.5px dashed var(--line); border-radius: 8px; color: var(--muted); font-size: 10px; }
+  .wf-required { color: #b91c1c; font-weight: 700; }
+  .wf-badge { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1.8px solid var(--ink); border-radius: 50%; font-size: 11px; font-weight: 700; }
+  .wf-mobile { width: 360px; margin: 16px auto; background: #fff; border: 2px solid var(--ink); border-radius: 20px; overflow: hidden; }
+  .wf-statusbar { display: flex; justify-content: space-between; align-items: center; padding: 4px 16px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .wf-appbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid var(--line); background: #fbfbfc; }
+  .wf-appbar > .wf-section-title { flex: 1; margin: 0; font-size: 15px; }
+  .wf-banner { padding: 10px 16px; border-bottom: 1.5px solid var(--line); }
+  .wf-marquee { padding: 6px 16px; border-bottom: 1.5px solid var(--line); display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); overflow: hidden; }
+  .wf-stage { padding: 20px 16px; display: grid; place-items: center; min-height: 320px; }
+  .wf-info { display: flex; justify-content: space-around; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-actionbar { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-actionbar .wf-btn-primary { flex: 1; }
+  .wf-shortcuts { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-shortcuts .wf-btn { flex: 1; }
+  .wf-wheel { position: relative; width: 240px; height: 240px; border-radius: 50%; border: 2.5px solid var(--ink); overflow: hidden; background: conic-gradient(from -15deg, #fff 0 30deg, var(--soft) 30deg 60deg, #fff 60deg 90deg, var(--soft) 90deg 120deg, #fff 120deg 150deg, var(--soft) 150deg 180deg, #fff 180deg 210deg, var(--soft) 210deg 240deg, #fff 240deg 270deg, var(--soft) 270deg 300deg, #fff 300deg 330deg, var(--soft) 330deg 360deg); }
+  .wf-wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 20px solid var(--ink); z-index: 3; }
+  .wf-wheel-hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 70px; height: 70px; border-radius: 50%; border: 2.5px solid var(--ink); background: #fff; display: grid; place-items: center; font-weight: 800; font-size: 14px; z-index: 2; }
+  .wf-modal { width: 300px; margin: 16px auto; border: 2px solid var(--ink); border-radius: 16px; background: #fff; padding: 24px 20px; text-align: center; box-shadow: 0 18px 50px rgba(31,41,55,.12); }
+  .wf-modal-icon { width: 80px; height: 80px; margin: 0 auto 12px; border: 2px dashed var(--line); border-radius: 16px; display: grid; place-items: center; color: var(--muted); font-size: 11px; background: var(--soft); }
+  .wf-modal-title { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+  .wf-modal-body { font-size: 13px; color: var(--ink); margin-bottom: 4px; }
+  .wf-modal-meta { font-size: 11px; color: var(--muted); border: 1.5px dashed var(--line); border-radius: 8px; padding: 6px 8px; margin: 12px 0; }
+  .wf-modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .wf-empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+  .wf-countdown { font-family: monospace; font-size: 24px; font-weight: 800; letter-spacing: 2px; color: var(--ink); }
+
+  @media print {
+    .top-nav, .sidebar { display: none; }
+    .page-wrapper { display: block; }
+    main.content { padding: 0; }
+    .panel { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <h1>📋 老玩家儲值刮刮樂</h1>
+  <span class="crumb">— 文件中心</span>
+  <span class="spacer"></span>
+</nav>
+
+<div class="page-wrapper">
+
+  <aside class="sidebar">
+    <button class="sidebar__toggle" id="sidebarToggle" title="收合 / 展開 (Ctrl+\)">‹</button>
+    <div class="sidebar__tabs">
+      <button class="sidebar__tab active" data-panel="docs">📁 文件</button>
+      <button class="sidebar__tab" data-panel="toc">📑 本頁目錄</button>
+    </div>
+    <div class="sidebar__panel active" id="sidebar-docs">
+      <a class="sidebar__link active" data-target="panel-0">📋 企畫版</a>
+      <a class="sidebar__link" data-target="panel-1">⚙️ 技術版</a>
+      <a class="sidebar__link" data-target="panel-2">🎨 資源清單</a>
+      <a class="sidebar__link" data-target="panel-3">🧪 BDD</a>
+      <a class="sidebar__link" data-target="panel-4">📌 SCRUM</a>
+      <a class="sidebar__link" data-target="panel-api">🔧 API 試打</a>
+      <a class="sidebar__link" data-target="panel-proto">🎮 互動原型</a>
+    </div>
+    <div class="sidebar__panel" id="sidebar-toc">
+      <div id="toc-list"></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="panel active" id="panel-0">
+      <h1 id="_1">儲值刮刮樂幸運券 需求規格書</h1>
+<h2 id="_2">一、修改紀錄</h2>
+<table>
+<thead>
+<tr>
+<th>日期</th>
+<th>修改人</th>
+<th>內容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-05-13</td>
+<td>產品企劃</td>
+<td>初版規格：每儲值1000送1張刮刮券、遊戲掉券、20-5000倍大獎、未中獎券參與週抽幸運號</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_3">二、相關文件</h2>
+<table>
+<thead>
+<tr>
+<th>檔案</th>
+<th>說明</th>
+<th>狀態</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>docs/PRD-recharge-scratch.md</td>
+<td>產品需求文件</td>
+<td>進行中</td>
+</tr>
+<tr>
+<td>docs/EDD-scratch-engine.md</td>
+<td>刮獎引擎與RTP配置技術設計</td>
+<td>待補</td>
+</tr>
+<tr>
+<td>docs/OPS-agent-cost.md</td>
+<td>代理商成本分攤與保護機制</td>
+<td>待補</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">三、概要</h2>
+<ul>
+<li><strong>是什麼</strong>：老玩家儲值每滿1000送1張刮刮券，遊戲過程也會隨機掉券，券面可刮出20x-5000x大獎；未中獎券附幸運代號，每週開獎抽出幸運兒。</li>
+<li><strong>為什麼</strong>：提升老玩家儲值動機與留存（儲值=立即獎勵+週抽期待），同時透過RTP與成本上限保護代理商不被掏空。</li>
+<li><strong>目標族群</strong>：30日內有儲值紀錄的老玩家（VIP1+），尤其是中高儲值族群與每日活躍場次玩家。</li>
+</ul>
+<h2 id="_5">四、競業分析摘要</h2>
+<h3 id="1-tada-gaming-scratch-mania">1. TaDa Gaming - Scratch Mania （亞洲（菲律賓/越南））</h3>
+<ul>
+<li><strong>核心機制</strong>：儲值門檻贈刮卡，三同符號中獎，含特殊符號觸發加倍</li>
+<li><strong>RTP / 倍率</strong>：RTP 92-94% / 最高 1000x 投注額</li>
+<li><strong>獎勵結構</strong>：小獎2-10x佔70%、中獎50-200x佔25%、大獎500-1000x佔5%，無保底</li>
+<li><strong>玩家流程</strong>：儲值→錢包收券→活動頁打開卡片→刮開三格→自動入帳</li>
+<li><strong>差異化亮點</strong>：與儲值通道深度綁定，儲值成功立刻彈卡</li>
+<li><strong>可改進處</strong>：缺乏未中獎二次機會，券一刮完就消失，留存力弱</li>
+<li><strong>參考連結</strong>：<a href="https://www.tadagaming.com/">https://www.tadagaming.com/</a></li>
+</ul>
+<h3 id="2-jdb-lucky-scratch">2. JDB Lucky Scratch （亞洲（台灣/東南亞））</h3>
+<ul>
+<li><strong>核心機制</strong>：任一老虎機 spin 有萬分之一機率掉刮券，刮券走獨立 RTP</li>
+<li><strong>RTP / 倍率</strong>：RTP 95% / 最高 2000x</li>
+<li><strong>獎勵結構</strong>：6檔倍率：5x/20x/50x/200x/500x/2000x，含累積大獎池</li>
+<li><strong>玩家流程</strong>：玩遊戲→中掉券提示→錢包→刮卡介面→領獎</li>
+<li><strong>差異化亮點</strong>：與所有遊戲打通的掉券機制，覆蓋廣</li>
+<li><strong>可改進處</strong>：沒有未中獎的延續體驗，玩家刮完空白券即流失</li>
+<li><strong>參考連結</strong>：<a href="https://www.jdb.cc/">https://www.jdb.cc/</a></li>
+</ul>
+<h3 id="3-ka-gaming-scratch-bonanza">3. KA Gaming - Scratch Bonanza （亞洲（台灣））</h3>
+<ul>
+<li><strong>核心機制</strong>：分銅銀金三級卡，倍率區間不同，可花籌碼購買額外刮層</li>
+<li><strong>RTP / 倍率</strong>：RTP 93-96% 依等級 / 最高 5000x</li>
+<li><strong>獎勵結構</strong>：金卡含5000x大獎機率1/50000，銀卡最高500x，銅卡最高100x</li>
+<li><strong>玩家流程</strong>：活動頁選等級→消耗券→刮三區→可加購額外刮→結算</li>
+<li><strong>差異化亮點</strong>：卡片分級＋額外加購擴大ARPU</li>
+<li><strong>可改進處</strong>：加購機制門檻高，新手覺得複雜</li>
+<li><strong>參考連結</strong>：<a href="https://www.kagaming.com/">https://www.kagaming.com/</a></li>
+</ul>
+<h3 id="4-igt-instant-win-scratchcards">4. IGT Instant Win Scratchcards （北美（美國/加拿大））</h3>
+<ul>
+<li><strong>核心機制</strong>：傳統三符號刮卡，含累積州彩共享獎池</li>
+<li><strong>RTP / 倍率</strong>：RTP 65-75%（州彩標準） / 最高 1,000,000x（極稀有）</li>
+<li><strong>獎勵結構</strong>：金字塔型獎勵：80%小獎、15%中獎、5%大獎，含共享 jackpot</li>
+<li><strong>玩家流程</strong>：購券→刮開符號→符合條件→大獎需經人工核獎→兌獎</li>
+<li><strong>差異化亮點</strong>：州彩級信任度與超大累積獎</li>
+<li><strong>可改進處</strong>：RTP低、刮券需付費購買，不適合贈券場景</li>
+<li><strong>參考連結</strong>：<a href="https://www.igt.com/">https://www.igt.com/</a></li>
+</ul>
+<h3 id="5-light-wonder-scratch-match">5. Light &amp; Wonder - Scratch &amp; Match （北美）</h3>
+<ul>
+<li><strong>核心機制</strong>：刮開後進入Match-3小遊戲，三消觸發倍率</li>
+<li><strong>RTP / 倍率</strong>：RTP 94% / 最高 2500x</li>
+<li><strong>獎勵結構</strong>：基礎倍率5-50x，Match-3加成可達50x倍乘</li>
+<li><strong>玩家流程</strong>：領券→刮開→Match-3→結算→領獎</li>
+<li><strong>差異化亮點</strong>：二段式遊戲體驗，比單純刮卡有趣</li>
+<li><strong>可改進處</strong>：開發成本高、教學成本高、不利快節奏發券場景</li>
+<li><strong>參考連結</strong>：<a href="https://www.lnw.com/">https://www.lnw.com/</a></li>
+</ul>
+<h3 id="6-pragmatic-play-daily-drops-wins-latam">6. Pragmatic Play - Daily Drops &amp; Wins （哥斯大黎加 / LATAM / 全球）</h3>
+<ul>
+<li><strong>核心機制</strong>：投注送幸運號入池，每日/週固定時點隨機抽號發獎</li>
+<li><strong>RTP / 倍率</strong>：額外RTP約2-3%（網絡型促銷）</li>
+<li><strong>獎勵結構</strong>：每日2萬美金、每週20萬美金，分100-500個獎位</li>
+<li><strong>玩家流程</strong>：投注→自動獲幸運號→等候開獎→獎金自動入帳</li>
+<li><strong>差異化亮點</strong>：全球網絡共享獎池，無需玩家主動操作</li>
+<li><strong>可改進處</strong>：獎位需主動關注公告才知中獎，沉浸感較弱</li>
+<li><strong>參考連結</strong>：<a href="https://www.pragmaticplay.com/en/promotions/drops-and-wins/">https://www.pragmaticplay.com/en/promotions/drops-and-wins/</a></li>
+</ul>
+<h3 id="7-pg-soft-treasures-of-aztec-scratch">7. PG Soft - Treasures of Aztec Scratch （東南亞（泰國/印尼））</h3>
+<ul>
+<li><strong>核心機制</strong>：老虎機免費旋轉中掉刮券，券與遊戲主題綁定</li>
+<li><strong>RTP / 倍率</strong>：RTP 96% / 最高 1500x</li>
+<li><strong>獎勵結構</strong>：5/10/50/200/1500x五階，含主題加倍符</li>
+<li><strong>玩家流程</strong>：玩老虎機→隨機掉券→刮券→若中主題符再進加倍迷你關</li>
+<li><strong>差異化亮點</strong>：與遊戲世界觀深度綁定，IP續航力強</li>
+<li><strong>可改進處</strong>：僅限該系列遊戲產出券，覆蓋有限</li>
+<li><strong>參考連結</strong>：<a href="https://pgsoft.com/">https://pgsoft.com/</a></li>
+</ul>
+<h3 id="8-salsa-technology-raspadinha-latam">8. Salsa Technology - Raspadinha （LATAM（巴西））</h3>
+<ul>
+<li><strong>核心機制</strong>：購券或贈券，三同圖即中，含即時開獎廣播</li>
+<li><strong>RTP / 倍率</strong>：RTP 88-92% / 最高 3000x</li>
+<li><strong>獎勵結構</strong>：高頻小獎為主，大獎用獎池滾動</li>
+<li><strong>玩家流程</strong>：購券/領券→刮三格→中獎廣播→PIX秒到帳</li>
+<li><strong>差異化亮點</strong>：即時到帳的多巴胺體驗+在地化</li>
+<li><strong>可改進處</strong>：RTP偏低，未中獎完全無安慰機制</li>
+<li><strong>參考連結</strong>：<a href="https://salsatechnology.com/">https://salsatechnology.com/</a></li>
+</ul>
+<h3 id="_6">功能對比</h3>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>我們</th>
+<th>TaDa Scratch Mania</th>
+<th>JDB Lucky Scratch</th>
+<th>KA Scratch Bonanza</th>
+<th>Pragmatic Daily Drops</th>
+<th>Salsa Raspadinha</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>取得方式</td>
+<td>儲值每1000送1張 + 遊戲掉券雙通道</td>
+<td>僅儲值贈卡</td>
+<td>僅遊戲掉券</td>
+<td>購買為主</td>
+<td>投注自動入池</td>
+<td>購買/贈券</td>
+</tr>
+<tr>
+<td>最高倍率</td>
+<td>5000x</td>
+<td>1000x</td>
+<td>2000x</td>
+<td>5000x</td>
+<td>視獎池</td>
+<td>3000x</td>
+</tr>
+<tr>
+<td>未中獎機制</td>
+<td>幸運代號參與週抽，零空券</td>
+<td>無</td>
+<td>無</td>
+<td>無</td>
+<td>無</td>
+<td>無</td>
+</tr>
+<tr>
+<td>代理商成本控制</td>
+<td>RTP上限+動態爆獎熔斷+週池封頂</td>
+<td>無公開</td>
+<td>無公開</td>
+<td>加購補貼</td>
+<td>網絡共擔</td>
+<td>無公開</td>
+</tr>
+<tr>
+<td>開獎透明度</td>
+<td>每週直播+區塊鏈hash驗證</td>
+<td>後台</td>
+<td>後台</td>
+<td>後台</td>
+<td>公告</td>
+<td>廣播</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_7">五、分類（多軸切割）</h2>
+<h3 id="1">軸 1：獲券來源</h3>
+<ul>
+<li><strong>儲值贈券</strong>：每累計儲值滿1000贈1張，當日合併計算</li>
+<li><strong>遊戲掉券</strong>：任一遊戲投注達門檻有機率掉券，與RTP無關</li>
+</ul>
+<h3 id="2">軸 2：刮獎結果</h3>
+<ul>
+<li><strong>中獎券</strong>：刮出三同符號，倍率20x-5000x</li>
+<li><strong>未中獎券</strong>：附6位幸運代號自動入週抽池</li>
+</ul>
+<h3 id="3">軸 3：開獎節奏</h3>
+<ul>
+<li><strong>即時刮獎</strong>：領券後可立即刮</li>
+<li><strong>週抽</strong>：每週日 21:00 直播開出幸運代號</li>
+</ul>
+<h2 id="_8">六、功能對照表</h2>
+<p>獲券來源 × 刮獎結果交叉，定義每種來源券的處置流程與時間窗</p>
+<table>
+<thead>
+<tr>
+<th>獲券來源 \ 刮獎結果</th>
+<th>中獎券</th>
+<th>未中獎券</th>
+<th>逾期未刮</th>
+<th>時間軸</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>儲值贈券</td>
+<td>立即派彩入錢包</td>
+<td>代號入週抽池</td>
+<td>自動視為未中獎進池</td>
+<td>領取後 7 日內須刮</td>
+</tr>
+<tr>
+<td>遊戲掉券</td>
+<td>立即派彩入錢包</td>
+<td>代號入週抽池</td>
+<td>自動視為未中獎進池</td>
+<td>領取後 3 日內須刮</td>
+</tr>
+</tbody>
+</table>
+<p><code>--</code> 代表不適用。</p>
+<h2 id="_9">七、顯示欄位定義</h2>
+<ul>
+<li><strong>ticket_id</strong>：刮券唯一識別碼，UUIDv4（範例：<code>TKT-2026051300001</code>）- <strong>source</strong>：來源類型：recharge | game_drop（範例：<code>recharge</code>）- <strong>lucky_code</strong>：6位數字幸運代號，全域唯一（範例：<code>328-491</code>）- <strong>prize_multiplier</strong>：中獎倍率，未中為0；可選值 0/20/50/100/500/1000/5000（範例：<code>50</code>）- <strong>base_amount</strong>：計算倍率的基準額，固定為玩家儲值區段或預設值（如10）（範例：<code>10</code>）- <strong>expire_at</strong>：刮券過期時間戳（範例：<code>2026-05-20T23:59:59+08:00</code>）- <strong>status</strong>：unscratched | scratched_win | scratched_lose | expired | weekly_pending | weekly_won（範例：<code>unscratched</code>）- <strong>agent_id</strong>：歸屬代理商ID，用於成本攤分（範例：<code>AG-00231</code>）</li>
+</ul>
+<h2 id="_10">八、業務規則</h2>
+<ul>
+<li><strong>觸發條件</strong>：儲值：玩家當日累計儲值每滿1000元贈1券（隔日歸零）；遊戲掉券：單局投注≥10元時有 p=0.5% 機率掉券，每帳號每日上限10張。</li>
+<li><strong>資料處理</strong>：幸運代號全域唯一不重複；同帳號同日最多累積50張券；逾期券自動轉為未中獎並進入週抽池；中獎倍率依RTP表抽樣，總RTP上限92%。</li>
+<li><strong>排序 / 排名邏輯</strong>：我的券列表預設依到期時間升序，次依取得時間；週抽結果依代號升序展示。</li>
+<li><strong>防作弊考量</strong>：代號用 HMAC-SHA256 加鹽生成，後端發券時鎖定不可篡改；單裝置/IP/支付帳號交叉風控；異常儲值（撤單、爭議款）自動回收券；爆獎熔斷：當日代理商成本達上限後改派最低檔小獎。</li>
+</ul>
+<h2 id="user-journey">九、用戶旅程 (User Journey)</h2>
+<ol>
+<li><strong>儲值1000</strong> — 完成儲值後 Toast 提示『已獲 1 張刮刮券』，紅點掛上活動入口</li>
+<li>情緒/動機：驚喜：原本只是儲值，竟有額外獎勵</li>
+<li><strong>進活動頁</strong> — 看到券堆與『最高5000倍』大字，下方滾動播報剛中獎的玩家ID</li>
+<li>情緒/動機：期待：別人中了我也可能中</li>
+<li><strong>刮券</strong> — 手指刮開三格符號，含音效與震動回饋</li>
+<li>情緒/動機：緊張→爆發 或 緊張→失落</li>
+<li><strong>未中獎看到代號</strong> — 彈窗顯示『差一點！您的幸運代號 328-491 已進入本週開獎池』</li>
+<li>情緒/動機：安慰：沒白刮，還有週抽機會</li>
+<li><strong>週日看開獎</strong> — 21:00 直播間開出代號，自動比對推播</li>
+<li>情緒/動機：懸念：每週一次的儀式感</li>
+</ol>
+<h2 id="_11">十、介面說明</h2>
+<ol>
+<li><strong>活動入口</strong>：大廳首頁右上角浮標，顯示未刮券數量紅點，點擊進活動頁</li>
+<li><strong>主舞台 - 券堆</strong>：中央堆疊式券卡，可左右滑動切換，券面顯示來源與到期</li>
+<li><strong>刮獎區</strong>：進入單券後全螢幕刮獎，三格符號 + 倍率提示條</li>
+<li><strong>幸運代號區</strong>：刮完未中獎時顯示代號與週抽倒數時間</li>
+<li><strong>歷史與週抽榜</strong>：分頁顯示『我的歷史券』『本週幸運號池』『歷屆得主』</li>
+<li>
+<p><strong>規則與保護說明</strong>：底部彈窗，含倍率表、RTP聲明、代理商保護條款連結</p>
+</li>
+<li>
+<p><strong>刷新機制</strong>：領券即時推送（WebSocket），週抽結果於每週日 21:05 全量推播；活動頁進入時拉一次最新券列表。</p>
+</li>
+<li><strong>擴充性註記</strong>：倍率表與獎池上限走後台配置，可A/B不同RTP組；幸運代號可擴增至8位以支援更大池；可疊加節日加倍活動。</li>
+<li><strong>錯誤與邊界狀態</strong>：斷網時刮獎動作本地暫存，重連後以後端結果為準；逾期券自動進週抽避免玩家損失感；同代號異常時取最早發券者；代理商熔斷觸發時前端維持正常UI但結果走保底。</li>
+</ol>
+<h3 id="_12">線框圖</h3>
+<p><strong>1. 活動主畫面</strong> — 進入活動的主頁，顯示券堆、最高倍率主視覺、滾動播報與主操作按鈕。</p>
+<div class="wf-scope"><div class="wf-mobile"><div class="wf-statusbar"><span>09:41</span><span>● ● ●</span></div><div class="wf-appbar"><span class="wf-dot"></span><span class="wf-section-title">刮刮券</span><span class="wf-pill">餘額 9,999</span></div><div class="wf-banner"><div class="wf-skeleton-block" style="width:100%;min-height:80px">主視覺：最高 5000x</div></div><div class="wf-marquee">★ ID***88 中 500x ★ ID***12 中 1000x</div><div class="wf-stage"><div class="wf-skeleton-block" style="width:100%;min-height:160px">券堆（可左右滑）</div><div class="wf-helper">未刮 5 張・到期最近 2 日內</div></div><div class="wf-info"><span class="wf-pill is-active">全部</span><span class="wf-pill">儲值</span><span class="wf-pill">遊戲</span></div><div class="wf-actionbar"><button class="wf-btn wf-btn-primary">立即刮獎</button></div><div class="wf-shortcuts"><span class="wf-icon-slot">歷史</span><span class="wf-icon-slot">週抽</span><span class="wf-icon-slot">規則</span></div><div class="wf-bottomnav"><span>大廳</span><span>活動</span><span>錢包</span><span>我的</span></div></div></div>
+
+<p><strong>2. 刮獎進行畫面</strong> — 單張券打開後的全螢幕刮獎，三格符號可手指刮開，含倍率提示。</p>
+<div class="wf-scope"><div class="wf-mobile"><div class="wf-statusbar"><span>09:41</span><span>● ● ●</span></div><div class="wf-appbar"><span class="wf-dot"></span><span class="wf-section-title">刮獎中</span><span class="wf-pill">券 #00001</span></div><div class="wf-stage"><div class="wf-panel"><div class="wf-section-title">刮開三格符號</div><div class="wf-board"><div class="wf-skeleton-block" style="min-height:80px">?</div><div class="wf-skeleton-block" style="min-height:80px">?</div><div class="wf-skeleton-block" style="min-height:80px">?</div></div><div class="wf-helper">三同即中・倍率 20x ~ 5000x</div></div></div><div class="wf-info"><span class="wf-skeleton-pill">倍率表</span><span class="wf-skeleton-pill">說明</span></div><div class="wf-actionbar"><button class="wf-btn">一鍵全刮</button><button class="wf-btn wf-btn-primary">繼續</button></div></div></div>
+
+<p><strong>3. 中獎彈窗</strong> — 刮中後彈出，顯示倍率、派彩金額與分享/繼續操作。</p>
+<div class="wf-scope"><div class="wf-modal"><div class="wf-modal-icon">🎉</div><div class="wf-modal-title">恭喜中獎</div><div class="wf-modal-body"><div class="wf-section-title">500x</div><div class="wf-helper">派彩金額 5,000・已入錢包</div></div><div class="wf-modal-meta">本獎已記錄至歷史，依規則即時到帳</div><div class="wf-modal-actions"><button class="wf-btn">分享</button><button class="wf-btn wf-btn-primary">繼續刮</button></div></div></div>
+
+<p><strong>4. 未中獎/幸運代號彈窗</strong> — 未中獎時的安慰彈窗，揭示專屬幸運代號與週抽倒數，強化『不浪費』體感。</p>
+<div class="wf-scope"><div class="wf-modal"><div class="wf-modal-icon">CODE</div><div class="wf-modal-title">差一點！</div><div class="wf-modal-body"><div class="wf-section-title">328-491</div><div class="wf-helper">您的幸運代號已進入本週開獎池</div><div class="wf-countdown">03 : 12 : 45 : 09</div></div><div class="wf-modal-meta">每週日 21:00 直播開獎</div><div class="wf-modal-actions"><button class="wf-btn">查看週抽</button><button class="wf-btn wf-btn-primary">繼續刮</button></div></div></div>
+
+<p><strong>5. 週抽開獎頁</strong> — 展示本週幸運代號池、倒數、歷屆得主清單，提供分享與規則入口。</p>
+<div class="wf-scope"><div class="wf-mobile"><div class="wf-statusbar"><span>09:41</span><span>● ● ●</span></div><div class="wf-appbar"><span class="wf-dot"></span><span class="wf-section-title">本週開獎</span><span class="wf-pill">直播</span></div><div class="wf-banner"><div class="wf-countdown">03 : 12 : 45 : 09</div></div><div class="wf-info"><span class="wf-pill is-active">我的代號</span><span class="wf-pill">全部池</span><span class="wf-pill">歷屆</span></div><div class="wf-stage"><div class="wf-panel"><div class="wf-skeleton-line">328-491</div><div class="wf-divider"></div><div class="wf-skeleton-line">102-883</div><div class="wf-divider"></div><div class="wf-skeleton-line">771-204</div></div><div class="wf-helper">本週共 12,348 張代號參與</div></div><div class="wf-actionbar"><button class="wf-btn">分享</button><button class="wf-btn wf-btn-primary">前往直播</button></div><div class="wf-bottomnav"><span>大廳</span><span>活動</span><span>錢包</span><span>我的</span></div></div></div>
+
+<p><strong>6. 空狀態</strong> — 無券時的引導畫面，鼓勵玩家儲值或遊玩以獲得刮券。</p>
+<div class="wf-scope"><div class="wf-mobile"><div class="wf-statusbar"><span>09:41</span><span>● ● ●</span></div><div class="wf-appbar"><span class="wf-dot"></span><span class="wf-section-title">刮刮券</span><span class="wf-pill">餘額 9,999</span></div><div class="wf-stage"><div class="wf-empty"><div class="wf-modal-icon">EMPTY</div><div class="wf-section-title">目前沒有刮券</div><div class="wf-helper">儲值每滿 1000 送 1 張・玩遊戲也會掉券</div></div></div><div class="wf-actionbar"><button class="wf-btn">去玩遊戲</button><button class="wf-btn wf-btn-primary">去儲值</button></div><div class="wf-bottomnav"><span>大廳</span><span>活動</span><span>錢包</span><span>我的</span></div></div></div>
+
+<h2 id="_13">十一、文案對照表（多語）</h2>
+<table>
+<thead>
+<tr>
+<th>中</th>
+<th>英</th>
+<th>西</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>刮刮券</td>
+<td>Scratch Ticket</td>
+<td>Boleto Rasca</td>
+</tr>
+<tr>
+<td>幸運代號</td>
+<td>Lucky Code</td>
+<td>Código de la Suerte</td>
+</tr>
+<tr>
+<td>本週開獎</td>
+<td>Weekly Draw</td>
+<td>Sorteo Semanal</td>
+</tr>
+<tr>
+<td>最高 5000 倍</td>
+<td>Up to 5000x</td>
+<td>Hasta 5000x</td>
+</tr>
+<tr>
+<td>差一點！代號已進入週抽</td>
+<td>So close! Your code is in the weekly pool</td>
+<td>¡Casi! Tu código está en el sorteo semanal</td>
+</tr>
+<tr>
+<td>立即刮獎</td>
+<td>Scratch Now</td>
+<td>Rascar Ahora</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_14">十二、說明頁（給玩家看）</h2>
+<p><strong>儲值送券、玩遊戲掉券，沒中也有週抽幸運號 —— 每一張券都不浪費！</strong></p>
+<ul>
+<li>🎯 每儲值1000自動送1張刮刮券</li>
+<li>💰 最高5000倍大獎，刮中即時入帳</li>
+<li>🎁 沒中獎？幸運代號自動進週抽，每週日21:00開獎</li>
+</ul>
+<p><strong>操作步驟</strong>：
+1. 儲值或玩遊戲取得刮刮券
+2. 到活動頁打開券，刮開三格符號
+3. 中獎即時派彩；未中獎代號自動進入本週開獎池等開獎</p>
+<h2 id="_15">十三、建議上線時程</h2>
+<p>⚠️ 以下為建議，請企畫依實際團隊資源調整</p>
+<table>
+<thead>
+<tr>
+<th>階段</th>
+<th>內容</th>
+<th>建議時程</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phase 1 - MVP</td>
+<td>儲值贈券 + 基礎刮獎 + 倍率派彩 + 未中獎代號入池 + 週抽開獎</td>
+<td>6 週</td>
+</tr>
+<tr>
+<td>Phase 2 - 擴充</td>
+<td>遊戲掉券通道、滾動播報、歷屆得主榜、直播開獎介面</td>
+<td>4 週</td>
+</tr>
+<tr>
+<td>Phase 3 - 優化</td>
+<td>A/B RTP 配置、代理商熔斷儀表板、節日加倍主題券</td>
+<td>3 週</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_16">十四、資源需求概覽</h2>
+<ul>
+<li><strong>美術資源</strong>：約 25 件：券卡正面 3 款、刮獎符號 6 組、中獎/未中獎彈窗、入口浮標、活動主視覺、週抽直播背板</li>
+<li><strong>音效資源</strong>：約 8 段：刮獎沙沙聲、中獎小/中/大三段、未中獎安慰、券獲取提示、週抽倒數、開獎揭曉</li>
+<li><strong>工程複雜度</strong>：中：核心邏輯與RTP引擎可重用既有獎勵框架，但需新建幸運代號池+週抽排程+代理商成本熔斷，跨支付與遊戲事件整合工作量中等</li>
+</ul>
+    </div>
+    <div class="panel" id="panel-1">
+      <h1 id="_1">刮刮券儲值回饋與週抽獎活動 技術規格書</h1>
+<h2 id="_2">一、系統架構概覽</h2>
+<p>由 Scratch Service 處理刮刮券發放、刮獎、幸運代號註冊與週抽獎；Deposit Service 透過 MQ/事件觸發儲值滿額發券；Game Service 在遊戲結算時隨機觸發掉券。MySQL 儲存券、刮獎結果、幸運代號、週抽獎結果與代理商成本控制帳本；Redis 用於發券冷卻、刮獎防併發鎖、週獎池配額、活躍代號集合與排行榜。所有獎金倍率與機率由 RTP 控制器集中管理，確保代理商不損失。</p>
+<pre><code class="language-mermaid">flowchart LR
+  C[Cocos Client] --&gt;|HTTP/WS| G[API Gateway]
+  G --&gt; SC[Scratch Service]
+  G --&gt; DP[Deposit Service]
+  G --&gt; GM[Game Service]
+  DP -- depositPaid --&gt; SC
+  GM -- gameSettled --&gt; SC
+  SC --&gt; R[(Redis)]
+  SC --&gt; D[(MySQL)]
+  SC --&gt; RTP[RTP Controller]
+  SCH[Weekly Draw Scheduler] --&gt; SC
+</code></pre>
+<p><strong>Client ↔ Server 資料流</strong>：1) 玩家儲值 → Deposit Service 發 depositPaid 事件 → Scratch Service 依累計金額/1000 發券寫入 scratch_cards 並產生唯一 lucky_code。2) 玩家進入遊戲結算 → Game Service 依掉券機率呼叫 Scratch Service 發券。3) Client 拉取券列表 → 選擇券呼叫刮獎 API → Server 經 Redis 鎖 + RTP 控制器決定中獎倍率 → 寫入 scratch_results + 更新成本帳本 + 派彩。4) 每週日 23:59 Scheduler 從未中獎幸運代號池隨機抽出週幸運兒 → 寫入 weekly_draws → 推播 Client。</p>
+<h2 id="cocos-creator-client">二、Cocos Creator Client 實作要點</h2>
+<ul>
+<li><strong>建議場景結構</strong>：主場景 ScratchScene 內含 CouponListPanel（券清單）、ScratchView（刮獎面板，使用 Graphics + 遮罩實作刮塗層）、PrizeDialog（中獎彈窗）、LuckyCodeBoard（幸運代號展示）、WeeklyDrawBanner（週抽獎倒數與得獎輪播）。</li>
+<li><strong>主要 Components</strong>：</li>
+<li><code>CouponListController</code> — 請求 /scratch/coupons，渲染可刮券、已刮券、來源（儲值/遊戲）</li>
+<li><code>ScratchCardView</code> — 使用 cc.Graphics + BlendMode DESTINATION_OUT 實作刮塗層，計算刮開比例 ≥60% 自動 reveal</li>
+<li><code>PrizeRevealAnim</code> — 播放中獎倍率動畫（20x~5000x）與未中獎時顯示 lucky_code</li>
+<li><code>WeeklyDrawWidget</code> — 訂閱 WS 主題 weekly_draw 顯示倒數與本週得獎名單</li>
+<li><code>NetworkClient</code> — 封裝 HTTP + WS、Bearer Token、斷線重連</li>
+<li><strong>動畫狀態機</strong>：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>狀態</th>
+<th>觸發</th>
+<th>下一狀態</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Idle</td>
+<td>enterScene</td>
+<td>LoadingCoupons</td>
+</tr>
+<tr>
+<td>LoadingCoupons</td>
+<td>couponsLoaded</td>
+<td>CouponList</td>
+</tr>
+<tr>
+<td>CouponList</td>
+<td>selectCoupon</td>
+<td>Scratching</td>
+</tr>
+<tr>
+<td>Scratching</td>
+<td>scratchRatio&gt;=0.6</td>
+<td>Revealing</td>
+</tr>
+<tr>
+<td>Revealing</td>
+<td>resultAck</td>
+<td>CouponList</td>
+</tr>
+<tr>
+<td>CouponList</td>
+<td>weeklyDrawPush</td>
+<td>WeeklyResult</td>
+</tr>
+<tr>
+<td>WeeklyResult</td>
+<td>close</td>
+<td>CouponList</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>資料更新</strong>：券清單採開啟拉一次 + 操作後增量更新；週抽獎結果採 WebSocket 推播；倒數計時 Client 本地計算。</li>
+<li><strong>效能考量</strong>：刮塗層使用單一 RenderTexture 避免每幀 redraw；中獎動畫使用 Spine + 物件池；列表使用 cc.ScrollView 虛擬列表，&gt;200 張券仍維持 60fps。</li>
+</ul>
+<h2 id="nodejs-server-api">三、Node.js Server API 規格</h2>
+<h3 id="api">API 端點列表</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Method</th>
+<th>Endpoint</th>
+<th>說明</th>
+<th>認證</th>
+<th>讀</th>
+<th>寫</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#api-001"><code>api-001</code></a></td>
+<td>GET</td>
+<td>/api/v1/scratch/coupons</td>
+<td>取得我的刮刮券清單</td>
+<td>Bearer Token</td>
+<td>MySQL.scratch_cards / Redis:scratch:coupons:{user_id}</td>
+<td>Redis:scratch:coupons:{user_id} (cache)</td>
+</tr>
+<tr>
+<td><a href="#api-002"><code>api-002</code></a></td>
+<td>POST</td>
+<td>/api/v1/scratch/cards/:card_id/scratch</td>
+<td>刮開指定刮刮券</td>
+<td>Bearer Token</td>
+<td>MySQL.scratch_cards / MySQL.rtp_ledger / Redis:scratch:lock:{card_id}</td>
+<td>MySQL.scratch_cards / MySQL.scratch_results / MySQL.rtp_ledger / Redis:scratch:lucky_pool:{week} / Redis:wallet:{user_id}</td>
+</tr>
+<tr>
+<td><a href="#api-003"><code>api-003</code></a></td>
+<td>GET</td>
+<td>/api/v1/scratch/lucky-codes</td>
+<td>查詢我的幸運代號</td>
+<td>Bearer Token</td>
+<td>MySQL.lucky_codes</td>
+<td>-</td>
+</tr>
+<tr>
+<td><a href="#api-004"><code>api-004</code></a></td>
+<td>GET</td>
+<td>/api/v1/scratch/weekly-draw</td>
+<td>取得本週/歷史週抽獎結果</td>
+<td>Bearer Token</td>
+<td>MySQL.weekly_draws / Redis:weekly:draw:{week}</td>
+<td>-</td>
+</tr>
+<tr>
+<td><a href="#api-005"><code>api-005</code></a></td>
+<td>POST</td>
+<td>/api/v1/internal/scratch/grant</td>
+<td>內部介面：儲值或遊戲事件觸發發券</td>
+<td>Internal Service Token</td>
+<td>MySQL.deposit_rebate_progress</td>
+<td>MySQL.scratch_cards / MySQL.lucky_codes / MySQL.deposit_rebate_progress / Redis:scratch:grant:idem:{event_id}</td>
+</tr>
+<tr>
+<td><a href="#api-006"><code>api-006</code></a></td>
+<td>POST</td>
+<td>/api/v1/internal/scratch/weekly-draw/run</td>
+<td>內部介面：執行週抽獎（由 Scheduler 呼叫）</td>
+<td>Internal Service Token</td>
+<td>Redis:scratch:lucky_pool:{week} / MySQL.lucky_codes / MySQL.rtp_ledger</td>
+<td>MySQL.weekly_draws / MySQL.rtp_ledger / Redis:weekly:draw:{week}</td>
+</tr>
+</tbody>
+</table>
+<h3 id="api_1">各 API 詳細規格</h3>
+<h4 id="api-001-get-apiv1scratchcoupons"><a id="api-001"></a> [api-001] GET /api/v1/scratch/coupons</h4>
+<ul>
+<li><strong>說明</strong>：取得我的刮刮券清單</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Query Params</strong>：</li>
+<li><code>status</code> string default=all — all|unscratched|scratched</li>
+<li><code>page</code> int default=1 — 頁碼</li>
+<li><code>size</code> int default=20 — 每頁筆數，最大50</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;total&quot;: 12,
+    &quot;items&quot;: [
+      {&quot;card_id&quot;: &quot;c_8821&quot;, &quot;source&quot;: &quot;deposit&quot;, &quot;lucky_code&quot;: &quot;LC-20260513-000123&quot;, &quot;status&quot;: &quot;unscratched&quot;, &quot;expire_at&quot;: &quot;2026-05-20T23:59:59Z&quot;}
+    ]
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><code>429</code> 請求過快</li>
+<li><strong>後端流程</strong>：</li>
+<li>驗證 token</li>
+<li>讀 Redis cache，miss 則查 scratch_cards</li>
+<li>回傳分頁結果並回填 cache 60s</li>
+<li><strong>效能要求</strong>：p95 &lt; 80ms / QPS 2000</li>
+<li><strong>相關 BDD</strong>：<a href="./scratch-card-rebate-bdd.md#sc-001"><code>sc-001</code></a>, <a href="./scratch-card-rebate-bdd.md#sc-002"><code>sc-002</code></a></li>
+</ul>
+<h4 id="api-002-post-apiv1scratchcardscard_idscratch"><a id="api-002"></a> [api-002] POST /api/v1/scratch/cards/:card_id/scratch</h4>
+<ul>
+<li><strong>說明</strong>：刮開指定刮刮券</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;card_id&quot;: &quot;c_8821&quot;,
+    &quot;is_win&quot;: true,
+    &quot;multiplier&quot;: 100,
+    &quot;prize_amount&quot;: 10000,
+    &quot;lucky_code&quot;: &quot;LC-20260513-000123&quot;,
+    &quot;balance_after&quot;: 158000
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><code>4001</code> 券不存在或不屬於該玩家</li>
+<li><code>4002</code> 券已刮過</li>
+<li><code>4003</code> 券已過期</li>
+<li><code>4004</code> 併發鎖定中</li>
+<li><strong>後端流程</strong>：</li>
+<li>SETNX Redis 鎖 scratch:lock:{card_id} 5s</li>
+<li>驗證券狀態與擁有者</li>
+<li>呼叫 RTP Controller 決定本次中獎倍率（受代理商成本上限約束）</li>
+<li>若中獎：更新錢包、寫 scratch_results、扣 rtp_ledger 預算</li>
+<li>若未中獎：將 lucky_code 加入 Redis:scratch:lucky_pool:{week} ZSET</li>
+<li>原子更新 scratch_cards.status=scratched</li>
+<li>釋放鎖並回傳</li>
+<li><strong>效能要求</strong>：p95 &lt; 120ms / QPS 1500</li>
+<li><strong>相關 BDD</strong>：<a href="./scratch-card-rebate-bdd.md#sc-003"><code>sc-003</code></a>, <a href="./scratch-card-rebate-bdd.md#sc-004"><code>sc-004</code></a>, <a href="./scratch-card-rebate-bdd.md#sc-005"><code>sc-005</code></a></li>
+</ul>
+<h4 id="api-003-get-apiv1scratchlucky-codes"><a id="api-003"></a> [api-003] GET /api/v1/scratch/lucky-codes</h4>
+<ul>
+<li><strong>說明</strong>：查詢我的幸運代號</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Query Params</strong>：</li>
+<li><code>week</code> string default=current — ISO week，例如 2026-W20</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;week&quot;: &quot;2026-W20&quot;,
+    &quot;codes&quot;: [&quot;LC-20260513-000123&quot;, &quot;LC-20260513-000456&quot;]
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><strong>後端流程</strong>：</li>
+<li>驗證 token</li>
+<li>查 lucky_codes by user_id + week</li>
+<li>回傳</li>
+<li><strong>效能要求</strong>：p95 &lt; 60ms / QPS 1000</li>
+<li><strong>相關 BDD</strong>：<a href="./scratch-card-rebate-bdd.md#sc-006"><code>sc-006</code></a></li>
+</ul>
+<h4 id="api-004-get-apiv1scratchweekly-draw"><a id="api-004"></a> [api-004] GET /api/v1/scratch/weekly-draw</h4>
+<ul>
+<li><strong>說明</strong>：取得本週/歷史週抽獎結果</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Query Params</strong>：</li>
+<li><code>week</code> string default=latest — 指定 ISO week</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;week&quot;: &quot;2026-W19&quot;,
+    &quot;draw_at&quot;: &quot;2026-05-11T15:59:00Z&quot;,
+    &quot;winners&quot;: [
+      {&quot;lucky_code&quot;: &quot;LC-20260506-009988&quot;, &quot;user_masked&quot;: &quot;u***88&quot;, &quot;prize_amount&quot;: 500000, &quot;multiplier&quot;: 5000}
+    ]
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><code>4040</code> 該週尚未開獎</li>
+<li><strong>後端流程</strong>：</li>
+<li>讀 Redis cache</li>
+<li>miss 則讀 weekly_draws</li>
+<li>回填 cache 300s</li>
+<li><strong>效能要求</strong>：p95 &lt; 50ms / QPS 3000</li>
+<li><strong>相關 BDD</strong>：<a href="./scratch-card-rebate-bdd.md#sc-007"><code>sc-007</code></a></li>
+</ul>
+<h4 id="api-005-post-apiv1internalscratchgrant"><a id="api-005"></a> [api-005] POST /api/v1/internal/scratch/grant</h4>
+<ul>
+<li><strong>說明</strong>：內部介面：儲值或遊戲事件觸發發券</li>
+<li><strong>認證</strong>：Internal Service Token</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {&quot;granted&quot;: 2, &quot;card_ids&quot;: [&quot;c_8821&quot;, &quot;c_8822&quot;]}
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 非內部呼叫</li>
+<li><code>4090</code> 事件重複（冪等）</li>
+<li><strong>後端流程</strong>：</li>
+<li>以 event_id 做 Redis 冪等鎖</li>
+<li>若來源=deposit：累加 deposit_rebate_progress.amount，每滿 1000 發 1 張券</li>
+<li>若來源=game：依配置機率擲骰決定是否掉券</li>
+<li>批次 INSERT scratch_cards 與 lucky_codes</li>
+<li>回傳發券結果</li>
+<li><strong>效能要求</strong>：p95 &lt; 100ms / QPS 5000</li>
+<li><strong>相關 BDD</strong>：<a href="./scratch-card-rebate-bdd.md#sc-008"><code>sc-008</code></a>, <a href="./scratch-card-rebate-bdd.md#sc-009"><code>sc-009</code></a></li>
+</ul>
+<h4 id="api-006-post-apiv1internalscratchweekly-drawrun"><a id="api-006"></a> [api-006] POST /api/v1/internal/scratch/weekly-draw/run</h4>
+<ul>
+<li><strong>說明</strong>：內部介面：執行週抽獎（由 Scheduler 呼叫）</li>
+<li><strong>認證</strong>：Internal Service Token</li>
+<li><strong>Query Params</strong>：</li>
+<li><code>week</code> string default=current — ISO week</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {&quot;week&quot;: &quot;2026-W20&quot;, &quot;winner_count&quot;: 3}
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 非內部呼叫</li>
+<li><code>4091</code> 該週已開獎</li>
+<li><strong>後端流程</strong>：</li>
+<li>檢查 weekly_draws 該週是否已存在</li>
+<li>從 Redis ZSET 隨機抽 N 名（依預算決定 N 與獎金）</li>
+<li>透過 RTP Controller 驗證代理商剩餘預算</li>
+<li>寫 weekly_draws、扣 rtp_ledger、派彩</li>
+<li>設 Redis cache 並推播 WS</li>
+<li><strong>效能要求</strong>：p95 &lt; 800ms / 每週 1 次</li>
+<li><strong>相關 BDD</strong>：<a href="./scratch-card-rebate-bdd.md#sc-010"><code>sc-010</code></a></li>
+</ul>
+<h2 id="_3">四、資料模型</h2>
+<h3 id="scratch_cardsmysql-table">scratch_cards（MySQL Table）</h3>
+<p>刮刮券主檔</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>card_id</code></td>
+<td>VARCHAR(32) NOT NULL</td>
+<td>對外券號</td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td>BIGINT UNSIGNED NOT NULL</td>
+<td>擁有者</td>
+</tr>
+<tr>
+<td><code>agent_id</code></td>
+<td>BIGINT UNSIGNED NOT NULL</td>
+<td>所屬代理商</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>ENUM('deposit','game') NOT NULL</td>
+<td>發券來源</td>
+</tr>
+<tr>
+<td><code>source_ref</code></td>
+<td>VARCHAR(64)</td>
+<td>來源事件 id</td>
+</tr>
+<tr>
+<td><code>lucky_code</code></td>
+<td>VARCHAR(32) NOT NULL</td>
+<td>幸運代號</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>ENUM('unscratched','scratched','expired') NOT NULL DEFAULT 'unscratched'</td>
+<td>狀態</td>
+</tr>
+<tr>
+<td><code>multiplier</code></td>
+<td>INT UNSIGNED</td>
+<td>中獎倍率，未刮為 NULL</td>
+</tr>
+<tr>
+<td><code>prize_amount</code></td>
+<td>BIGINT UNSIGNED</td>
+<td>派彩金額(分)</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td>DATETIME NOT NULL</td>
+<td>發券時間</td>
+</tr>
+<tr>
+<td><code>scratched_at</code></td>
+<td>DATETIME</td>
+<td>刮獎時間</td>
+</tr>
+<tr>
+<td><code>expire_at</code></td>
+<td>DATETIME NOT NULL</td>
+<td>過期時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_card_id(card_id), INDEX idx_user_status(user_id,status), INDEX idx_agent_created(agent_id,created_at), UNIQUE KEY uk_lucky_code(lucky_code)
+<strong>讀寫 API</strong>：<code>api-001</code>, <code>api-002</code>, <code>api-005</code></p>
+<h3 id="scratch_resultsmysql-table">scratch_results（MySQL Table）</h3>
+<p>刮獎結果流水</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>card_id</code></td>
+<td>VARCHAR(32) NOT NULL</td>
+<td>券號</td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td>BIGINT UNSIGNED NOT NULL</td>
+<td>玩家</td>
+</tr>
+<tr>
+<td><code>is_win</code></td>
+<td>TINYINT(1) NOT NULL</td>
+<td>是否中獎</td>
+</tr>
+<tr>
+<td><code>multiplier</code></td>
+<td>INT UNSIGNED NOT NULL DEFAULT 0</td>
+<td>倍率</td>
+</tr>
+<tr>
+<td><code>prize_amount</code></td>
+<td>BIGINT UNSIGNED NOT NULL DEFAULT 0</td>
+<td>派彩金額(分)</td>
+</tr>
+<tr>
+<td><code>rtp_snapshot</code></td>
+<td>JSON</td>
+<td>當下 RTP 控制器決策快照</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td>DATETIME NOT NULL</td>
+<td>建立時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_card_id(card_id), INDEX idx_user_created(user_id,created_at)
+<strong>讀寫 API</strong>：<code>api-002</code></p>
+<h3 id="lucky_codesmysql-table">lucky_codes（MySQL Table）</h3>
+<p>幸運代號池（含未中獎與已中獎券皆登錄）</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>lucky_code</code></td>
+<td>VARCHAR(32) NOT NULL</td>
+<td>幸運代號</td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td>BIGINT UNSIGNED NOT NULL</td>
+<td>擁有者</td>
+</tr>
+<tr>
+<td><code>card_id</code></td>
+<td>VARCHAR(32) NOT NULL</td>
+<td>關聯券</td>
+</tr>
+<tr>
+<td><code>week</code></td>
+<td>VARCHAR(10) NOT NULL</td>
+<td>ISO 週，例如 2026-W20</td>
+</tr>
+<tr>
+<td><code>eligible_weekly</code></td>
+<td>TINYINT(1) NOT NULL DEFAULT 1</td>
+<td>是否進入週抽池</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td>DATETIME NOT NULL</td>
+<td>建立時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_lucky_code(lucky_code), INDEX idx_week_eligible(week,eligible_weekly), INDEX idx_user_week(user_id,week)
+<strong>讀寫 API</strong>：<code>api-003</code>, <code>api-005</code>, <code>api-006</code></p>
+<h3 id="weekly_drawsmysql-table">weekly_draws（MySQL Table）</h3>
+<p>週抽獎結果</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>week</code></td>
+<td>VARCHAR(10) NOT NULL</td>
+<td>ISO 週</td>
+</tr>
+<tr>
+<td><code>lucky_code</code></td>
+<td>VARCHAR(32) NOT NULL</td>
+<td>中獎代號</td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td>BIGINT UNSIGNED NOT NULL</td>
+<td>中獎人</td>
+</tr>
+<tr>
+<td><code>agent_id</code></td>
+<td>BIGINT UNSIGNED NOT NULL</td>
+<td>中獎人代理商</td>
+</tr>
+<tr>
+<td><code>multiplier</code></td>
+<td>INT UNSIGNED NOT NULL</td>
+<td>倍率</td>
+</tr>
+<tr>
+<td><code>prize_amount</code></td>
+<td>BIGINT UNSIGNED NOT NULL</td>
+<td>派彩金額(分)</td>
+</tr>
+<tr>
+<td><code>draw_at</code></td>
+<td>DATETIME NOT NULL</td>
+<td>開獎時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_week_code(week,lucky_code), INDEX idx_week(week), INDEX idx_user(user_id)
+<strong>讀寫 API</strong>：<code>api-004</code>, <code>api-006</code></p>
+<h3 id="deposit_rebate_progressmysql-table">deposit_rebate_progress（MySQL Table）</h3>
+<p>玩家儲值累計回饋進度（用於每滿 1000 發券）</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user_id</code></td>
+<td>BIGINT UNSIGNED PK</td>
+<td>PK 玩家</td>
+</tr>
+<tr>
+<td><code>accumulated_amount</code></td>
+<td>BIGINT UNSIGNED NOT NULL DEFAULT 0</td>
+<td>累計儲值金額(分)</td>
+</tr>
+<tr>
+<td><code>granted_cards</code></td>
+<td>BIGINT UNSIGNED NOT NULL DEFAULT 0</td>
+<td>已發券數</td>
+</tr>
+<tr>
+<td><code>updated_at</code></td>
+<td>DATETIME NOT NULL</td>
+<td>更新時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：PRIMARY KEY(user_id)
+<strong>讀寫 API</strong>：<code>api-005</code></p>
+<h3 id="rtp_ledgermysql-table">rtp_ledger（MySQL Table）</h3>
+<p>代理商成本/獎金預算帳本，確保代理商不損失</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>agent_id</code></td>
+<td>BIGINT UNSIGNED NOT NULL</td>
+<td>代理商</td>
+</tr>
+<tr>
+<td><code>period</code></td>
+<td>VARCHAR(10) NOT NULL</td>
+<td>日期或 ISO 週</td>
+</tr>
+<tr>
+<td><code>income</code></td>
+<td>BIGINT UNSIGNED NOT NULL DEFAULT 0</td>
+<td>期間玩家投注/儲值貢獻(分)</td>
+</tr>
+<tr>
+<td><code>payout</code></td>
+<td>BIGINT UNSIGNED NOT NULL DEFAULT 0</td>
+<td>期間刮刮券派彩(分)</td>
+</tr>
+<tr>
+<td><code>budget_cap</code></td>
+<td>BIGINT UNSIGNED NOT NULL</td>
+<td>派彩上限(分)，= income * max_rtp%</td>
+</tr>
+<tr>
+<td><code>updated_at</code></td>
+<td>DATETIME NOT NULL</td>
+<td>更新時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_agent_period(agent_id,period), INDEX idx_period(period)
+<strong>讀寫 API</strong>：<code>api-002</code>, <code>api-006</code></p>
+<h2 id="_4">五、業務邏輯</h2>
+<h3 id="_5">儲值滿千發券</h3>
+<p>玩家每累計儲值 1000（單位：元，內部以分計算）發 1 張刮刮券；採累計制避免拆單，granted = floor(accumulated/1000) - already_granted。</p>
+<pre><code>function onDepositPaid(evt){
+  withIdem(evt.id, ()=&gt;{
+    const p = upsertProgress(evt.user_id, +evt.amount_cents);
+    const target = Math.floor(p.accumulated_amount / 100000); // 1000元=100000分
+    const toGrant = target - p.granted_cards;
+    if(toGrant&gt;0){
+      insertScratchCards(evt.user_id, evt.agent_id, 'deposit', toGrant);
+      p.granted_cards = target; save(p);
+    }
+  });
+}
+</code></pre>
+<h3 id="_6">遊戲中掉券</h3>
+<p>遊戲結算事件依配置 dropRate（受 RTP 預算動態調整）擲骰決定是否掉券，單次至多 1 張，避免刷分。</p>
+<pre><code>function onGameSettled(evt){
+  const rate = rtp.getDropRate(evt.agent_id);
+  if(rand() &lt; rate){ insertScratchCards(evt.user_id, evt.agent_id, 'game', 1, evt.id); }
+}
+</code></pre>
+<h3 id="rtp">刮獎中獎判定（受 RTP 約束）</h3>
+<p>中獎倍率表 [0(未中),20,50,100,500,1000,5000]，每檔基礎機率由配置決定，但實際派彩前需通過 rtp_ledger 預算檢查；若預算不足，降檔或判定未中獎，確保代理商當期 payout ≤ budget_cap。</p>
+<pre><code>function scratch(card){
+  lock(card.id);
+  const base = pickByWeight(prizeTable);
+  const ledger = rtp.get(card.agent_id, currentPeriod());
+  let final = base;
+  while(final&gt;0 &amp;&amp; ledger.payout + bet*final &gt; ledger.budget_cap){ final = downgrade(final); }
+  if(final===0){ markUnwin(card); addLuckyPool(card.lucky_code); }
+  else { payout(card.user_id, bet*final); markWin(card, final); ledger.payout += bet*final; }
+  unlock(card.id);
+}
+</code></pre>
+<h3 id="_7">週幸運兒抽獎</h3>
+<p>每週日 23:59 從本週 lucky_codes (eligible_weekly=1 且未中獎) 隨機抽 N 名，N 與獎金依當週剩餘預算動態決定，至少 1 名。</p>
+<pre><code>function weeklyDraw(week){
+  if(exists(weekly_draws, week)) return;
+  const pool = redis.zrange('scratch:lucky_pool:'+week, 0, -1);
+  const budget = rtp.weeklyRemainingBudget(week);
+  const winners = sampleWinners(pool, budget);
+  insertWeeklyDraws(week, winners);
+  payoutAll(winners);
+  ws.broadcast('weekly_draw', {week, winners: mask(winners)});
+}
+</code></pre>
+<h3 id="_8">幸運代號產生規則</h3>
+<p>格式 LC-YYYYMMDD-XXXXXX，XXXXXX 為當日序號，全域唯一；發券時同步寫入 lucky_codes。</p>
+<pre><code>code = 'LC-' + ymd(now) + '-' + zeroPad(dailySeq.incr(), 6);
+</code></pre>
+<h2 id="cache">六、Cache 策略</h2>
+<ul>
+<li><strong>scratch:coupons:{user_id}</strong> (60s) — 玩家券清單快取，刮獎/發券時 DEL</li>
+<li><strong>scratch:lock:{card_id}</strong> (5s) — 刮獎併發鎖，SETNX</li>
+<li><strong>scratch:grant:idem:{event_id}</strong> (24h) — 發券冪等鍵</li>
+<li><strong>scratch:lucky_pool:{week}</strong> (14d) — 當週未中獎幸運代號 ZSET，score=timestamp，供週抽獎隨機取樣</li>
+<li><strong>weekly:draw:{week}</strong> (300s) — 週抽獎結果快取</li>
+<li><strong>rtp:ledger:{agent_id}:{period}</strong> (60s) — 代理商預算讀取快取，寫入走 DB</li>
+<li><strong>wallet:{user_id}</strong> (30s) — 錢包餘額快取，派彩後 DEL</li>
+</ul>
+<h2 id="_9">七、相關文件</h2>
+<ul>
+<li>資源清單：<a href="./scratch-card-rebate-assets.md"><code>scratch-card-rebate-assets.md</code></a></li>
+<li>BDD 測試：<a href="./scratch-card-rebate-bdd.md"><code>scratch-card-rebate-bdd.md</code></a></li>
+<li>SCRUM：<a href="./scratch-card-rebate-scrum.md"><code>scratch-card-rebate-scrum.md</code></a></li>
+</ul>
+    </div>
+    <div class="panel" id="panel-2">
+      <h1 id="ai-prompt">刮刮樂儲值回饋 資源清單與 AI Prompt</h1>
+<p>共 12 個資源。</p>
+<h2 id="_1">索引</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>名稱</th>
+<th>類型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#ASSET-001"><code>ASSET-001</code></a></td>
+<td>刮刮樂主畫面背景</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-002"><code>ASSET-002</code></a></td>
+<td>刮刮券卡面</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-003"><code>ASSET-003</code></a></td>
+<td>刮開塗層特效</td>
+<td>特效粒子</td>
+</tr>
+<tr>
+<td><a href="#ASSET-004"><code>ASSET-004</code></a></td>
+<td>大獎中獎光效</td>
+<td>特效粒子</td>
+</tr>
+<tr>
+<td><a href="#ASSET-005"><code>ASSET-005</code></a></td>
+<td>幸運代號展示橫幅</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-006"><code>ASSET-006</code></a></td>
+<td>週抽獎轉盤</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-007"><code>ASSET-007</code></a></td>
+<td>儲值送券彈窗</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-008"><code>ASSET-008</code></a></td>
+<td>刮開音效</td>
+<td>音效</td>
+</tr>
+<tr>
+<td><a href="#ASSET-009"><code>ASSET-009</code></a></td>
+<td>中獎音效</td>
+<td>音效</td>
+</tr>
+<tr>
+<td><a href="#ASSET-010"><code>ASSET-010</code></a></td>
+<td>大獎爆獎音效</td>
+<td>音效</td>
+</tr>
+<tr>
+<td><a href="#ASSET-011"><code>ASSET-011</code></a></td>
+<td>週抽獎開獎音效</td>
+<td>音效</td>
+</tr>
+<tr>
+<td><a href="#ASSET-012"><code>ASSET-012</code></a></td>
+<td>未中獎安慰音效</td>
+<td>音效</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="asset-001"><a id="ASSET-001"></a> [ASSET-001] 刮刮樂主畫面背景</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：刮刮樂活動主畫面全螢幕背景</li>
+<li><strong>規格</strong>：</li>
+<li>1080 x 1920 px</li>
+<li>PNG，不透明</li>
+<li>紫金色調，奢華氛圍</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>luxury casino scratch card lottery background, deep purple to gold gradient, floating golden coins and sparkles, premium VIP atmosphere, mobile portrait composition, iGaming promotional background, no text, ultra detailed, 8k</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：text, watermark, logo, characters, low quality, blurry
+- <strong>參考競業</strong>：<a href="https://www.jiligames.com">JILI Games</a></p>
+<hr />
+<h3 id="asset-002"><a id="ASSET-002"></a> [ASSET-002] 刮刮券卡面</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：未刮開狀態的刮刮券卡片</li>
+<li><strong>規格</strong>：</li>
+<li>600 x 900 px</li>
+<li>PNG 透明背景</li>
+<li>金色邊框，中央銀色塗層</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>premium scratch card ticket design, golden ornate border, silver metallic scratch coating in center, lucky number placeholder, casino VIP style, transparent background, ultra detailed product render</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：text content, real numbers, watermark, low quality</p>
+<hr />
+<h3 id="asset-003"><a id="ASSET-003"></a> [ASSET-003] 刮開塗層特效</h3>
+<ul>
+<li><strong>類型</strong>：特效粒子</li>
+<li><strong>用途</strong>：玩家刮動時銀色塗層剝落特效</li>
+<li><strong>規格</strong>：</li>
+<li>粒子數 50-80</li>
+<li>跟隨手指軌跡</li>
+<li>銀色碎屑</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>silver scratch coating particle debris effect, metallic flakes falling, scratch trail VFX, transparent background, follows finger swipe, premium mobile game UI effect</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：low quality, blurry, watermark</p>
+<hr />
+<h3 id="asset-004"><a id="ASSET-004"></a> [ASSET-004] 大獎中獎光效</h3>
+<ul>
+<li><strong>類型</strong>：特效粒子</li>
+<li><strong>用途</strong>：刮中 1000 倍以上大獎時全螢幕爆發</li>
+<li><strong>規格</strong>：</li>
+<li>粒子數 200+</li>
+<li>2 秒爆發</li>
+<li>金色光柱+星塵</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>jackpot win explosion VFX, golden light beams radiating, star dust burst, coin shower particles, celebratory mega win effect, transparent background, premium casino game animation</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：low quality, blurry, watermark</p>
+<hr />
+<h3 id="asset-005"><a id="ASSET-005"></a> [ASSET-005] 幸運代號展示橫幅</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：每張刮刮券底部顯示的幸運代號區塊</li>
+<li><strong>規格</strong>：</li>
+<li>600 x 120 px</li>
+<li>PNG 透明</li>
+<li>深色霓虹邊框</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>lucky number display banner, dark glass panel with neon golden border, digital LED number style placeholder, premium lottery ticket bottom strip, transparent background, ultra detailed</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：low quality, blurry, watermark</p>
+<hr />
+<h3 id="asset-006"><a id="ASSET-006"></a> [ASSET-006] 週抽獎轉盤</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：每週幸運兒開獎動畫主視覺</li>
+<li><strong>規格</strong>：</li>
+<li>1080 x 1080 px</li>
+<li>PNG</li>
+<li>金色轉盤+紫色背板</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>weekly lucky draw spinning wheel, ornate golden wheel with purple velvet backdrop, casino fortune wheel, premium iGaming UI, square composition, no text on segments, ultra detailed render</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：low quality, blurry, watermark
+- <strong>參考競業</strong>：<a href="https://www.pgsoft.com">PG Soft</a></p>
+<hr />
+<h3 id="asset-007"><a id="ASSET-007"></a> [ASSET-007] 儲值送券彈窗</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：玩家儲值達 1000 觸發的獲券彈窗背景</li>
+<li><strong>規格</strong>：</li>
+<li>900 x 1200 px</li>
+<li>PNG 透明</li>
+<li>金光放射</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>reward popup background, golden radiating light burst, coins and scratch card icons floating, celebration moment, transparent background, premium casino notification UI</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：low quality, blurry, watermark</p>
+<hr />
+<h3 id="asset-008"><a id="ASSET-008"></a> [ASSET-008] 刮開音效</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：玩家手指刮動塗層時持續播放</li>
+<li><strong>規格</strong>：</li>
+<li>0.5 秒可循環</li>
+<li>OGG</li>
+<li>沙沙摩擦聲</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>scratch card scratching sound, silver coating being scraped, paper friction texture, loopable 0.5 seconds, satisfying ASMR scratch effect</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+<h3 id="asset-009"><a id="ASSET-009"></a> [ASSET-009] 中獎音效</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：刮出中獎符號時播放</li>
+<li><strong>規格</strong>：</li>
+<li>1.5 秒</li>
+<li>OGG</li>
+<li>不循環</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>scratch card win reveal sound, sparkle chime, golden ding with coin tinkle, satisfying reward cue, 1.5 seconds, casino jackpot lite</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+<h3 id="asset-010"><a id="ASSET-010"></a> [ASSET-010] 大獎爆獎音效</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：刮中 1000-5000 倍時播放</li>
+<li><strong>規格</strong>：</li>
+<li>3 秒</li>
+<li>OGG</li>
+<li>不循環</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>mega jackpot win sound, triumphant fanfare, massive coin shower cascade, crowd cheer layer, casino big win celebration, 3 seconds</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+<h3 id="asset-011"><a id="ASSET-011"></a> [ASSET-011] 週抽獎開獎音效</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：每週幸運兒揭曉動畫播放</li>
+<li><strong>規格</strong>：</li>
+<li>5 秒</li>
+<li>OGG</li>
+<li>不循環</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>weekly lottery drawing suspense to reveal sound, drumroll build up to triumphant reveal chime, lottery wheel spinning then stopping, 5 seconds dramatic</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+<h3 id="asset-012"><a id="ASSET-012"></a> [ASSET-012] 未中獎安慰音效</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：刮完未中獎時播放</li>
+<li><strong>規格</strong>：</li>
+<li>1 秒</li>
+<li>OGG</li>
+<li>柔和不負面</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>gentle consolation sound, soft positive chime, lucky number registered tone, encouraging not disappointing, 1 second, mobile game UI</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+    </div>
+    <div class="panel" id="panel-3">
+      <h1 id="bdd">刮刮券抽獎系統 BDD 測試案例</h1>
+<p>共 8 個 Scenario。</p>
+<h2 id="_1">索引</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>標題</th>
+<th>類型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#sc-001"><code>sc-001</code></a></td>
+<td>儲值滿1000自動發放刮刮券</td>
+<td>正常</td>
+</tr>
+<tr>
+<td><a href="#sc-002"><code>sc-002</code></a></td>
+<td>遊戲中隨機掉落刮刮券</td>
+<td>正常</td>
+</tr>
+<tr>
+<td><a href="#sc-003"><code>sc-003</code></a></td>
+<td>刮開刮刮券中獎(20-5000倍)</td>
+<td>正常</td>
+</tr>
+<tr>
+<td><a href="#sc-004"><code>sc-004</code></a></td>
+<td>未中獎刮刮券獲得幸運代號</td>
+<td>正常</td>
+</tr>
+<tr>
+<td><a href="#sc-005"><code>sc-005</code></a></td>
+<td>每週幸運兒抽獎排程</td>
+<td>正常</td>
+</tr>
+<tr>
+<td><a href="#sc-006"><code>sc-006</code></a></td>
+<td>代理商成本上限保護(邊界)</td>
+<td>邊界</td>
+</tr>
+<tr>
+<td><a href="#sc-007"><code>sc-007</code></a></td>
+<td>重複刮券防護(邊界)</td>
+<td>邊界</td>
+</tr>
+<tr>
+<td><a href="#sc-008"><code>sc-008</code></a></td>
+<td>幸運代號池為空週次(邊界)</td>
+<td>邊界</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="scenario-1000"><a id="sc-001"></a> Scenario: 儲值滿1000自動發放刮刮券</h3>
+<p><strong>類型</strong>：正常（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 玩家為老玩家且已綁定帳號
+And 玩家當前儲值累計為 0
+When 玩家完成一筆 1000 元儲值
+Then 系統應發放 1 張刮刮券至玩家券包
+And 券包顯示新增 1 張未刮刮刮券
+And 系統記錄發券來源為「儲值」
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given the player is a returning user with bound account
+And the player's accumulated top-up is 0
+When the player completes a top-up of 1000
+Then the system shall grant 1 scratch ticket to the player's wallet
+And the wallet shows 1 new unscratched ticket
+And the system records the grant source as 'topup'
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Node.js Server
+  participant R as Redis
+  participant D as MySQL
+  C-&gt;&gt;S: POST /payment/topup {amount:1000}
+  S-&gt;&gt;D: INSERT payment_record
+  S-&gt;&gt;S: calc tickets = floor(amount/1000)
+  S-&gt;&gt;D: INSERT scratch_tickets (source=topup)
+  S-&gt;&gt;R: INCR wallet:tickets:{uid}
+  S--&gt;&gt;C: 200 {grantedTickets:1}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-topup-grant"><code>api-topup-grant</code></a>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-wallet-tickets"><code>api-wallet-tickets</code></a></p>
+<p><strong>後端資料來源</strong>
+- MySQL.payment_record
+- MySQL.scratch_tickets
+- Redis:wallet:tickets:{uid}</p>
+<hr />
+<h3 id="scenario"><a id="sc-002"></a> Scenario: 遊戲中隨機掉落刮刮券</h3>
+<p><strong>類型</strong>：正常（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 玩家正在進行遊戲
+And 掉券機率設定為 P 且當日代理商成本未超限
+When 玩家完成一局遊戲且觸發掉券判定
+Then 系統應發放 1 張刮刮券
+And 系統記錄發券來源為「遊戲掉落」
+And 代理商當日成本累加對應金額
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given the player is in an active game session
+And drop rate P is configured and agent daily cost is within limit
+When the player completes a round and triggers a drop check
+Then the system shall grant 1 scratch ticket
+And the source is recorded as 'gameplay'
+And agent daily cost is incremented
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Node.js Server
+  participant R as Redis
+  participant D as MySQL
+  C-&gt;&gt;S: POST /game/round/settle
+  S-&gt;&gt;R: GET agent:cost:daily:{aid}
+  R--&gt;&gt;S: current cost
+  S-&gt;&gt;S: rng &lt; P &amp;&amp; cost &lt; cap ?
+  alt drop hit
+    S-&gt;&gt;D: INSERT scratch_tickets (source=gameplay)
+    S-&gt;&gt;R: INCRBY agent:cost:daily:{aid}
+    S--&gt;&gt;C: 200 {dropped:true}
+  else no drop
+    S--&gt;&gt;C: 200 {dropped:false}
+  end
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-game-settle"><code>api-game-settle</code></a>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-ticket-grant"><code>api-ticket-grant</code></a></p>
+<p><strong>後端資料來源</strong>
+- MySQL.scratch_tickets
+- MySQL.agent_cost_ledger
+- Redis:agent:cost:daily:{aid}</p>
+<hr />
+<h3 id="scenario-20-5000"><a id="sc-003"></a> Scenario: 刮開刮刮券中獎(20-5000倍)</h3>
+<p><strong>類型</strong>：正常（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 玩家券包擁有 1 張未刮刮券
+And 獎池配置含 20x~5000x 倍率
+When 玩家點擊刮開該張券
+Then 系統根據獎池機率與代理商成本上限決定中獎倍率
+And 中獎金額入帳至玩家錢包
+And 券狀態更新為「已刮-中獎」
+And 顯示對應倍率動畫
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given the player has 1 unscratched ticket
+And the prize pool is configured with 20x~5000x tiers
+When the player scratches the ticket
+Then the server determines the prize tier under cost cap
+And the prize is credited to wallet
+And ticket status becomes 'scratched-win'
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Node.js Server
+  participant R as Redis
+  participant D as MySQL
+  C-&gt;&gt;S: POST /ticket/scratch {ticketId}
+  S-&gt;&gt;D: SELECT ticket FOR UPDATE
+  S-&gt;&gt;R: GET agent:cost:daily:{aid}
+  S-&gt;&gt;S: weighted pick prize within cap
+  S-&gt;&gt;D: UPDATE scratch_tickets status=win, prize
+  S-&gt;&gt;D: UPDATE wallet balance += prize
+  S-&gt;&gt;R: INCRBY agent:cost:daily:{aid}
+  S--&gt;&gt;C: 200 {prize:500x, amount:5000}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-ticket-scratch"><code>api-ticket-scratch</code></a>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-wallet-credit"><code>api-wallet-credit</code></a></p>
+<p><strong>後端資料來源</strong>
+- MySQL.scratch_tickets
+- MySQL.wallet
+- MySQL.agent_cost_ledger
+- Redis:agent:cost:daily:{aid}</p>
+<hr />
+<h3 id="scenario_1"><a id="sc-004"></a> Scenario: 未中獎刮刮券獲得幸運代號</h3>
+<p><strong>類型</strong>：正常（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 玩家擁有 1 張未刮刮券
+When 玩家刮開該券且結果為未中獎
+Then 系統產生唯一幸運代號(8碼)
+And 幸運代號寫入當週抽獎池
+And 券狀態更新為「已刮-未中-持代號」
+And Client 顯示幸運代號供截圖
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given the player has 1 unscratched ticket
+When the scratch result is no-win
+Then a unique 8-char lucky code is generated
+And the code is added to the weekly draw pool
+And ticket status becomes 'scratched-lose-coded'
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Node.js Server
+  participant R as Redis
+  participant D as MySQL
+  C-&gt;&gt;S: POST /ticket/scratch {ticketId}
+  S-&gt;&gt;S: result = no-win
+  S-&gt;&gt;S: generate luckyCode (collision-safe)
+  S-&gt;&gt;D: UPDATE scratch_tickets status=lose, luckyCode
+  S-&gt;&gt;R: SADD weekly:lucky:{yyyyww} luckyCode
+  S--&gt;&gt;C: 200 {win:false, luckyCode:'A1B2C3D4'}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-ticket-scratch"><code>api-ticket-scratch</code></a>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-lucky-code"><code>api-lucky-code</code></a></p>
+<p><strong>後端資料來源</strong>
+- MySQL.scratch_tickets
+- Redis:weekly:lucky:{yyyyww}</p>
+<hr />
+<h3 id="scenario_2"><a id="sc-005"></a> Scenario: 每週幸運兒抽獎排程</h3>
+<p><strong>類型</strong>：正常（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 當週幸運代號池含 N 個有效代號
+And 設定週日 23:59 為開獎時間
+When 排程觸發週抽獎
+Then 系統從池中隨機抽出 K 位幸運兒
+And 中獎獎金入帳並記錄於抽獎結果表
+And 推播通知中獎玩家
+And 開獎結果公告至活動頁
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given the weekly lucky pool has N valid codes
+And weekly draw is scheduled at Sun 23:59
+When the scheduler triggers the draw
+Then the system randomly picks K winners
+And prizes are credited and results stored
+And winners are notified
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant J as Cron Job
+  participant S as Node.js Server
+  participant R as Redis
+  participant D as MySQL
+  participant C as Cocos Client
+  J-&gt;&gt;S: trigger weekly draw
+  S-&gt;&gt;R: SMEMBERS weekly:lucky:{yyyyww}
+  R--&gt;&gt;S: codes[]
+  S-&gt;&gt;S: secure random pick K
+  S-&gt;&gt;D: INSERT weekly_draw_result
+  S-&gt;&gt;D: UPDATE wallet += prize for winners
+  S-&gt;&gt;R: DEL weekly:lucky:{yyyyww}
+  S--&gt;&gt;C: push notification
+
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-weekly-draw"><code>api-weekly-draw</code></a>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-notify-winner"><code>api-notify-winner</code></a></p>
+<p><strong>後端資料來源</strong>
+- MySQL.weekly_draw_result
+- MySQL.wallet
+- Redis:weekly:lucky:{yyyyww}</p>
+<hr />
+<h3 id="scenario_3"><a id="sc-006"></a> Scenario: 代理商成本上限保護(邊界)</h3>
+<p><strong>類型</strong>：邊界（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 代理商當日累計派彩成本已達上限 cap
+And 玩家刮開一張刮刮券
+When 系統判定獎池抽獎
+Then 系統強制將結果降級為未中獎或最低倍率
+And 記錄風控降級事件
+And 不超發代理商成本
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given agent daily cost has reached cap
+When a player scratches a ticket
+Then the result must be downgraded to no-win or lowest tier
+And a risk-control event is logged
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Node.js Server
+  participant R as Redis
+  participant D as MySQL
+  C-&gt;&gt;S: POST /ticket/scratch
+  S-&gt;&gt;R: GET agent:cost:daily:{aid}
+  R--&gt;&gt;S: cost &gt;= cap
+  S-&gt;&gt;S: force result = lose
+  S-&gt;&gt;D: UPDATE scratch_tickets status=lose, luckyCode
+  S-&gt;&gt;D: INSERT risk_event (type=cap_downgrade)
+  S--&gt;&gt;C: 200 {win:false, luckyCode}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-ticket-scratch"><code>api-ticket-scratch</code></a>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-risk-log"><code>api-risk-log</code></a></p>
+<p><strong>後端資料來源</strong>
+- MySQL.scratch_tickets
+- MySQL.risk_event
+- Redis:agent:cost:daily:{aid}</p>
+<hr />
+<h3 id="scenario_4"><a id="sc-007"></a> Scenario: 重複刮券防護(邊界)</h3>
+<p><strong>類型</strong>：邊界（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 玩家持有一張已刮的刮刮券
+When 玩家因網路重送或惡意重放再次提交刮券請求
+Then 系統以券狀態與冪等鍵判定為重複
+And 回傳既有結果而不重複派獎
+And 不重複佔用代理商成本
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given a ticket has been scratched
+When a duplicate scratch request arrives
+Then the system returns the existing result idempotently
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Node.js Server
+  participant R as Redis
+  participant D as MySQL
+  C-&gt;&gt;S: POST /ticket/scratch {ticketId, idemKey}
+  S-&gt;&gt;R: SETNX idem:{idemKey}
+  R--&gt;&gt;S: 0 (exists)
+  S-&gt;&gt;D: SELECT existing result
+  S--&gt;&gt;C: 200 {duplicated:true, result}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-ticket-scratch"><code>api-ticket-scratch</code></a></p>
+<p><strong>後端資料來源</strong>
+- MySQL.scratch_tickets
+- Redis:idem:{idemKey}</p>
+<hr />
+<h3 id="scenario_5"><a id="sc-008"></a> Scenario: 幸運代號池為空週次(邊界)</h3>
+<p><strong>類型</strong>：邊界（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 當週幸運代號池為空(無未中獎玩家)
+When 排程觸發週抽獎
+Then 系統應跳過開獎
+And 記錄空池事件
+And 公告本週流獎或順延規則
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given the weekly lucky pool is empty
+When the scheduler triggers
+Then the system shall skip the draw and log an empty-pool event
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant J as Cron Job
+  participant S as Node.js Server
+  participant R as Redis
+  participant D as MySQL
+  J-&gt;&gt;S: trigger weekly draw
+  S-&gt;&gt;R: SCARD weekly:lucky:{yyyyww}
+  R--&gt;&gt;S: 0
+  S-&gt;&gt;D: INSERT weekly_draw_result (status=empty)
+  S--&gt;&gt;J: done
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./scratch-ticket-lottery-spec-advanced.md#api-weekly-draw"><code>api-weekly-draw</code></a></p>
+<p><strong>後端資料來源</strong>
+- MySQL.weekly_draw_result
+- Redis:weekly:lucky:{yyyyww}</p>
+<hr />
+    </div>
+    <div class="panel" id="panel-4">
+      <h1 id="scrum">儲值刮刮樂 SCRUM 故事卡</h1>
+<h2 id="epic">Epic：儲值/遊戲贈刮刮券 + 週抽幸運代號</h2>
+<p>老玩家每儲值1000送1張刮刮券，遊戲中亦會掉落刮刮券。刮中可獲 20-5000 倍獎金；未中獎之券保留幸運代號參與每週幸運抽獎。整體 RTP 與每日發放上限受代理商保護機制嚴格控管，確保不造成代理商損失。</p>
+<p><strong>總計</strong>：10 張故事卡，預估 47 點。</p>
+<hr />
+<h2 id="_1">🏗️ 基礎建設</h2>
+<h3 id="story-1">Story #1：建立刮刮樂後端服務骨架</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 建立 Node.js + Express service 含 MySQL 與 Redis 連線，<strong>以便</strong> 所有刮刮券 API 都掛在此服務下統一管理</p>
+<p><strong>驗收標準</strong>：
+- [ ] 服務可由 npm start 啟動並通過 /healthz
+- [ ] MySQL/Redis 連線設定可由環境變數覆寫
+- [ ] 連線失敗時有 retry 與告警 log</p>
+<ul>
+<li><strong>Story Points</strong>：3</li>
+<li><strong>負責團隊</strong>：<code>Server</code>- <strong>技術備注</strong>：Express + mysql2 + ioredis，使用 dotenv 管理連線設定</li>
+</ul>
+<hr />
+<h3 id="story-2">Story #2：刮刮券資料表與索引設計</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 建立 scratch_ticket、scratch_prize_pool、weekly_draw、agent_budget 等資料表，<strong>以便</strong> 支援券發放、兌獎、週抽與代理商損益追蹤</p>
+<p><strong>驗收標準</strong>：
+- [ ] scratch_ticket 含 lucky_code 唯一索引
+- [ ] prize_pool 支援機率與每日上限欄位
+- [ ] 週抽結果可追溯至 ticket_id 與 agent_id</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Server</code>- <strong>技術備注</strong>：MySQL 8 + Sequelize migration，lucky_code 8 碼英數</li>
+</ul>
+<hr />
+<h2 id="_2">🎨 美術與動畫</h2>
+<h3 id="story-8">Story #8：刮刮卡互動動畫</h3>
+<p><strong>作為</strong> 客戶端工程師，<strong>我想要</strong> 在 Cocos Creator 實作手指刮開塗層效果與中獎特效，<strong>以便</strong> 提供沉浸式刮獎體驗</p>
+<p><strong>驗收標準</strong>：
+- [ ] 刮開比例達 60% 自動全開
+- [ ] 中獎有對應倍數金光特效
+- [ ] 低階機種可降級為點擊翻開</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Client</code> · <code>Art</code>- <strong>技術備注</strong>：Cocos Creator Mask + Graphics 實作刮開</li>
+</ul>
+<hr />
+<h3 id="story-9-ui">Story #9：刮刮樂 UI 與幸運代號頁</h3>
+<p><strong>作為</strong> 客戶端工程師，<strong>我想要</strong> 建立刮刮券背包、開獎動畫、幸運代號查詢頁，<strong>以便</strong> 玩家可清楚管理券與查代號</p>
+<p><strong>驗收標準</strong>：
+- [ ] 背包顯示券數與到期日
+- [ ] 幸運代號頁可查當週開獎結果
+- [ ] UI 支援橫直版</p>
+<ul>
+<li><strong>Story Points</strong>：3</li>
+<li><strong>負責團隊</strong>：<code>Client</code> · <code>Art</code>- <strong>技術備注</strong>：Cocos Creator Prefab + RESTful API</li>
+</ul>
+<hr />
+<h2 id="_3">🎮 遊戲邏輯</h2>
+<h3 id="story-3">Story #3：儲值滿千自動發券</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 監聽儲值事件，每滿 1000 點發 1 張刮刮券，<strong>以便</strong> 老玩家儲值即享回饋</p>
+<p><strong>驗收標準</strong>：
+- [ ] 儲值 2500 發 2 張，餘額 500 累計到下次
+- [ ] 發券寫入 MySQL 並回推 Redis 玩家券數
+- [ ] 重複事件具 idempotency 保護</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Server</code>- <strong>技術備注</strong>：Express webhook + Redis SETNX 防重複；事務寫入 mysql2</li>
+</ul>
+<hr />
+<h3 id="story-4">Story #4：遊戲內掉券機率引擎</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 在遊戲結算時依設定機率掉落刮刮券，<strong>以便</strong> 提升遊戲黏著度</p>
+<p><strong>驗收標準</strong>：
+- [ ] 掉券機率可由後台設定
+- [ ] 每日每玩家掉券上限可控
+- [ ] 掉券事件寫入 audit log</p>
+<ul>
+<li><strong>Story Points</strong>：3</li>
+<li><strong>負責團隊</strong>：<code>Server</code>- <strong>技術備注</strong>：Redis 計數器 + MySQL 持久化</li>
+</ul>
+<hr />
+<h2 id="_4">🏆 獎勵系統</h2>
+<h3 id="story-5-rtp">Story #5：刮刮券兌獎邏輯與 RTP 控管</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 提供刮券 API，依 prize_pool 抽出 20-5000 倍獎項或未中獎，<strong>以便</strong> 確保獎項分佈符合預期 RTP</p>
+<p><strong>驗收標準</strong>：
+- [ ] 抽獎結果加密簽章不可竄改
+- [ ] 每日獎金池上限觸及時自動轉為未中獎
+- [ ] 未中獎券保留 lucky_code</p>
+<ul>
+<li><strong>Story Points</strong>：8</li>
+<li><strong>負責團隊</strong>：<code>Server</code>- <strong>技術備注</strong>：加權隨機 + Redis 原子扣減每日預算</li>
+</ul>
+<hr />
+<h3 id="story-6">Story #6：代理商損益保護機制</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 依代理商當期淨收入動態調整實際派彩上限，<strong>以便</strong> 確保任何代理商不因活動虧損</p>
+<p><strong>驗收標準</strong>：
+- [ ] 每位代理商有獨立 budget cap
+- [ ] 派彩超過 cap 時自動降級為未中獎
+- [ ] 後台可查看代理商損益儀表板</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Server</code>- <strong>技術備注</strong>：Redis 即時計數 + 每分鐘 MySQL 落地</li>
+</ul>
+<hr />
+<h3 id="story-7">Story #7：每週幸運代號開獎</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 每週固定時間從未中獎券中抽出幸運兒，<strong>以便</strong> 未中獎玩家仍有期待感</p>
+<p><strong>驗收標準</strong>：
+- [ ] 排程於每週日 22:00 執行
+- [ ] 抽出結果公告且不可重抽
+- [ ] 得獎獎金納入代理商損益核算</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Server</code>- <strong>技術備注</strong>：node-cron + MySQL 交易鎖；Redis pub/sub 通知</li>
+</ul>
+<hr />
+<h2 id="qa">🧪 QA 測試</h2>
+<h3 id="story-10">Story #10：端對端與壓力測試</h3>
+<p><strong>作為</strong> QA 工程師，<strong>我想要</strong> 驗證發券、刮獎、週抽、代理商保護完整流程，<strong>以便</strong> 確保活動上線穩定且無資損風險</p>
+<p><strong>驗收標準</strong>：
+- [ ] 1000 QPS 刮獎壓測無資料不一致
+- [ ] 代理商 cap 觸發時 100% 降級成功
+- [ ] 週抽結果與資料庫紀錄一致</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>QA</code>- <strong>技術備注</strong>：k6 壓測 + Jest 整合測試</li>
+</ul>
+<hr />
+    </div>
+
+    <div class="panel" id="panel-api">
+      <div id="api-detail">
+        <p style="color: var(--text-muted); padding: 32px; text-align: center;">
+          ← 點左側 endpoint 開始試打。所有回應為前端 mock，斷網可用。
+        </p>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-proto">
+      <h1>🎮 互動原型</h1>
+      <p style="color: var(--text-muted); margin: 16px 0 24px;">
+        互動原型是獨立 HTML 檔，需另開分頁體驗。
+      </p>
+      <a href="scratch-card-prototype.html" target="_blank" rel="noopener"
+         style="display: inline-block; padding: 14px 28px; background: var(--accent); color: #fff;
+                font-weight: 600; border-radius: 6px; text-decoration: none; font-size: 15px;">
+        🚀 在新分頁開啟原型 →
+      </a>
+      <p style="color: var(--text-muted); margin-top: 24px; font-size: 13px;">
+        檔案路徑：<code>scratch-card-prototype.html</code>
+      </p>
+    </div>
+  </main>
+
+</div>
+
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-controls">
+    <button onclick="lbZoom(0.2)">+</button>
+    <button onclick="lbZoom(-0.2)">−</button>
+    <button onclick="lbReset()">⤺</button>
+    <button onclick="closeLightbox()">✕</button>
+  </div>
+  <div class="lightbox-inner" id="lightbox-inner"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+const API_CONFIG = [{"desc": "\u67e5\u8a62\u73a9\u5bb6\u6240\u6709\u522e\u522e\u5238\uff08\u672a\u522e/\u5df2\u522e/\u4e2d\u734e\uff09", "id": "api-list-tickets", "method": "GET", "params": [{"default": "P10001", "in": "query", "name": "player_id", "type": "string"}, {"default": "all", "in": "query", "name": "status", "type": "string"}, {"default": "1", "in": "query", "name": "page", "type": "integer"}, {"default": "20", "in": "query", "name": "page_size", "type": "integer"}], "path": "/api/v1/scratch/tickets", "responses": {"200": {"body": {"code": 200, "data": {"items": [{"issued_at": "2026-05-14T10:00:00Z", "lucky_code": "LK-8F2A19", "source": "deposit", "status": "unscratched", "ticket_id": "T-20260514-0001"}], "total": 12}}, "status": 200}}}, {"desc": "\u5132\u503c\u6eff1000\u8d08\u9001\u522e\u522e\u5238\uff08\u6bcf1000\u90011\u5f35\uff0c\u5411\u4e0b\u53d6\u6574\uff09", "id": "api-grant-deposit", "method": "POST", "params": [{"default": "P10001", "in": "body", "name": "player_id", "type": "string"}, {"default": "3000", "in": "body", "name": "deposit_amount", "type": "number"}, {"default": "ORD-20260514-0001", "in": "body", "name": "order_id", "type": "string"}], "path": "/api/v1/scratch/grant/deposit", "responses": {"200": {"body": {"code": 200, "data": {"granted": 3, "ticket_ids": ["T-20260514-0001", "T-20260514-0002", "T-20260514-0003"]}}, "status": 200}}}, {"desc": "\u904a\u6232\u904e\u7a0b\u96a8\u6a5f\u6389\u843d\u522e\u522e\u5238\uff08\u7531\u904a\u6232\u5f8c\u7aef\u89f8\u767c\uff09", "id": "api-grant-gameplay", "method": "POST", "params": [{"default": "P10001", "in": "body", "name": "player_id", "type": "string"}, {"default": "slot-fortune-tiger", "in": "body", "name": "game_id", "type": "string"}, {"default": "R-20260514-99887", "in": "body", "name": "round_id", "type": "string"}], "path": "/api/v1/scratch/grant/gameplay", "responses": {"200": {"body": {"code": 200, "data": {"drop_rate": 0.002, "granted": 1, "ticket_id": "T-20260514-0099"}}, "status": 200}}}, {"desc": "\u522e\u958b\u6307\u5b9a\u522e\u522e\u5238\uff0c\u56de\u50b3\u4e2d\u734e\u500d\u6578\u8207\u5e78\u904b\u4ee3\u865f", "id": "api-scratch", "method": "POST", "params": [{"default": "P10001", "in": "body", "name": "player_id", "type": "string"}, {"default": "T-20260514-0001", "in": "body", "name": "ticket_id", "type": "string"}], "path": "/api/v1/scratch/redeem", "responses": {"200": {"body": {"code": 200, "data": {"budget_pool_remaining": 98200, "lucky_code": "LK-8F2A19", "multiplier": 50, "prize_amount": 500, "result": "win", "ticket_id": "T-20260514-0001"}}, "status": 200}}}, {"desc": "\u6bcf\u9031\u5e78\u904b\u4ee3\u865f\u958b\u734e\uff08\u5f8c\u53f0/\u6392\u7a0b\u89f8\u767c\uff09", "id": "api-weekly-draw", "method": "POST", "params": [{"default": "2026-W20", "in": "body", "name": "week", "type": "string"}, {"default": "grand", "in": "body", "name": "prize_tier", "type": "string"}], "path": "/api/v1/scratch/weekly-draw", "responses": {"200": {"body": {"code": 200, "data": {"total_participants": 48213, "week": "2026-W20", "winning_codes": ["LK-8F2A19", "LK-3C7D02"]}}, "status": 200}}}, {"desc": "\u4ee3\u7406\u5546\u640d\u76ca\u5831\u8868\uff08\u78ba\u4fdd\u767c\u734e\u984d\u4e0d\u8d85\u904eRTP\u4e0a\u9650\uff09", "id": "api-agent-cost", "method": "GET", "params": [{"default": "AG-001", "in": "query", "name": "agent_id", "type": "string"}, {"default": "2026-05", "in": "query", "name": "period", "type": "string"}], "path": "/api/v1/scratch/agent/cost-report", "responses": {"200": {"body": {"code": 200, "data": {"actual_rtp": 0.05, "agent_id": "AG-001", "budget_status": "healthy", "gross_deposit": 1250000, "period": "2026-05", "prize_paid": 62500, "target_rtp": 0.05, "tickets_issued": 1250}}, "status": 200}}}];
+const RESPONSE_MAP = {};
+API_CONFIG.forEach(a => RESPONSE_MAP[a.id] = a.responses || {});
+
+mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+
+function transformMermaid() {
+  document.querySelectorAll('pre code.language-mermaid').forEach(code => {
+    const src = code.textContent;
+    const wrap = document.createElement('div');
+    wrap.className = 'diagram-container';
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = src;
+    div.setAttribute('data-source', src);
+    wrap.appendChild(div);
+    wrap.addEventListener('click', () => openLightbox(wrap));
+    code.parentElement.replaceWith(wrap);
+  });
+}
+
+async function renderMermaidIn(panel) {
+  const nodes = panel.querySelectorAll('.mermaid:not([data-processed="true"])');
+  if (nodes.length) {
+    try { await mermaid.run({ nodes: Array.from(nodes) }); } catch (e) { console.error(e); }
+  }
+}
+
+// ─── Sidebar: collapse toggle ───
+const wrapper = document.querySelector('.page-wrapper');
+const toggleBtn = document.getElementById('sidebarToggle');
+toggleBtn.addEventListener('click', () => {
+  wrapper.classList.toggle('sidebar-collapsed');
+  toggleBtn.textContent = wrapper.classList.contains('sidebar-collapsed') ? '›' : '‹';
+});
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === '\\') { e.preventDefault(); toggleBtn.click(); }
+});
+
+// ─── Sidebar: 文件 / TOC tabs ───
+document.querySelectorAll('.sidebar__tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar__tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar__panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('sidebar-' + tab.dataset.panel).classList.add('active');
+    if (tab.dataset.panel === 'toc') buildToc();
+  });
+});
+
+// ─── TOC builder: scan current panel ───
+function buildToc() {
+  const listEl = document.getElementById('toc-list');
+  const active = document.querySelector('.panel.active');
+  if (!active) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無</div>'; return; }
+
+  // API panel: list endpoints from API_CONFIG
+  if (active.id === 'panel-api') {
+    const eps = API_CONFIG;
+    if (!eps.length) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無符合 endpoint</div>'; return; }
+    listEl.innerHTML = eps.map(e =>
+      `<a class="toc__link toc__link--api" data-api-id="${e.id}" style="padding:8px 12px;display:block">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <span style="display:inline-block;min-width:48px;font-size:10px;font-weight:700;color:#fff;background:${methodColor(e.method)};padding:2px 6px;border-radius:3px;text-align:center">${e.method}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.path}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);padding-left:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.desc || ''}</div>
+      </a>`
+    ).join('');
+    listEl.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', ev => { ev.preventDefault(); renderApi(a.dataset.apiId); });
+    });
+    return;
+  }
+
+  // Default: scan h1-h4
+  const heads = Array.from(active.querySelectorAll('h1, h2, h3, h4'));
+  if (!heads.length) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無標題</div>'; return; }
+  let html = '';
+  heads.forEach((h, i) => {
+    if (!h.id) h.id = 'h-' + i + '-' + (h.textContent || '').replace(/\s+/g, '-').slice(0, 30);
+    html += `<a class="toc__link toc__link--${h.tagName.toLowerCase()}" href="#${h.id}">${h.textContent}</a>`;
+  });
+  listEl.innerHTML = html;
+  listEl.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const tgt = document.getElementById(a.getAttribute('href').slice(1));
+      if (tgt) tgt.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+}
+
+function methodColor(m) {
+  return { GET:'#16a34a', POST:'#2563eb', PUT:'#ea580c', PATCH:'#7c3aed', DELETE:'#dc2626' }[m] || '#64748b';
+}
+
+
+// ─── API Explorer: render single endpoint ───
+function findApi(id) { return API_CONFIG.find(e => e.id === id); }
+
+// Detect path params from path like /api/v1/foo/{id}/bar — return param names
+function detectPathParams(path) { return [...path.matchAll(/\{([^}]+)\}/g)].map(m => m[1]); }
+
+function renderApi(id) {
+  const ep = findApi(id); if (!ep) return;
+  document.querySelectorAll('.toc__link--api').forEach(x => x.classList.toggle('active', x.dataset.apiId === id));
+  location.hash = id;
+
+  // Merge declared params with auto-detected path params
+  const declaredPath = (ep.params || []).filter(p => p.in === 'path').map(p => p.name);
+  const autoPath = detectPathParams(ep.path).filter(n => !declaredPath.includes(n))
+                     .map(n => ({name: n, in: 'path', type: 'string', required: true}));
+  const allPathParams = [...(ep.params || []).filter(p => p.in === 'path'), ...autoPath];
+  const queryParams = (ep.params || []).filter(p => p.in === 'query');
+
+  const presets = ep.body && ep.body.presets ? ep.body.presets : null;
+
+  const html = `
+    <h1 style="margin-bottom:6px"><span class="method ${ep.method}" style="margin-right:8px">${ep.method}</span>${ep.summary || ep.desc || ep.id}</h1>
+    <div class="api-path" style="font-size:14px;margin-bottom:18px;color:var(--text-muted)">${ep.path}</div>
+    <p style="color:var(--text-muted);margin:0 0 20px">${ep.desc || ''}</p>
+
+    ${allPathParams.length ? `
+    <div class="api-card">
+      <h3 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Path Parameters</h3>
+      ${allPathParams.map(p => `
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:600">${p.name}${p.required?' <span style="color:#dc2626">*</span>':''}<div style="font-size:11px;color:var(--text-muted);font-weight:400">${p.type || 'string'}</div></label>
+          <input id="path-${p.name}" type="text" value="${p.default||''}" placeholder="${p.description||''}" style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px">
+        </div>
+      `).join('')}
+    </div>` : ''}
+
+    ${queryParams.length ? `
+    <div class="api-card">
+      <h3 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Query Parameters</h3>
+      ${queryParams.map(p => `
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:600">${p.name}${p.required?' <span style="color:#dc2626">*</span>':''}<div style="font-size:11px;color:var(--text-muted);font-weight:400">${p.type || 'string'}</div></label>
+          <input id="query-${p.name}" type="text" value="${p.default||''}" placeholder="${p.description||''}" style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px">
+        </div>
+      `).join('')}
+    </div>` : ''}
+
+    ${presets ? `
+    <div class="api-card">
+      <h3 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Request Body</h3>
+      <label style="font-size:12px;color:var(--text-muted);font-weight:600">Preset</label>
+      <select id="body-preset" style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:inherit;font-size:13px;margin-top:4px">
+        ${presets.map((p,i) => `<option value="${i}">${p.label}</option>`).join('')}
+      </select>
+      <label style="font-size:12px;color:var(--text-muted);font-weight:600;margin-top:10px">JSON</label>
+      <textarea id="body-input" style="width:100%;min-height:140px;padding:10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:4px">${presets[0].value}</textarea>
+    </div>` : ''}
+
+    <div class="btns" style="display:flex;gap:8px;margin:18px 0">
+      <button class="btn-try" onclick="tryApi()">▶ Try It</button>
+      <button class="btn-curl" onclick="copyCurl()">📋 Copy as cURL</button>
+    </div>
+
+    <div id="api-resp-section" style="display:none">
+      <h3 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Response</h3>
+      <div id="api-resp-status" style="margin-bottom:8px"></div>
+      <div class="response" id="api-resp-body"></div>
+    </div>
+
+    <div id="api-curl-section" style="display:none;margin-top:18px">
+      <h3 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">cURL <span style="font-size:11px;text-transform:none;color:#16a34a">✓ 已複製</span></h3>
+      <pre id="api-curl-out" style="white-space:pre-wrap;word-break:break-all"></pre>
+    </div>
+  `;
+  document.getElementById('api-detail').innerHTML = html;
+  document.getElementById('api-detail').dataset.currentId = id;
+
+  const presetSel = document.getElementById('body-preset');
+  if (presetSel) {
+    presetSel.addEventListener('change', () => {
+      const idx = Number(presetSel.value);
+      document.getElementById('body-input').value = presets[idx].value;
+    });
+  }
+}
+
+function _currentApi() {
+  const id = document.getElementById('api-detail').dataset.currentId;
+  return findApi(id);
+}
+
+function _collectInputs(ep) {
+  const path = {}, query = {};
+  for (const p of (ep.params||[])) {
+    const el = document.getElementById(`${p.in}-${p.name}`);
+    if (el) (p.in === 'path' ? path : query)[p.name] = el.value;
+  }
+  // Auto-detected path params
+  for (const n of detectPathParams(ep.path)) {
+    if (!(n in path)) {
+      const el = document.getElementById(`path-${n}`);
+      if (el) path[n] = el.value;
+    }
+  }
+  let body = null;
+  const ta = document.getElementById('body-input');
+  if (ta) { try { body = JSON.parse(ta.value); } catch { body = ta.value; } }
+  return { path, query, body };
+}
+
+function _resolveUrl(ep, path, query) {
+  let url = ep.path;
+  Object.entries(path).forEach(([k, v]) => url = url.replace(`{${k}}`, encodeURIComponent(v)));
+  const qs = Object.entries(query).filter(([_, v]) => v !== '' && v != null)
+                .map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  if (qs) url += '?' + qs;
+  return url;
+}
+
+function tryApi() {
+  const ep = _currentApi(); if (!ep) return;
+  const sec = document.getElementById('api-resp-section');
+  const statusEl = document.getElementById('api-resp-status');
+  const bodyEl = document.getElementById('api-resp-body');
+  sec.style.display = 'block';
+  statusEl.textContent = '⏳ Loading...';
+  bodyEl.textContent = '';
+  setTimeout(() => {
+    const responses = RESPONSE_MAP[ep.id] || {};
+    const resp = responses['200'] || responses[Object.keys(responses)[0]] || { status: 200, body: {} };
+    const code = resp.status || 200;
+    const cls = 'status-' + String(code)[0] + 'xx';
+    bodyEl.className = 'response ' + cls;
+    statusEl.innerHTML = `<span style="display:inline-block;padding:3px 10px;background:${methodColor(ep.method)};color:#fff;border-radius:4px;font-weight:700;font-size:12px;margin-right:8px">HTTP ${code}</span><span style="color:var(--text-muted);font-size:12px">~200ms</span>`;
+    bodyEl.textContent = typeof resp.body === 'string' ? resp.body : JSON.stringify(resp.body, null, 2);
+  }, 200);
+}
+
+function copyCurl() {
+  const ep = _currentApi(); if (!ep) return;
+  const { path, query, body } = _collectInputs(ep);
+  const url = _resolveUrl(ep, path, query);
+  let cmd = `curl -X ${ep.method} 'https://api.example.com${url}'`;
+  if (body) cmd += ` \\\n  -H 'Content-Type: application/json' \\\n  -d '${typeof body === 'string' ? body : JSON.stringify(body)}'`;
+
+  // Show inline in main content (not alert) + copy to clipboard
+  const sec = document.getElementById('api-curl-section');
+  const out = document.getElementById('api-curl-out');
+  if (sec && out) {
+    sec.style.display = 'block';
+    out.textContent = cmd;
+  }
+  try { navigator.clipboard.writeText(cmd); } catch {}
+}
+
+
+// ─── Section navigation (sidebar 文件 panel) ───
+function activateTab(panelName) {
+  document.querySelectorAll('.sidebar__tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.panel === panelName));
+  document.querySelectorAll('.sidebar__panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'sidebar-' + panelName));
+}
+
+document.querySelectorAll('.sidebar__link').forEach(link => {
+  link.addEventListener('click', async (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.sidebar__link').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    link.classList.add('active');
+    const panel = document.getElementById(link.dataset.target);
+    panel.classList.add('active');
+    await renderMermaidIn(panel);
+    location.hash = link.dataset.target;
+    // For API panel, auto-switch sidebar to TOC + render first endpoint
+    if (link.dataset.target === 'panel-api') {
+      activateTab('toc');
+      buildToc();
+      if (API_CONFIG.length) renderApi(API_CONFIG[0].id);
+    } else if (document.querySelector('.sidebar__tab[data-panel="toc"]').classList.contains('active')) {
+      buildToc();
+    }
+  });
+});
+
+// Lightbox — zoom + pan
+let lbScale = 1, lbX = 0, lbY = 0;
+function lbApply() {
+  document.getElementById('lightbox-inner').style.transform =
+    `translate(${lbX}px, ${lbY}px) scale(${lbScale})`;
+}
+function openLightbox(diagramWrap) {
+  const inner = document.getElementById('lightbox-inner');
+  inner.innerHTML = '';
+  const source = diagramWrap.querySelector('.mermaid')?.getAttribute('data-source') || '';
+  const div = document.createElement('div');
+  div.className = 'mermaid';
+  div.textContent = source;
+  div.setAttribute('data-source', source);
+  inner.appendChild(div);
+  mermaid.run({ nodes: [div] });
+  lbScale = 1; lbX = 0; lbY = 0; lbApply();
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
+function lbZoom(d) { lbScale = Math.max(0.2, Math.min(8, lbScale + d)); lbApply(); }
+function lbReset() { lbScale = 1; lbX = 0; lbY = 0; lbApply(); }
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === '+' || e.key === '=') lbZoom(0.2);
+  if (e.key === '-') lbZoom(-0.2);
+  if (e.key === '0') lbReset();
+});
+
+document.getElementById('lightbox').addEventListener('wheel', e => {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  e.preventDefault();
+  lbZoom(e.deltaY < 0 ? 0.15 : -0.15);
+}, { passive: false });
+
+(function () {
+  const lb = document.getElementById('lightbox');
+  let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+  lb.addEventListener('mousedown', e => {
+    if (e.target.closest('.lightbox-controls')) return;
+    dragging = true; sx = e.clientX; sy = e.clientY; ox = lbX; oy = lbY;
+    lb.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    lbX = ox + (e.clientX - sx);
+    lbY = oy + (e.clientY - sy);
+    lbApply();
+  });
+  window.addEventListener('mouseup', () => { dragging = false; lb.style.cursor = 'default'; });
+  lb.addEventListener('click', e => {
+    if (e.target === lb) closeLightbox();
+  });
+})();
+
+
+// Init
+transformMermaid();
+renderMermaidIn(document.querySelector('.panel.active'));
+if (location.hash) {
+  const target = location.hash.slice(1);
+  const link = document.querySelector(`.sidebar__link[data-target="${target}"]`);
+  if (link) link.click();
+  else {
+    const el = document.getElementById(target);
+    if (el) {
+      const panel = el.closest('.panel');
+      if (panel) {
+        const link2 = document.querySelector(`.sidebar__link[data-target="${panel.id}"]`);
+        if (link2) link2.click();
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 300);
+      }
+    }
+  }
+}
+</script>
+</body>
+</html>

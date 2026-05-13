@@ -10,6 +10,27 @@
 
 ---
 
+## 📦 範例輸出
+
+- **刮刮券**（scratch-card）—
+  [docs.html](docs/pages/scratch-card/scratch-card-docs.html) ·
+  [企畫版](docs/pages/scratch-card/scratch-card-spec-basic.md) ·
+  [技術版](docs/pages/scratch-card/scratch-card-spec-advanced.md) ·
+  [資源](docs/pages/scratch-card/scratch-card-assets.md) ·
+  [BDD](docs/pages/scratch-card/scratch-card-bdd.md) ·
+  [SCRUM](docs/pages/scratch-card/scratch-card-scrum.md) ·
+  [原型](docs/pages/scratch-card/scratch-card-prototype.html)
+- **跨年活動**（new-year-event）—
+  [docs.html](docs/pages/new-year-event/new-year-event-docs.html) ·
+  [企畫版](docs/pages/new-year-event/new-year-event-spec-basic.md) ·
+  [技術版](docs/pages/new-year-event/new-year-event-spec-advanced.md) ·
+  [資源](docs/pages/new-year-event/new-year-event-assets.md) ·
+  [BDD](docs/pages/new-year-event/new-year-event-bdd.md) ·
+  [SCRUM](docs/pages/new-year-event/new-year-event-scrum.md) ·
+  [原型](docs/pages/new-year-event/new-year-event-prototype.html)
+
+---
+
 ## 架構
 
 ```

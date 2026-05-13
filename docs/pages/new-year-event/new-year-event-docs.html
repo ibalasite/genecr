@@ -1,0 +1,3062 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>元旦跨年活動 — 文件中心</title>
+<style>
+  /* ─── Tokens (gendoc-style: dark nav + light content) ─── */
+  :root {
+    --nav-bg: #1e293b;
+    --nav-fg: #f1f5f9;
+    --nav-accent: #60a5fa;
+    --nav-h: 56px;
+
+    --bg: #f8fafc;
+    --panel-bg: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --link: #2563eb;
+    --link-hover: #1d4ed8;
+    --code-bg: #f1f5f9;
+    --code-fg: #c7254e;
+    --pre-bg: #0f172a;
+    --pre-fg: #e2e8f0;
+    --th-bg: #f1f5f9;
+    --row-alt: #fafbfc;
+    --accent: #2563eb;
+
+    --content-max: 1400px;
+    --sidebar-w: 240px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+                 "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    line-height: 1.7; font-size: 15px;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+
+  /* ─── Top nav ─── */
+  .top-nav {
+    position: sticky; top: 0; z-index: 50;
+    height: var(--nav-h);
+    background: var(--nav-bg); color: var(--nav-fg);
+    display: flex; align-items: center;
+    padding: 0 24px; gap: 24px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.1);
+  }
+  .top-nav h1 { font-size: 16px; font-weight: 600; margin: 0; color: #fff; }
+  .top-nav .crumb { color: #94a3b8; font-size: 14px; }
+  .top-nav .spacer { flex: 1; }
+  .top-nav .lang { display: flex; gap: 4px; }
+  .top-nav .lang button {
+    padding: 4px 10px; font-size: 12px;
+    background: transparent; color: #cbd5e1;
+    border: 1px solid #475569; border-radius: 4px; cursor: pointer;
+  }
+  .top-nav .lang button.active { background: var(--nav-accent); color: #fff; border-color: var(--nav-accent); }
+  .top-nav .lang button:hover:not(.active) { background: #334155; color: #fff; }
+
+  /* ─── Layout: sidebar + content (full viewport, gendoc-style) ─── */
+  .page-wrapper {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    width: 100%;
+    min-height: calc(100vh - var(--nav-h));
+    transition: grid-template-columns .15s;
+  }
+  .page-wrapper.sidebar-collapsed {
+    grid-template-columns: 36px 1fr;
+  }
+  @media (max-width: 768px) {
+    .page-wrapper { grid-template-columns: 36px 1fr; }
+  }
+
+  /* ─── Sidebar (with tabs + collapse) ─── */
+  .sidebar {
+    position: sticky; top: var(--nav-h);
+    align-self: start;
+    height: calc(100vh - var(--nav-h));
+    background: var(--panel-bg);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: visible;
+  }
+  .sidebar__toggle {
+    position: absolute; top: 6px; right: 6px;
+    background: var(--code-bg); color: var(--text-muted);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    padding: 2px 8px; font-size: 13px; line-height: 1; cursor: pointer; z-index: 3;
+  }
+  .sidebar__toggle:hover { background: var(--border); color: var(--text); }
+  .page-wrapper.sidebar-collapsed .sidebar__tabs,
+  .page-wrapper.sidebar-collapsed .sidebar__panel { display: none; }
+  .page-wrapper.sidebar-collapsed .sidebar__toggle { left: 6px; right: auto; top: 6px; }
+
+  .sidebar__tabs {
+    display: flex; gap: 2px; padding: 6px 36px 0 6px;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    flex: 0 0 auto;
+  }
+  .sidebar__tab {
+    flex: 1; padding: 6px 8px; font-size: 12px;
+    border: 1px solid transparent; border-bottom: none;
+    border-radius: 4px 4px 0 0; cursor: pointer; background: transparent;
+    color: var(--text-muted); font-family: inherit; text-align: center;
+    transition: background .15s, color .15s;
+  }
+  .sidebar__tab:hover { color: var(--text); background: var(--code-bg); }
+  .sidebar__tab.active {
+    background: var(--panel-bg); color: var(--link);
+    border-color: var(--border); font-weight: 600; margin-bottom: -1px;
+  }
+
+  .sidebar__panel {
+    display: none; flex: 1 1 auto;
+    overflow-y: auto; overflow-x: hidden;
+    padding: 8px 0; font-size: 14px;
+    scrollbar-width: thin;
+  }
+  .sidebar__panel.active { display: block; }
+  .sidebar__panel::-webkit-scrollbar { width: 6px; }
+  .sidebar__panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 3px; }
+
+  .sidebar__link {
+    display: block;
+    padding: 8px 16px;
+    color: var(--text); text-decoration: none;
+    border-left: 3px solid transparent;
+    font-size: 14px; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sidebar__link:hover { background: var(--code-bg); }
+  .sidebar__link.active {
+    background: #eff6ff; color: var(--link);
+    border-left-color: var(--accent); font-weight: 600;
+  }
+
+  /* TOC links — indent by heading depth */
+  .toc__link { display: block; padding: 4px 16px;
+    color: var(--text); text-decoration: none; font-size: 13px;
+    border-left: 2px solid transparent;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .toc__link:hover { background: var(--code-bg); color: var(--link); }
+  .toc__link.active { background: #eff6ff; color: var(--link); border-left-color: var(--accent); font-weight: 500; }
+  .toc__link--h2 { padding-left: 16px; font-weight: 600; }
+  .toc__link--h3 { padding-left: 32px; font-size: 12px; color: var(--text-muted); }
+  .toc__link--h4 { padding-left: 48px; font-size: 12px; color: var(--text-muted); }
+
+  /* ─── Main content area (full width, responsive) ─── */
+  main.content {
+    background: var(--panel-bg);
+    padding: 32px 48px 96px;
+    min-width: 0;
+    width: 100%;
+  }
+  @media (max-width: 768px) { main.content { padding: 20px 16px 64px; } }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .panel [id] { scroll-margin-top: calc(var(--nav-h) + 16px); }
+
+  /* ─── Typography ─── */
+  h1, h2, h3, h4, h5 { color: var(--text); font-weight: 700; line-height: 1.3; }
+  h1 { font-size: 28px; margin: 8px 0 24px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+  h2 { font-size: 22px; margin: 36px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 18px; margin: 28px 0 12px; }
+  h4 { font-size: 16px; margin: 20px 0 10px; }
+  p, ul, ol { margin: 12px 0; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+
+  a { color: var(--link); text-decoration: none; }
+  a:hover { color: var(--link-hover); text-decoration: underline; }
+
+  blockquote {
+    margin: 16px 0; padding: 12px 16px;
+    border-left: 4px solid var(--accent);
+    background: #eff6ff; color: var(--text);
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* ─── Code ─── */
+  code {
+    background: var(--code-bg); color: var(--code-fg);
+    padding: 2px 6px; border-radius: 3px;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular,
+                 Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--pre-bg); color: var(--pre-fg);
+    padding: 16px; border-radius: 8px; overflow-x: auto;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px; line-height: 1.55;
+    margin: 16px 0;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; font-size: inherit; }
+
+  /* ─── Tables (gendoc style: light theme, scroll if too wide) ─── */
+  .panel { max-width: 100%; }
+  .panel table {
+    border-collapse: collapse;
+    margin: 16px 0;
+    width: auto;
+    background: var(--panel-bg);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    border-radius: 6px;
+    overflow: hidden;
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .panel th, .panel td {
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    line-height: 1.6;
+    word-break: break-word;
+    max-width: 480px;
+    font-size: 14px;
+  }
+  .panel th {
+    background: var(--th-bg);
+    color: var(--text);
+    font-weight: 600;
+    white-space: nowrap;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  .panel tbody tr:nth-child(even) { background: var(--row-alt); }
+
+  /* ─── Mermaid diagrams ─── */
+  .diagram-container {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; margin: 16px 0;
+    cursor: zoom-in; transition: box-shadow .15s;
+  }
+  .diagram-container:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+
+  /* ─── Lightbox (mermaid zoom) ─── */
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(15,23,42,.92);
+    display: none; z-index: 1000;
+    justify-content: center; align-items: center;
+  }
+  .lightbox.show { display: flex; }
+  .lightbox-inner {
+    background: #fff; padding: 32px; border-radius: 8px;
+    max-width: 95vw; max-height: 90vh; overflow: auto;
+    transform-origin: center;
+  }
+  .lightbox-controls { position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 1001; }
+  .lightbox-controls button {
+    background: #fff; color: var(--text); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 4px; font-weight: 600; cursor: pointer;
+  }
+  .lightbox-controls button:hover { background: var(--code-bg); }
+
+  /* ─── API try-it card ─── */
+  .api-card {
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 20px; margin: 20px 0;
+  }
+  .api-card.hidden { display: none; }
+  .api-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .method {
+    padding: 4px 10px; border-radius: 4px;
+    font-weight: 700; font-size: 11px; letter-spacing: 0.05em; color: #fff;
+  }
+  .method.GET { background: #16a34a; }
+  .method.POST { background: #2563eb; }
+  .method.PUT { background: #ea580c; }
+  .method.PATCH { background: #7c3aed; }
+  .method.DELETE { background: #dc2626; }
+  .api-path {
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    color: var(--text); font-size: 14px; font-weight: 600;
+  }
+  .api-card label { display: block; font-size: 12px; color: var(--text-muted); margin-top: 10px; font-weight: 600; }
+  .api-card input, .api-card textarea, .api-card select {
+    width: 100%; padding: 8px 10px;
+    background: #fff; color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 13px; margin-top: 4px;
+  }
+  .api-card textarea { min-height: 100px; resize: vertical; }
+  .api-card .btns { margin-top: 14px; display: flex; gap: 8px; }
+  .api-card button {
+    padding: 8px 16px; border: none; border-radius: 4px;
+    font-weight: 600; cursor: pointer; font-size: 13px;
+  }
+  .btn-try, .btn-curl {
+    padding: 10px 20px; border-radius: 4px;
+    font-weight: 600; font-size: 14px; cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-try { background: var(--accent); color: #fff; border: none; }
+  .btn-try:hover { background: var(--link-hover); }
+  .btn-curl { background: var(--code-bg); color: var(--text); border: 1px solid var(--border-strong); }
+  .btn-curl:hover { background: var(--border); }
+  .response {
+    margin-top: 12px; padding: 12px;
+    background: var(--pre-bg); color: var(--pre-fg);
+    border-radius: 4px;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px; white-space: pre-wrap; min-height: 30px;
+  }
+  .status-2xx { border-left: 3px solid #16a34a; }
+  .status-4xx { border-left: 3px solid #ea580c; }
+  .status-5xx { border-left: 3px solid #dc2626; }
+
+  /* ─── Wireframe DSL — low-fidelity line-art mockups ─── */
+  .wf-scope {
+    --ink:#1f2937; --muted:#6b7280; --line:#c7cdd6; --soft:#f6f7f9; --panel:#fff;
+    color: var(--ink); background: #fff; padding: 16px; border-radius: 8px; margin: 16px 0;
+    font-family: Inter, system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    border: 1px solid var(--border);
+  }
+  .wf-scope *, .wf-scope *::before, .wf-scope *::after { box-sizing: border-box; }
+  .wf-scope code { background: transparent; color: inherit; padding: 0; }
+  .wf-frame { border: 2px solid var(--ink); border-radius: 20px; overflow: hidden; background: var(--panel); box-shadow: 0 18px 50px rgba(31,41,55,.12); }
+  .wf-panel { border: 1.8px solid var(--line); border-radius: 12px; background: #fff; padding: 12px; }
+  .wf-section-title { font-weight: 800; font-size: 14px; color: var(--ink); margin-bottom: 8px; }
+  .wf-helper { color: var(--muted); font-size: 12px; }
+  .wf-divider { height: 0; border: none; border-top: 1.5px solid var(--line); margin: 12px 0; }
+  .wf-pill { display: inline-grid; place-items: center; min-width: 56px; height: 28px; padding: 0 10px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; color: var(--ink); }
+  .wf-pill.is-active { border-color: var(--ink); background: var(--soft); font-weight: 700; }
+  .wf-btn { min-height: 34px; padding: 0 14px; border: 1.8px solid var(--line); border-radius: 999px; background: #fff; font-size: 13px; cursor: pointer; }
+  .wf-btn-primary { border-color: var(--ink); font-weight: 700; background: var(--soft); }
+  .wf-skeleton-pill { display: inline-block; width: 160px; height: 28px; border: 1.5px solid var(--line); border-radius: 999px; background: repeating-linear-gradient(90deg, #fff, #fff 10px, var(--soft) 10px, var(--soft) 20px); }
+  .wf-skeleton-line { display: block; height: 14px; flex: 1; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; }
+  .wf-skeleton-block { background: var(--soft); border: 1.8px solid var(--line); border-radius: 12px; min-height: 40px; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+  .wf-dot { display: inline-block; width: 18px; height: 18px; border: 1.8px solid var(--ink); border-radius: 50%; background: var(--soft); }
+  .wf-icon-slot { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1.5px dashed var(--line); border-radius: 8px; color: var(--muted); font-size: 10px; }
+  .wf-required { color: #b91c1c; font-weight: 700; }
+  .wf-badge { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1.8px solid var(--ink); border-radius: 50%; font-size: 11px; font-weight: 700; }
+  .wf-mobile { width: 360px; margin: 16px auto; background: #fff; border: 2px solid var(--ink); border-radius: 20px; overflow: hidden; }
+  .wf-statusbar { display: flex; justify-content: space-between; align-items: center; padding: 4px 16px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .wf-appbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid var(--line); background: #fbfbfc; }
+  .wf-appbar > .wf-section-title { flex: 1; margin: 0; font-size: 15px; }
+  .wf-banner { padding: 10px 16px; border-bottom: 1.5px solid var(--line); }
+  .wf-marquee { padding: 6px 16px; border-bottom: 1.5px solid var(--line); display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); overflow: hidden; }
+  .wf-stage { padding: 20px 16px; display: grid; place-items: center; min-height: 320px; }
+  .wf-info { display: flex; justify-content: space-around; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-actionbar { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-actionbar .wf-btn-primary { flex: 1; }
+  .wf-shortcuts { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-shortcuts .wf-btn { flex: 1; }
+  .wf-wheel { position: relative; width: 240px; height: 240px; border-radius: 50%; border: 2.5px solid var(--ink); overflow: hidden; background: conic-gradient(from -15deg, #fff 0 30deg, var(--soft) 30deg 60deg, #fff 60deg 90deg, var(--soft) 90deg 120deg, #fff 120deg 150deg, var(--soft) 150deg 180deg, #fff 180deg 210deg, var(--soft) 210deg 240deg, #fff 240deg 270deg, var(--soft) 270deg 300deg, #fff 300deg 330deg, var(--soft) 330deg 360deg); }
+  .wf-wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 20px solid var(--ink); z-index: 3; }
+  .wf-wheel-hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 70px; height: 70px; border-radius: 50%; border: 2.5px solid var(--ink); background: #fff; display: grid; place-items: center; font-weight: 800; font-size: 14px; z-index: 2; }
+  .wf-modal { width: 300px; margin: 16px auto; border: 2px solid var(--ink); border-radius: 16px; background: #fff; padding: 24px 20px; text-align: center; box-shadow: 0 18px 50px rgba(31,41,55,.12); }
+  .wf-modal-icon { width: 80px; height: 80px; margin: 0 auto 12px; border: 2px dashed var(--line); border-radius: 16px; display: grid; place-items: center; color: var(--muted); font-size: 11px; background: var(--soft); }
+  .wf-modal-title { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+  .wf-modal-body { font-size: 13px; color: var(--ink); margin-bottom: 4px; }
+  .wf-modal-meta { font-size: 11px; color: var(--muted); border: 1.5px dashed var(--line); border-radius: 8px; padding: 6px 8px; margin: 12px 0; }
+  .wf-modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .wf-empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+  .wf-countdown { font-family: monospace; font-size: 24px; font-weight: 800; letter-spacing: 2px; color: var(--ink); }
+
+  @media print {
+    .top-nav, .sidebar { display: none; }
+    .page-wrapper { display: block; }
+    main.content { padding: 0; }
+    .panel { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <h1>📋 元旦跨年活動</h1>
+  <span class="crumb">— 文件中心</span>
+  <span class="spacer"></span>
+</nav>
+
+<div class="page-wrapper">
+
+  <aside class="sidebar">
+    <button class="sidebar__toggle" id="sidebarToggle" title="收合 / 展開 (Ctrl+\)">‹</button>
+    <div class="sidebar__tabs">
+      <button class="sidebar__tab active" data-panel="docs">📁 文件</button>
+      <button class="sidebar__tab" data-panel="toc">📑 本頁目錄</button>
+    </div>
+    <div class="sidebar__panel active" id="sidebar-docs">
+      <a class="sidebar__link active" data-target="panel-0">📋 企畫版</a>
+      <a class="sidebar__link" data-target="panel-1">⚙️ 技術版</a>
+      <a class="sidebar__link" data-target="panel-2">🎨 資源清單</a>
+      <a class="sidebar__link" data-target="panel-3">🧪 BDD</a>
+      <a class="sidebar__link" data-target="panel-4">📌 SCRUM</a>
+      <a class="sidebar__link" data-target="panel-api">🔧 API 試打</a>
+      <a class="sidebar__link" data-target="panel-proto">🎮 互動原型</a>
+    </div>
+    <div class="sidebar__panel" id="sidebar-toc">
+      <div id="toc-list"></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="panel active" id="panel-0">
+      <h1 id="_1">元旦跨年活動 需求規格書</h1>
+<h2 id="_2">一、修改紀錄</h2>
+<table>
+<thead>
+<tr>
+<th>日期</th>
+<th>修改人</th>
+<th>內容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-05-14</td>
+<td>產品企劃</td>
+<td>初版企劃輸出，涵蓋倒數、煙火、限時加碼、紅包雨、好運轉盤五大子機制</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_3">二、相關文件</h2>
+<table>
+<thead>
+<tr>
+<th>檔案</th>
+<th>說明</th>
+<th>狀態</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>docs/tech-spec.md</td>
+<td>技術規格文件（API、資料表、後台）</td>
+<td>待補</td>
+</tr>
+<tr>
+<td>docs/bdd.feature</td>
+<td>BDD 行為驗證情境</td>
+<td>待補</td>
+</tr>
+<tr>
+<td>docs/resources.md</td>
+<td>美術音效資源清單</td>
+<td>待補</td>
+</tr>
+<tr>
+<td>docs/scrum.md</td>
+<td>SCRUM 工時拆解</td>
+<td>待補</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">三、概要</h2>
+<ul>
+<li><strong>是什麼</strong>：12/31-1/2 限時跨年主題活動：整合倒數計時、煙火特效、限時儲值加碼、紅包雨、新年好運轉盤五大子機制，營造跨年儀式感，刺激跨年期間活躍與儲值。</li>
+<li><strong>為什麼</strong>：跨年是全年儲值意願最高的窗口之一，玩家有「儀式感消費」與「博好彩頭」雙重動機；對營運方而言，可在 72 小時內把 ARPPU 與 DAU 同步推到全年高峰。所有獎勵以平台儲值返利包裝，代理商分潤線維持原比例不被吃。</li>
+<li><strong>目標族群</strong>：已儲值過至少一次的活躍玩家（核心），以及 12 月最後兩週回流的休眠玩家（次要）；以中高額儲值玩家為氪金驅動主力。</li>
+</ul>
+<h2 id="_5">四、競業分析摘要</h2>
+<h3 id="1-pragmatic-play-drops-wins-new-year-edition-latam">1. Pragmatic Play - Drops &amp; Wins (New Year Edition) （哥斯大黎加 / LATAM / 全球）</h3>
+<ul>
+<li><strong>核心機制</strong>：於指定 slot 下注觸發隨機掉落獎金 + 每日/每週排行榜瓜分獎池</li>
+<li><strong>RTP / 倍率</strong>：基礎遊戲 RTP 96.5%，活動額外掉落獎金不影響 base RTP</li>
+<li><strong>獎勵結構</strong>：單筆獎金 USD 5-10,000，週累積獎池 USD 2,000,000+，跨年版加碼至 USD 3,500,000</li>
+<li><strong>玩家流程</strong>：進活動頁 → 選定參與 slot → 下注達門檻 → 隨機觸發掉落獎金 → 自動入帳</li>
+<li><strong>差異化亮點</strong>：跨營運商共享獎池，量體大、行銷話題足</li>
+<li><strong>可改進處</strong>：全靠 slot 下注觸發，缺乏「跨年儀式感」UI；無倒數與煙火氛圍營造</li>
+<li><strong>參考連結</strong>：<a href="https://www.pragmaticplay.com/promotions/drops-and-wins/">https://www.pragmaticplay.com/promotions/drops-and-wins/</a></li>
+</ul>
+<h3 id="2-pg-soft-lunar-year-end-festival">2. PG Soft - Lunar / Year-End Festival （東南亞 / 大中華）</h3>
+<ul>
+<li><strong>核心機制</strong>：指定主題 slot 任務（累積下注/連勝/特定符號）完成可解鎖紅包</li>
+<li><strong>RTP / 倍率</strong>：主題 slot RTP 96.7%，活動紅包額外發放（平台補貼）</li>
+<li><strong>獎勵結構</strong>：紅包 1-888 元等差設計，最高鯉魚躍龍門紅包 8,888 元</li>
+<li><strong>玩家流程</strong>：進活動頁 → 選任務 → 玩指定 slot 完成條件 → 領紅包 → 分享得加碼</li>
+<li><strong>差異化亮點</strong>：任務即玩法，東南亞春節包裝精緻</li>
+<li><strong>可改進處</strong>：任務門檻偏高，輕度玩家完成率低；無倒數煙火等即時感</li>
+<li><strong>參考連結</strong>：<a href="https://www.pgsoft.com/">https://www.pgsoft.com/</a></li>
+</ul>
+<h3 id="3-tada-gaming-">3. TaDa Gaming - 紅包派對 （亞洲 / 台灣 / 東南亞）</h3>
+<ul>
+<li><strong>核心機制</strong>：下注金額累積成抽獎券，定時開獎雨打式發放紅包</li>
+<li><strong>RTP / 倍率</strong>：活動本身屬補貼性質，不影響遊戲 RTP</li>
+<li><strong>獎勵結構</strong>：單包 NT$10-10,000，每場最高池 NT$500,000</li>
+<li><strong>玩家流程</strong>：下注 → 累積點數 → 進入紅包雨房間 → 點擊飛落紅包 → 自動結算</li>
+<li><strong>差異化亮點</strong>：紅包雨即時互動感強，玩家點擊參與</li>
+<li><strong>可改進處</strong>：無分時段／角色加碼設計，玩家拿到金額隨機性高、預期管理差</li>
+<li><strong>參考連結</strong>：<a href="https://www.tada.games/">https://www.tada.games/</a></li>
+</ul>
+<h3 id="4-jdb-gaming-">4. JDB Gaming - 新年轉盤 （亞洲 / 台灣 / 菲律賓）</h3>
+<ul>
+<li><strong>核心機制</strong>：轉盤 12 格獎項，VIP 等級越高越能解鎖高倍格</li>
+<li><strong>RTP / 倍率</strong>：轉盤期望值固定，依等級設不同 EV 曲線</li>
+<li><strong>獎勵結構</strong>：普通格 5-50 點，金格最高 8,888 點，連續 7 日登入額外大獎</li>
+<li><strong>玩家流程</strong>：登入 → 進活動 → 點轉盤 → 動畫結算 → 領獎</li>
+<li><strong>差異化亮點</strong>：VIP 綁定強，留存效果佳</li>
+<li><strong>可改進處</strong>：無儲值連動，刺激儲值力道弱；UI 偏舊</li>
+<li><strong>參考連結</strong>：<a href="https://www.jdbgaming.com/">https://www.jdbgaming.com/</a></li>
+</ul>
+<h3 id="5-igt-new-years-mega-multiplier">5. IGT - New Year's Mega Multiplier （北美 / 歐洲）</h3>
+<ul>
+<li><strong>核心機制</strong>：指定時刻全平台同步進入 Mega Multiplier 狀態 60 分鐘</li>
+<li><strong>RTP / 倍率</strong>：活動時段 EV 提升至 102-105%（補貼）</li>
+<li><strong>獎勵結構</strong>：中獎時自動套用 2-10x 倍率，最高單注獎金 USD 50,000</li>
+<li><strong>玩家流程</strong>：接近跨年 → 推播倒數 → 0:00 自動觸發 → 玩家下注享倍率 → 結算</li>
+<li><strong>差異化亮點</strong>：全平台同步儀式感極強</li>
+<li><strong>可改進處</strong>：僅 60 分鐘窗口太短，未跨年的玩家完全 miss 不到體驗</li>
+<li><strong>參考連結</strong>：<a href="https://www.igt.com/">https://www.igt.com/</a></li>
+</ul>
+<h3 id="6-ka-gaming-">6. KA Gaming - 跨年煙火夜 （亞洲 / 台灣 / 越南）</h3>
+<ul>
+<li><strong>核心機制</strong>：指定時間段內所有中獎觸發煙火動畫 + 額外 1.5x 倍率</li>
+<li><strong>RTP / 倍率</strong>：活動時段補貼後綜合 RTP 97.8%</li>
+<li><strong>獎勵結構</strong>：煙火加碼上限 NT$30,000/注</li>
+<li><strong>玩家流程</strong>：進 slot → 活動時段中獎 → 煙火動畫 + 倍率 → 結算</li>
+<li><strong>差異化亮點</strong>：氛圍感強，沉浸感佳</li>
+<li><strong>可改進處</strong>：無倒數與紅包雨等多元玩法，整體單一</li>
+<li><strong>參考連結</strong>：<a href="https://www.kagaming.com/">https://www.kagaming.com/</a></li>
+</ul>
+<h3 id="7-light-wonder-holiday-hot-drop-jackpots">7. Light &amp; Wonder - Holiday Hot Drop Jackpots （北美）</h3>
+<ul>
+<li><strong>核心機制</strong>：三層 jackpot 計時器，到時必觸發給某玩家</li>
+<li><strong>RTP / 倍率</strong>：jackpot 計入 base RTP 96.4%</li>
+<li><strong>獎勵結構</strong>：小時池 USD 1,000、日池 USD 25,000、Super 池 USD 500,000</li>
+<li><strong>玩家流程</strong>：下注 → 看倒數 → 倒數歸零必中 → 自動派彩</li>
+<li><strong>差異化亮點</strong>：必掉機制讓玩家黏在桌前</li>
+<li><strong>可改進處</strong>：獎落單人，多數玩家空跑；跨年主題包裝弱</li>
+<li><strong>參考連結</strong>：<a href="https://www.lnw.com/">https://www.lnw.com/</a></li>
+</ul>
+<h3 id="8-salsa-technology-latam-ano-nuevo-latam">8. Salsa Technology - LATAM Año Nuevo （哥斯大黎加 / 巴西 / LATAM）</h3>
+<ul>
+<li><strong>核心機制</strong>：指定主題 slot 累積消費換大獎抽獎券</li>
+<li><strong>RTP / 倍率</strong>：主題 slot RTP 96.2%</li>
+<li><strong>獎勵結構</strong>：頭獎 12 grapes（西語跨年習俗）對應 12 萬獎金</li>
+<li><strong>玩家流程</strong>：消費累積 → 抽獎券 → 跨年夜抽 → 大獎名單公告</li>
+<li><strong>差異化亮點</strong>：在地化跨年文化（12 顆葡萄）</li>
+<li><strong>可改進處</strong>：純抽獎缺即時互動，氛圍營造度中等</li>
+<li><strong>參考連結</strong>：<a href="https://salsatechnology.com/">https://salsatechnology.com/</a></li>
+</ul>
+<h3 id="_6">功能對比</h3>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>我們</th>
+<th>Pragmatic Play</th>
+<th>PG Soft</th>
+<th>TaDa</th>
+<th>JDB</th>
+<th>IGT</th>
+<th>KA Gaming</th>
+<th>Light &amp; Wonder</th>
+<th>Salsa</th>
+<th>我們</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>跨年儀式感（倒數+煙火）</td>
+<td>✓ 5 大子機制整合</td>
+<td>弱</td>
+<td>中</td>
+<td>中</td>
+<td>弱</td>
+<td>強（限 60 分）</td>
+<td>強（純動畫）</td>
+<td>弱</td>
+<td>中</td>
+<td></td>
+</tr>
+<tr>
+<td>刺激儲值力道</td>
+<td>✓ 限時儲值加碼分層+紅包雨綁儲值</td>
+<td>強（獎池）</td>
+<td>中</td>
+<td>中</td>
+<td>弱</td>
+<td>中</td>
+<td>中</td>
+<td>中</td>
+<td>中</td>
+<td></td>
+</tr>
+<tr>
+<td>多時段參與設計</td>
+<td>✓ 12/31-1/2 三天三段式</td>
+<td>週期長</td>
+<td>週期長</td>
+<td>日刷新</td>
+<td>日刷新</td>
+<td>僅 1hr</td>
+<td>時段</td>
+<td>必掉</td>
+<td>跨年單點</td>
+<td></td>
+</tr>
+<tr>
+<td>代理分潤保護</td>
+<td>✓ 所有獎金走平台補貼，不動代理抽成</td>
+<td>平台池</td>
+<td>平台補貼</td>
+<td>平台補貼</td>
+<td>平台補貼</td>
+<td>平台補貼</td>
+<td>平台補貼</td>
+<td>RTP 內</td>
+<td>平台補貼</td>
+<td></td>
+</tr>
+<tr>
+<td>視覺氛圍</td>
+<td>✓ 倒數+煙火+紅包雨三重</td>
+<td>弱</td>
+<td>中</td>
+<td>強（紅包）</td>
+<td>弱</td>
+<td>中</td>
+<td>強（煙火）</td>
+<td>弱</td>
+<td>中</td>
+<td></td>
+</tr>
+<tr>
+<td>防作弊</td>
+<td>✓ 多帳號 IP/裝置/儲值來源檢核</td>
+<td>強</td>
+<td>中</td>
+<td>中</td>
+<td>弱</td>
+<td>強</td>
+<td>中</td>
+<td>強</td>
+<td>中</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="_7">五、分類（多軸切割）</h2>
+<h3 id="1">軸 1：子機制（玩法軸）</h3>
+<ul>
+<li><strong>跨年倒數</strong>：全站 banner + 跨年夜 23:00-00:00 倒數計時，0:00 觸發煙火</li>
+<li><strong>煙火特效</strong>：0:00-00:30 全站煙火動畫，所有中獎額外 1.5x</li>
+<li><strong>限時儲值加碼</strong>：12/31-1/2 三日，儲值金額分層加碼 6-18%</li>
+<li><strong>紅包雨</strong>：每日 20:00/22:00/00:00 三場，點擊飛落紅包搶獎</li>
+<li><strong>好運轉盤</strong>：每日免費一抽，儲值滿額額外 +3 抽，12 格獎項</li>
+</ul>
+<h3 id="2">軸 2：時段軸</h3>
+<ul>
+<li><strong>12/31 跨年夜</strong>：重頭戲：倒數+煙火+紅包雨大場+轉盤雙倍機率</li>
+<li><strong>1/1 新年首日</strong>：轉盤 + 紅包雨 + 儲值加碼最高層級</li>
+<li><strong>1/2 收官日</strong>：轉盤 + 紅包雨 + 加碼降至中層，沖刺收官</li>
+</ul>
+<h3 id="3">軸 3：玩家分層</h3>
+<ul>
+<li><strong>VIP 1-3</strong>：基礎加碼 6%，紅包池占比 20%</li>
+<li><strong>VIP 4-6</strong>：加碼 10%，紅包池占比 50%，轉盤額外抽數</li>
+<li><strong>VIP 7+</strong>：加碼 18%，紅包池占比 100%，專屬煙火彩蛋</li>
+</ul>
+<h2 id="_8">六、功能對照表</h2>
+<p>日期 × 子機制 開放矩陣，標示開放/加碼倍數</p>
+<table>
+<thead>
+<tr>
+<th>日期 \ 子機制</th>
+<th>倒數</th>
+<th>煙火</th>
+<th>儲值加碼</th>
+<th>紅包雨</th>
+<th>好運轉盤</th>
+<th>時間軸</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>12/31 跨年夜</td>
+<td>✓ 23:00 起</td>
+<td>✓ 0:00-0:30</td>
+<td>✓ 加碼層 高(18%)</td>
+<td>✓ 20/22/00 三場</td>
+<td>✓ 雙倍機率</td>
+<td>23:00-01:00 為高峰</td>
+</tr>
+<tr>
+<td>1/1 新年首日</td>
+<td>--</td>
+<td>--</td>
+<td>✓ 加碼層 高(18%)</td>
+<td>✓ 20/22 二場</td>
+<td>✓ 一般機率+登入贈抽</td>
+<td>全日</td>
+</tr>
+<tr>
+<td>1/2 收官日</td>
+<td>--</td>
+<td>--</td>
+<td>✓ 加碼層 中(10%)</td>
+<td>✓ 22 一場</td>
+<td>✓ 一般機率</td>
+<td>全日 至 23:59</td>
+</tr>
+</tbody>
+</table>
+<p><code>--</code> 代表不適用。</p>
+<h2 id="_9">七、顯示欄位定義</h2>
+<ul>
+<li><strong>event_id</strong>：活動唯一 ID，格式 EVT-NY-YYYY（範例：<code>EVT-NY-2026</code>）- <strong>player_vip_tier</strong>：玩家 VIP 等級 1-9，決定加碼比例與紅包占比（範例：<code>5</code>）- <strong>recharge_amount</strong>：單筆儲值金額（活動視窗內累計），整數，最小 100（範例：<code>5000</code>）- <strong>bonus_rate</strong>：加碼比例，依 VIP 與時段查表，6%/10%/18%（範例：<code>0.18</code>）- <strong>redpacket_pool_share</strong>：該玩家可分得紅包池比例 0-1（範例：<code>0.5</code>）- <strong>wheel_free_spins</strong>：每日免費轉盤次數，預設 1（範例：<code>1</code>）- <strong>wheel_paid_spins</strong>：儲值贈送的轉盤次數，每滿 1000 +1，上限 10（範例：<code>3</code>）- <strong>firework_window</strong>：煙火時段時間戳，UTC+8（範例：<code>2025-12-31T16:00:00Z ~ 2025-12-31T16:30:00Z</code>）- <strong>agent_commission_protected</strong>：代理分潤是否保護（布林），所有獎金走平台補貼線時為 true（範例：<code>true</code>）</li>
+</ul>
+<h2 id="_10">八、業務規則</h2>
+<ul>
+<li><strong>觸發條件</strong>：玩家於 2025-12-31 00:00 至 2026-01-02 23:59 期間登入 / 儲值 / 下注，依各子機制條件觸發。倒數與煙火為全站時間觸發，無需玩家動作。</li>
+<li><strong>資料處理</strong>：每位玩家每日紅包雨點擊上限 30 次；轉盤每日免費 1 次，付費贈送上限 10 次；儲值加碼按單日累計分層計算，不重複領取；同 IP/同裝置/同代理下線同手機號視為同一玩家，獎勵僅發放一份。</li>
+<li><strong>排序 / 排名邏輯</strong>：紅包雨大獎榜按單場拾取金額 desc，相同金額按拾取時間 asc；轉盤大獎榜按單抽倍數 desc，再按時間 asc。</li>
+<li><strong>防作弊考量</strong>：1) 同 IP/同裝置指紋/同支付來源/同推薦代理綁定多帳號自動合併計算；2) 紅包雨點擊頻率 &gt;10 次/秒視為腳本，封禁該場資格；3) 儲值後 5 分鐘內提現未消費，凍結加碼；4) 風控異常帳號獎勵延遲 24h 結算可回收。</li>
+</ul>
+<h2 id="user-journey">九、用戶旅程 (User Journey)</h2>
+<ol>
+<li><strong>看到推播 / 大廳 banner</strong> — 12/29 起接收『跨年三日狂歡』推播 + 大廳跑馬燈，顯示倒數天數</li>
+<li>情緒/動機：好奇、期待</li>
+<li><strong>點進活動頁</strong> — 看到五大子機制 tab、自己的 VIP 加碼比例、總獎池</li>
+<li>情緒/動機：被吸引、想參與</li>
+<li><strong>首儲加碼</strong> — 12/31 中午儲值 5000，看到 +18% 加碼自動入帳並彈窗慶祝</li>
+<li>情緒/動機：佔便宜感、滿足</li>
+<li><strong>23:55 進入倒數頁</strong> — 全屏倒數計時，背景跨年城市夜景，提示 0:00 煙火+紅包雨</li>
+<li>情緒/動機：儀式感、緊張期待</li>
+<li><strong>0:00 煙火 + 紅包雨</strong> — 煙火動畫綻放，紅包從天而降，瘋狂點擊搶獎</li>
+<li>情緒/動機：興奮、心流、爽感</li>
+<li><strong>轉盤抽好運</strong> — 用今日累積的 4 次抽獎機會，連抽轉盤，中 88 倍彩蛋</li>
+<li>情緒/動機：幸運、好兆頭</li>
+<li><strong>1/2 收官回顧</strong> — 活動結算頁顯示三日獲得：加碼 9000、紅包 12000、轉盤 8800</li>
+<li>情緒/動機：成就、滿足、想下次再來</li>
+</ol>
+<h2 id="_11">十、介面說明</h2>
+<ol>
+<li><strong>全站頂部跑馬燈</strong>：位於主導覽下方，顯示『距跨年還有 HH:MM:SS』+ 大獎播報，可點擊跳活動頁</li>
+<li><strong>活動主頁 Hero 區</strong>：頂部跨年夜城市背景 + 倒數計時 + 活動標題 + 自己的 VIP 加碼徽章</li>
+<li><strong>五大子機制 Tab</strong>：水平捲動 tab：倒數 / 煙火 / 儲值加碼 / 紅包雨 / 好運轉盤，預設停在當下進行中項目</li>
+<li><strong>儲值加碼面板</strong>：分層階梯圖：1000/3000/5000/10000，標示自己 VIP 對應加碼，CTA『立即儲值』</li>
+<li><strong>紅包雨入口</strong>：場次倒數 + 預估獎池 + 上場成績，開場前 5 分鐘按鈕亮起『進入會場』</li>
+<li><strong>好運轉盤</strong>：輪盤 + 剩餘抽數 + 抽獎歷史，0:00 後雙倍機率時顯示金色描邊</li>
+<li><strong>排行榜側欄</strong>：右側可收合，三日累積拾取金額前 50 名，附頭像與隱碼帳號</li>
+<li>
+<p><strong>領獎信箱</strong>：右上信封圖示，紅點顯示未領數，含 7 日有效期</p>
+</li>
+<li>
+<p><strong>刷新機制</strong>：活動頁每 30 秒輪詢倒數時間與獎池金額；紅包雨會場改 WebSocket 即時推送；轉盤抽獎結果即時刷新。</p>
+</li>
+<li><strong>擴充性註記</strong>：子機制以 plugin 化設計，農曆春節 / 中秋等下次活動可換主題包不需改架構；獎勵發放走統一獎勵中台。</li>
+<li><strong>錯誤與邊界狀態</strong>：1) 斷網重連自動補拾紅包雨期間漏接 frame；2) VIP 升等於活動中即時生效，重新計算加碼；3) 風控凍結帳號顯示『獎勵審核中』而非彈錯誤；4) 跨時區玩家強制以伺服器 UTC+8 為準並提示。</li>
+</ol>
+<h3 id="_12">線框圖</h3>
+<p><strong>1. 活動主頁</strong> — 進入活動的入口頁，頂部倒數，下方五大子機制 tab 與儲值加碼階梯。</p>
+<div class="wf-scope"><div class="wf-mobile"><div class="wf-statusbar"><span>09:41</span><span>● ● ●</span></div><div class="wf-appbar"><span class="wf-dot"></span><span class="wf-section-title">跨年活動</span><span class="wf-pill">餘額 9,999</span></div><div class="wf-banner"><div class="wf-section-title">跨年城市夜景 Banner</div><div class="wf-countdown">02:11:45:30</div></div><div class="wf-marquee">★ 玩家 A 剛拿到 8,888 紅包 ★ 玩家 B 轉盤中 88 倍 ★</div><div class="wf-stage"><div class="wf-pill is-active">倒數</div><div class="wf-pill">煙火</div><div class="wf-pill">儲值加碼</div><div class="wf-pill">紅包雨</div><div class="wf-pill">轉盤</div><div class="wf-skeleton-block" style="width:100%;min-height:160px">當前子機制內容區</div><div class="wf-helper">VIP 5 加碼徽章 +10%</div></div><div class="wf-actionbar"><button class="wf-btn wf-btn-primary">立即儲值</button><button class="wf-btn">查看獎勵</button></div><div class="wf-bottomnav"><span class="wf-icon-slot">首</span><span class="wf-icon-slot">活</span><span class="wf-icon-slot">榜</span><span class="wf-icon-slot">我</span></div></div></div>
+
+<p><strong>2. 跨年倒數全屏頁</strong> — 23:55 起進入全屏倒數，0:00 自動切煙火+紅包雨。</p>
+<div class="wf-scope"><div class="wf-mobile"><div class="wf-statusbar"><span>23:55</span><span>● ● ●</span></div><div class="wf-stage"><div class="wf-section-title">距離 2026 還剩</div><div class="wf-countdown" style="min-height:60px">00:04:23</div><div class="wf-skeleton-block" style="width:100%;min-height:180px">城市夜景 + 煙火預備動畫位</div><div class="wf-helper">0:00 自動觸發煙火 + 紅包雨</div></div><div class="wf-actionbar"><button class="wf-btn">預約紅包雨</button><button class="wf-btn wf-btn-primary">準備好了</button></div></div></div>
+
+<p><strong>3. 紅包雨會場</strong> — 場內紅包飄落，玩家點擊搶獎，顯示本場池與剩餘秒數。</p>
+<div class="wf-scope"><div class="wf-mobile"><div class="wf-statusbar"><span>00:00</span><span>● ● ●</span></div><div class="wf-appbar"><span class="wf-dot"></span><span class="wf-section-title">跨年紅包雨</span><span class="wf-pill">池 888,888</span></div><div class="wf-info"><span class="wf-pill is-active">剩餘 02:30</span><span class="wf-pill">已拾 12 個</span></div><div class="wf-stage"><div class="wf-skeleton-block" style="width:100%;min-height:280px">紅包飄落區（多個紅包佔位）</div></div><div class="wf-actionbar"><button class="wf-btn wf-btn-primary">點擊搶紅包</button></div></div></div>
+
+<p><strong>4. 好運轉盤</strong> — 輪盤 12 格，剩餘抽數與抽獎歷史。</p>
+<div class="wf-scope"><div class="wf-mobile"><div class="wf-statusbar"><span>10:15</span><span>● ● ●</span></div><div class="wf-appbar"><span class="wf-dot"></span><span class="wf-section-title">新年好運轉盤</span><span class="wf-pill">剩 4 抽</span></div><div class="wf-stage"><div class="wf-wheel"><div class="wf-wheel-pointer"></div><div class="wf-wheel-hub">GO</div></div><div class="wf-helper">跨年夜 0:00 雙倍機率</div></div><div class="wf-info"><span class="wf-skeleton-pill">歷史 1</span><span class="wf-skeleton-pill">歷史 2</span><span class="wf-skeleton-pill">歷史 3</span></div><div class="wf-actionbar"><button class="wf-btn">儲值贈抽</button><button class="wf-btn wf-btn-primary">立即抽獎</button></div></div></div>
+
+<p><strong>5. 儲值加碼階梯</strong> — 分層儲值加碼面板，標出當前 VIP 對應加碼倍率。</p>
+<div class="wf-scope"><div class="wf-mobile"><div class="wf-statusbar"><span>14:22</span><span>● ● ●</span></div><div class="wf-appbar"><span class="wf-dot"></span><span class="wf-section-title">限時儲值加碼</span><span class="wf-pill">VIP 5</span></div><div class="wf-stage"><div class="wf-panel"><div class="wf-section-title">階梯 1：儲 1000</div><div class="wf-helper">+6% 加碼</div></div><div class="wf-panel"><div class="wf-section-title">階梯 2：儲 3000</div><div class="wf-helper">+10% 加碼（你的等級）</div></div><div class="wf-panel"><div class="wf-section-title">階梯 3：儲 10000</div><div class="wf-helper">+18% 加碼</div></div><div class="wf-countdown">剩 35:12:08</div></div><div class="wf-actionbar"><button class="wf-btn wf-btn-primary">立即儲值</button></div></div></div>
+
+<p><strong>6. 領獎彈窗</strong> — 中獎後彈窗，顯示金額與條款，CTA 領取。</p>
+<div class="wf-scope"><div class="wf-modal"><div class="wf-modal-icon">🎆</div><div class="wf-modal-title">恭喜獲得跨年大獎</div><div class="wf-modal-body"><div class="wf-skeleton-line" style="width:80%"></div><div class="wf-skeleton-line" style="width:60%"></div><div class="wf-countdown">8,888</div></div><div class="wf-modal-meta">獎金 7 日內未領視為放棄；流水 1 倍</div><div class="wf-modal-actions"><button class="wf-btn">稍後</button><button class="wf-btn wf-btn-primary">立即領取</button></div></div></div>
+
+<h2 id="_13">十一、文案對照表（多語）</h2>
+<table>
+<thead>
+<tr>
+<th>中</th>
+<th>英</th>
+<th>西</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>元旦跨年活動</td>
+<td>New Year Countdown Festival</td>
+<td>Festival de Cuenta Regresiva de Año Nuevo</td>
+</tr>
+<tr>
+<td>跨年倒數</td>
+<td>Countdown to Midnight</td>
+<td>Cuenta Regresiva</td>
+</tr>
+<tr>
+<td>煙火加碼</td>
+<td>Firework Bonus</td>
+<td>Bono de Fuegos Artificiales</td>
+</tr>
+<tr>
+<td>限時儲值加碼</td>
+<td>Limited-Time Recharge Bonus</td>
+<td>Bono de Recarga por Tiempo Limitado</td>
+</tr>
+<tr>
+<td>跨年紅包雨</td>
+<td>New Year Red Envelope Rain</td>
+<td>Lluvia de Sobres Rojos</td>
+</tr>
+<tr>
+<td>新年好運轉盤</td>
+<td>Lucky New Year Wheel</td>
+<td>Ruleta de la Suerte de Año Nuevo</td>
+</tr>
+<tr>
+<td>立即儲值</td>
+<td>Recharge Now</td>
+<td>Recargar Ahora</td>
+</tr>
+<tr>
+<td>距離跨年還剩</td>
+<td>Time until New Year</td>
+<td>Tiempo restante para Año Nuevo</td>
+</tr>
+<tr>
+<td>恭喜獲得</td>
+<td>Congratulations, you won</td>
+<td>Felicidades, ganaste</td>
+</tr>
+<tr>
+<td>獎池</td>
+<td>Prize Pool</td>
+<td>Bote de Premios</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_14">十二、說明頁（給玩家看）</h2>
+<p><strong>三天三夜，跨年儀式感拉滿，紅包煙火轉盤一次擁有！</strong></p>
+<ul>
+<li>🎆 跨年夜 0:00 全站煙火，所有中獎自動 1.5x</li>
+<li>💰 儲值加碼最高 18%，越早儲越划算</li>
+<li>🧧 每日三場紅包雨，動動手指搶現金</li>
+<li>🎰 好運轉盤每日免費抽，跨年夜雙倍機率</li>
+<li>🏆 三日排行榜瓜分百萬獎池</li>
+</ul>
+<p><strong>操作步驟</strong>：
+1. 12/29 開放預熱頁，可預約跨年夜紅包雨入場
+2. 12/31-1/2 期間登入即看到活動 banner
+3. 選擇參與子機制：儲值加碼 / 紅包雨 / 轉盤
+4. 跨年夜 23:55 進倒數頁，0:00 自動觸發煙火 + 紅包雨
+5. 於信箱領取所有獎勵，7 日內未領視為放棄</p>
+<h2 id="_15">十三、建議上線時程</h2>
+<p>⚠️ 以下為建議，請企畫依實際團隊資源調整</p>
+<table>
+<thead>
+<tr>
+<th>階段</th>
+<th>內容</th>
+<th>建議時程</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Phase 0 - 預熱</td>
+<td>大廳 banner、推播、預約紅包雨會場、客服 FAQ</td>
+<td>1 週 (12/22-12/28)</td>
+</tr>
+<tr>
+<td>Phase 1 - MVP</td>
+<td>倒數 + 煙火 + 儲值加碼 + 紅包雨 + 轉盤 五大子機制上線，後台監控儀表板</td>
+<td>3 週開發 + 1 週 QA</td>
+</tr>
+<tr>
+<td>Phase 2 - 上線運行</td>
+<td>12/31-1/2 三日，營運值班、即時調整獎池</td>
+<td>3 天</td>
+</tr>
+<tr>
+<td>Phase 3 - 結算與覆盤</td>
+<td>獎勵 7 日領獎窗口、ROI 報表、玩家滿意度問卷</td>
+<td>1 週 (1/3-1/9)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_16">十四、資源需求概覽</h2>
+<ul>
+<li><strong>美術資源</strong>：約 40+ 件：跨年城市夜景 banner ×3、煙火動畫 spritesheet ×5、紅包 3D 模型 ×6、轉盤輪盤 ×1、按鈕/圖示 ×20、彈窗背板 ×5</li>
+<li><strong>音效資源</strong>：約 12 件：跨年倒數 tick、0:00 煙火爆破 ×3、紅包拾取 ×3、轉盤旋轉/停止/中獎 ×3、背景跨年音樂 ×2</li>
+<li><strong>工程複雜度</strong>：高：涉及全站時間同步、WebSocket 紅包雨會場、儲值加碼接金流、防作弊規則引擎、獎勵中台對接；建議 2 後端 + 2 前端 + 1 客戶端 + 1 QA，總工 8-10 週。</li>
+</ul>
+    </div>
+    <div class="panel" id="panel-1">
+      <h1 id="_1">元旦跨年活動 技術規格書</h1>
+<h2 id="_2">一、系統架構概覽</h2>
+<p>元旦跨年活動由 Express 提供 NewYearEventService，整合活動配置、倒數計時、限時加碼儲值、紅包雨、好運轉盤五大子系統。資料持久層使用 MySQL（活動設定 event_config、玩家進度 player_event_progress、紅包雨領取 redpacket_claims、轉盤紀錄 wheel_spins、加碼儲值訂單 topup_bonus_orders），Redis 用於高頻讀取（活動狀態、伺服器時間、紅包雨剩餘量、玩家每日次數）與分散式鎖（防止重複領取/重複加碼）。代理商損失控管透過 agent_cost_ledger 表 + Redis 即時池上限，確保每位代理商當日支出不超過預算。</p>
+<pre><code class="language-mermaid">flowchart LR
+  C[Cocos Client] --&gt;|HTTPS| G[API Gateway]
+  G --&gt; S[NewYearEventService]
+  S --&gt; R[(Redis)]
+  S --&gt; D[(MySQL)]
+  S --&gt; P[PaymentService]
+  S --&gt; A[AgentCostGuard]
+  A --&gt; R
+  A --&gt; D
+</code></pre>
+<p><strong>Client ↔ Server 資料流</strong>：Client 進入活動頁時呼叫 GET /event/status 取得活動時段、伺服器時間與玩家進度（Redis 快取）；倒數時間由 server_time 對齊。儲值加碼透過 PaymentService 回呼觸發 NewYearEventService 寫入 topup_bonus_orders 並扣 agent_cost_ledger 額度。紅包雨採 Redis 原子扣減 + MySQL 非同步落地。好運轉盤透過 Lua script 保證權重抽獎與每日次數原子性。所有派獎前先經 AgentCostGuard 檢查代理商預算池，不足則降級為小獎或拒絕。</p>
+<h2 id="cocos-creator-client">二、Cocos Creator Client 實作要點</h2>
+<ul>
+<li><strong>建議場景結構</strong>：NewYearEventScene 包含 Canvas/CountdownLayer（倒數）/FireworksLayer（粒子煙火）/TopupBonusPanel（限時加碼）/RedPacketRainLayer（紅包雨）/LuckyWheelPanel（轉盤）/RewardPopup（中獎彈窗）</li>
+<li><strong>主要 Components</strong>：</li>
+<li><code>EventCountdownComponent</code> — 訂閱 server_time 校正本地倒數，倒數結束切換活動階段（pre/active/end）</li>
+<li><code>FireworksParticleComponent</code> — 使用 Cocos ParticleSystem2D 播放跨年煙火，零點觸發全屏特效</li>
+<li><code>TopupBonusComponent</code> — 顯示限時加碼檔位、剩餘時間、已購買次數，呼叫 /topup/bonus/list 與 /topup/bonus/purchase</li>
+<li><code>RedPacketRainComponent</code> — 管理紅包掉落物件池（50 顆），點擊觸發 /redpacket/claim，採節流 100ms</li>
+<li><code>LuckyWheelComponent</code> — 轉盤動畫，呼叫 /wheel/spin，依 server 回傳 index 對齊停止位置</li>
+<li><code>EventApiClient</code> — 統一 HTTP 封裝、Token 注入、錯誤降級、本地快取活動配置</li>
+<li><strong>動畫狀態機</strong>：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>狀態</th>
+<th>觸發</th>
+<th>下一狀態</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Idle</td>
+<td>進入活動場景</td>
+<td>Loading</td>
+</tr>
+<tr>
+<td>Loading</td>
+<td>GET /event/status 成功</td>
+<td>PreEvent</td>
+</tr>
+<tr>
+<td>PreEvent</td>
+<td>server_time 達到 start_at</td>
+<td>Active</td>
+</tr>
+<tr>
+<td>Active</td>
+<td>點擊紅包雨入口</td>
+<td>RedPacketRaining</td>
+</tr>
+<tr>
+<td>RedPacketRaining</td>
+<td>30秒倒數結束 或 領完</td>
+<td>Active</td>
+</tr>
+<tr>
+<td>Active</td>
+<td>點擊轉盤</td>
+<td>Spinning</td>
+</tr>
+<tr>
+<td>Spinning</td>
+<td>server 回傳結果</td>
+<td>ShowReward</td>
+</tr>
+<tr>
+<td>ShowReward</td>
+<td>關閉彈窗</td>
+<td>Active</td>
+</tr>
+<tr>
+<td>Active</td>
+<td>server_time 達到 end_at</td>
+<td>EventEnd</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>資料更新</strong>：活動狀態與倒數採 HTTP 短輪詢（15s）+ 進場拉一次；紅包雨/轉盤採事件驅動 HTTP 同步呼叫；伺服器時間每 60s 校正一次避免時差。</li>
+<li><strong>效能考量</strong>：活動配置與圖檔走 CDN + 本地快取；粒子特效控制在同屏 ≤ 200 粒子；紅包物件池重用避免 GC；API 失敗採指數退避，避免 0:00 瞬間流量峰值打爆服務。</li>
+</ul>
+<h2 id="nodejs-server-api">三、Node.js Server API 規格</h2>
+<h3 id="api">API 端點列表</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Method</th>
+<th>Endpoint</th>
+<th>說明</th>
+<th>認證</th>
+<th>讀</th>
+<th>寫</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#api-001"><code>api-001</code></a></td>
+<td>GET</td>
+<td>/api/v1/event/newyear/status</td>
+<td>取得活動狀態、伺服器時間與玩家進度</td>
+<td>Bearer Token</td>
+<td>MySQL.event_config / MySQL.player_event_progress / Redis:event:newyear:config</td>
+<td>Redis:event:newyear:progress:{user_id}</td>
+</tr>
+<tr>
+<td><a href="#api-002"><code>api-002</code></a></td>
+<td>GET</td>
+<td>/api/v1/event/newyear/topup/bonus/list</td>
+<td>取得限時儲值加碼檔位列表</td>
+<td>Bearer Token</td>
+<td>MySQL.topup_bonus_config / Redis:event:newyear:topup:purchased:{user_id}</td>
+<td>-</td>
+</tr>
+<tr>
+<td><a href="#api-003"><code>api-003</code></a></td>
+<td>POST</td>
+<td>/api/v1/event/newyear/topup/bonus/purchase</td>
+<td>建立限時加碼儲值訂單（含代理商預算守衛）</td>
+<td>Bearer Token</td>
+<td>MySQL.topup_bonus_config / MySQL.agent_cost_ledger / Redis:agent:budget:{agent_id}:{date}</td>
+<td>MySQL.topup_bonus_orders / MySQL.agent_cost_ledger / Redis:event:newyear:topup:purchased:{user_id}</td>
+</tr>
+<tr>
+<td><a href="#api-004"><code>api-004</code></a></td>
+<td>POST</td>
+<td>/api/v1/event/newyear/redpacket/enter</td>
+<td>進入紅包雨場次（30 秒一場）</td>
+<td>Bearer Token</td>
+<td>MySQL.redpacket_session_config / Redis:event:newyear:redpacket:session:{session_id}</td>
+<td>Redis:event:newyear:redpacket:user:{user_id}:{session_id}</td>
+</tr>
+<tr>
+<td><a href="#api-005"><code>api-005</code></a></td>
+<td>POST</td>
+<td>/api/v1/event/newyear/redpacket/claim</td>
+<td>領取單顆紅包（原子扣池）</td>
+<td>Bearer Token</td>
+<td>Redis:event:newyear:redpacket:pool:{session_id} / Redis:agent:budget:{agent_id}:{date}</td>
+<td>Redis:event:newyear:redpacket:claimed:{user_id}:{session_id} / MySQL.redpacket_claims (async)</td>
+</tr>
+<tr>
+<td><a href="#api-006"><code>api-006</code></a></td>
+<td>GET</td>
+<td>/api/v1/event/newyear/wheel/info</td>
+<td>取得轉盤獎項與剩餘次數</td>
+<td>Bearer Token</td>
+<td>MySQL.wheel_prize_config / Redis:event:newyear:wheel:user:{user_id}</td>
+<td>-</td>
+</tr>
+<tr>
+<td><a href="#api-007"><code>api-007</code></a></td>
+<td>POST</td>
+<td>/api/v1/event/newyear/wheel/spin</td>
+<td>執行轉盤抽獎</td>
+<td>Bearer Token</td>
+<td>MySQL.wheel_prize_config / Redis:event:newyear:wheel:user:{user_id} / Redis:agent:budget:{agent_id}:{date}</td>
+<td>MySQL.wheel_spins / MySQL.player_event_progress / Redis:event:newyear:wheel:user:{user_id}</td>
+</tr>
+<tr>
+<td><a href="#api-008"><code>api-008</code></a></td>
+<td>GET</td>
+<td>/api/v1/event/newyear/rewards/history</td>
+<td>查詢玩家活動獎勵歷史</td>
+<td>Bearer Token</td>
+<td>MySQL.wheel_spins / MySQL.redpacket_claims / MySQL.topup_bonus_orders</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<h3 id="api_1">各 API 詳細規格</h3>
+<h4 id="api-001-get-apiv1eventnewyearstatus"><a id="api-001"></a> [api-001] GET /api/v1/event/newyear/status</h4>
+<ul>
+<li><strong>說明</strong>：取得活動狀態、伺服器時間與玩家進度</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Query Params</strong>：</li>
+<li><code>event_id</code> string default=newyear_2026 — 活動 ID</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;event_id&quot;: &quot;newyear_2026&quot;,
+    &quot;server_time&quot;: 1735660800,
+    &quot;start_at&quot;: 1735660800,
+    &quot;end_at&quot;: 1735920000,
+    &quot;phase&quot;: &quot;active&quot;,
+    &quot;progress&quot;: {&quot;wheel_free_left&quot;: 3, &quot;redpacket_joined&quot;: false, &quot;topup_bonus_purchased&quot;: 1}
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><code>4041</code> 活動不存在</li>
+<li><strong>後端流程</strong>：</li>
+<li>驗證 Token 與 user_id</li>
+<li>Redis 讀取活動配置（miss 回源 MySQL.event_config）</li>
+<li>查詢 MySQL.player_event_progress 取得玩家進度</li>
+<li>計算當前 phase（pre/active/end）</li>
+<li>回傳活動狀態 + server_time</li>
+<li><strong>效能要求</strong>：p95 &lt; 50ms / QPS 5000</li>
+<li><strong>相關 BDD</strong>：<a href="./new-year-event-bdd.md#sc-001"><code>sc-001</code></a>, <a href="./new-year-event-bdd.md#sc-002"><code>sc-002</code></a></li>
+</ul>
+<h4 id="api-002-get-apiv1eventnewyeartopupbonuslist"><a id="api-002"></a> [api-002] GET /api/v1/event/newyear/topup/bonus/list</h4>
+<ul>
+<li><strong>說明</strong>：取得限時儲值加碼檔位列表</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;items&quot;: [
+      {&quot;sku_id&quot;: &quot;ny_topup_60&quot;, &quot;price&quot;: 60, &quot;base_coins&quot;: 600, &quot;bonus_coins&quot;: 300, &quot;bonus_rate&quot;: 0.5, &quot;daily_limit&quot;: 3, &quot;purchased&quot;: 1}
+    ]
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><strong>後端流程</strong>：</li>
+<li>驗證 Token</li>
+<li>查詢 topup_bonus_config</li>
+<li>查詢玩家今日購買次數</li>
+<li>計算剩餘可購買數</li>
+<li>回傳列表</li>
+<li><strong>效能要求</strong>：p95 &lt; 80ms / QPS 2000</li>
+<li><strong>相關 BDD</strong>：<a href="./new-year-event-bdd.md#sc-003"><code>sc-003</code></a></li>
+</ul>
+<h4 id="api-003-post-apiv1eventnewyeartopupbonuspurchase"><a id="api-003"></a> [api-003] POST /api/v1/event/newyear/topup/bonus/purchase</h4>
+<ul>
+<li><strong>說明</strong>：建立限時加碼儲值訂單（含代理商預算守衛）</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;order_id&quot;: &quot;NYO20260101001&quot;,
+    &quot;pay_url&quot;: &quot;https://pay.example.com/xxx&quot;,
+    &quot;expire_at&quot;: 1735664400
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><code>4001</code> 活動非進行中</li>
+<li><code>4002</code> 已達每日購買上限</li>
+<li><code>4003</code> 代理商預算池不足，降級或拒絕</li>
+<li><strong>後端流程</strong>：</li>
+<li>驗證 Token 取得 user_id 與 agent_id</li>
+<li>Redis 鎖 lock:topup:{user_id}:{sku_id} TTL 5s</li>
+<li>檢查活動 phase 與每日限購</li>
+<li>AgentCostGuard 預扣 agent_cost_ledger（bonus_coins 折算成本）</li>
+<li>建立 topup_bonus_orders（status=pending）</li>
+<li>呼叫 PaymentService 取得 pay_url</li>
+<li>釋放鎖並回傳</li>
+<li><strong>效能要求</strong>：p95 &lt; 150ms / QPS 500</li>
+<li><strong>相關 BDD</strong>：<a href="./new-year-event-bdd.md#sc-003"><code>sc-003</code></a>, <a href="./new-year-event-bdd.md#sc-007"><code>sc-007</code></a></li>
+</ul>
+<h4 id="api-004-post-apiv1eventnewyearredpacketenter"><a id="api-004"></a> [api-004] POST /api/v1/event/newyear/redpacket/enter</h4>
+<ul>
+<li><strong>說明</strong>：進入紅包雨場次（30 秒一場）</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;session_id&quot;: &quot;rp_20260101_0000&quot;,
+    &quot;duration_sec&quot;: 30,
+    &quot;max_claims&quot;: 10,
+    &quot;server_time&quot;: 1735660800
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><code>4004</code> 非紅包雨開放時間</li>
+<li><code>4005</code> 今日已參加</li>
+<li><strong>後端流程</strong>：</li>
+<li>驗證 Token</li>
+<li>檢查當前是否在紅包雨開放時段（每整點 1 場）</li>
+<li>檢查玩家今日是否已參加（Redis SET）</li>
+<li>標記參加狀態 TTL 至活動結束</li>
+<li>回傳場次資訊</li>
+<li><strong>效能要求</strong>：p95 &lt; 60ms / QPS 3000</li>
+<li><strong>相關 BDD</strong>：<a href="./new-year-event-bdd.md#sc-004"><code>sc-004</code></a></li>
+</ul>
+<h4 id="api-005-post-apiv1eventnewyearredpacketclaim"><a id="api-005"></a> [api-005] POST /api/v1/event/newyear/redpacket/claim</h4>
+<ul>
+<li><strong>說明</strong>：領取單顆紅包（原子扣池）</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;claim_id&quot;: &quot;rpc_xxx&quot;,
+    &quot;coins&quot;: 50,
+    &quot;claimed_count&quot;: 3,
+    &quot;max_claims&quot;: 10
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><code>4006</code> 已達單場領取上限</li>
+<li><code>4007</code> 紅包池已空（降級為 0 幣安慰）</li>
+<li><code>4029</code> 請求過於頻繁</li>
+<li><strong>後端流程</strong>：</li>
+<li>驗證 Token + 節流（Redis incr 100ms 內 ≤1）</li>
+<li>Lua script 原子：檢查 claimed_count &lt; max_claims, 扣 redpacket_pool, 隨機取金額</li>
+<li>AgentCostGuard 扣 agent_budget（超預算則回 0 幣）</li>
+<li>寫入 Redis claimed 紀錄</li>
+<li>非同步 MQ 落地 MySQL.redpacket_claims</li>
+<li>回傳金額</li>
+<li><strong>效能要求</strong>：p95 &lt; 30ms / QPS 20000</li>
+<li><strong>相關 BDD</strong>：<a href="./new-year-event-bdd.md#sc-004"><code>sc-004</code></a>, <a href="./new-year-event-bdd.md#sc-007"><code>sc-007</code></a></li>
+</ul>
+<h4 id="api-006-get-apiv1eventnewyearwheelinfo"><a id="api-006"></a> [api-006] GET /api/v1/event/newyear/wheel/info</h4>
+<ul>
+<li><strong>說明</strong>：取得轉盤獎項與剩餘次數</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;prizes&quot;: [
+      {&quot;index&quot;: 0, &quot;name&quot;: &quot;金幣1000&quot;, &quot;icon&quot;: &quot;coin_1000&quot;},
+      {&quot;index&quot;: 1, &quot;name&quot;: &quot;謝謝參與&quot;, &quot;icon&quot;: &quot;thanks&quot;}
+    ],
+    &quot;free_left&quot;: 3,
+    &quot;paid_cost&quot;: 50,
+    &quot;daily_paid_left&quot;: 10
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><strong>後端流程</strong>：</li>
+<li>驗證 Token</li>
+<li>讀取轉盤獎項配置（脫敏，不回傳機率）</li>
+<li>讀取玩家今日免費/付費次數</li>
+<li>回傳</li>
+<li><strong>效能要求</strong>：p95 &lt; 60ms / QPS 2000</li>
+<li><strong>相關 BDD</strong>：<a href="./new-year-event-bdd.md#sc-005"><code>sc-005</code></a></li>
+</ul>
+<h4 id="api-007-post-apiv1eventnewyearwheelspin"><a id="api-007"></a> [api-007] POST /api/v1/event/newyear/wheel/spin</h4>
+<ul>
+<li><strong>說明</strong>：執行轉盤抽獎</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;spin_id&quot;: &quot;ws_xxx&quot;,
+    &quot;prize_index&quot;: 2,
+    &quot;prize_name&quot;: &quot;金幣500&quot;,
+    &quot;coins&quot;: 500,
+    &quot;free_left&quot;: 2
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><code>4008</code> 次數已用完</li>
+<li><code>4009</code> 金幣不足（付費抽）</li>
+<li><code>4003</code> 代理商預算池不足，自動降級為小獎</li>
+<li><strong>後端流程</strong>：</li>
+<li>驗證 Token</li>
+<li>Lua script：原子扣次數（優先免費再付費）</li>
+<li>加權隨機選獎（依 wheel_prize_config.weight）</li>
+<li>AgentCostGuard：若代理商預算將爆，將大獎降級為小獎或謝謝參與</li>
+<li>寫入 wheel_spins</li>
+<li>發放獎勵（金幣/道具）</li>
+<li>回傳結果</li>
+<li><strong>效能要求</strong>：p95 &lt; 100ms / QPS 1000</li>
+<li><strong>相關 BDD</strong>：<a href="./new-year-event-bdd.md#sc-005"><code>sc-005</code></a>, <a href="./new-year-event-bdd.md#sc-007"><code>sc-007</code></a></li>
+</ul>
+<h4 id="api-008-get-apiv1eventnewyearrewardshistory"><a id="api-008"></a> [api-008] GET /api/v1/event/newyear/rewards/history</h4>
+<ul>
+<li><strong>說明</strong>：查詢玩家活動獎勵歷史</li>
+<li><strong>認證</strong>：Bearer Token</li>
+<li><strong>Query Params</strong>：</li>
+<li><code>page</code> int default=1 — 頁碼</li>
+<li><code>size</code> int default=20 — 每頁筆數</li>
+<li><strong>Response 200</strong>：</li>
+</ul>
+<pre><code class="language-json">{
+  &quot;code&quot;: 200,
+  &quot;data&quot;: {
+    &quot;items&quot;: [{&quot;type&quot;: &quot;wheel&quot;, &quot;reward&quot;: &quot;金幣500&quot;, &quot;created_at&quot;: 1735660800}],
+    &quot;total&quot;: 25
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Errors</strong>：</li>
+<li><code>401</code> 未登入</li>
+<li><strong>後端流程</strong>：</li>
+<li>驗證 Token</li>
+<li>UNION ALL 三表查詢（依 user_id 與活動區間）</li>
+<li>分頁回傳</li>
+<li><strong>效能要求</strong>：p95 &lt; 120ms / QPS 500</li>
+<li><strong>相關 BDD</strong>：<a href="./new-year-event-bdd.md#sc-006"><code>sc-006</code></a></li>
+</ul>
+<h2 id="_3">四、資料模型</h2>
+<h3 id="event_configmysql-table">event_config（MySQL Table）</h3>
+<p>活動主檔（含時段、開關、版本）</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>event_id</code></td>
+<td>VARCHAR(64)</td>
+<td>活動 ID，如 newyear_2026</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>VARCHAR(128)</td>
+<td>活動名稱</td>
+</tr>
+<tr>
+<td><code>start_at</code></td>
+<td>DATETIME</td>
+<td>開始時間</td>
+</tr>
+<tr>
+<td><code>end_at</code></td>
+<td>DATETIME</td>
+<td>結束時間</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>TINYINT</td>
+<td>0=停用 1=啟用</td>
+</tr>
+<tr>
+<td><code>config</code></td>
+<td>JSON</td>
+<td>額外配置（紅包雨時段、煙火開關）</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td>DATETIME</td>
+<td>建立時間</td>
+</tr>
+<tr>
+<td><code>updated_at</code></td>
+<td>DATETIME</td>
+<td>更新時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_event_id (event_id), INDEX idx_status_time (status, start_at, end_at)
+<strong>讀寫 API</strong>：<code>api-001</code></p>
+<h3 id="player_event_progressmysql-table">player_event_progress（MySQL Table）</h3>
+<p>玩家活動進度</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td>BIGINT UNSIGNED</td>
+<td>玩家 ID</td>
+</tr>
+<tr>
+<td><code>event_id</code></td>
+<td>VARCHAR(64)</td>
+<td>活動 ID</td>
+</tr>
+<tr>
+<td><code>wheel_free_used</code></td>
+<td>INT UNSIGNED</td>
+<td>今日免費轉盤已用次數</td>
+</tr>
+<tr>
+<td><code>wheel_paid_used</code></td>
+<td>INT UNSIGNED</td>
+<td>今日付費轉盤已用次數</td>
+</tr>
+<tr>
+<td><code>redpacket_sessions</code></td>
+<td>JSON</td>
+<td>已參加的紅包雨場次</td>
+</tr>
+<tr>
+<td><code>topup_bonus_purchased</code></td>
+<td>JSON</td>
+<td count="count" sku_id:="sku_id:">加碼儲值購買紀錄</td>
+</tr>
+<tr>
+<td><code>last_reset_date</code></td>
+<td>DATE</td>
+<td>上次每日重置日期</td>
+</tr>
+<tr>
+<td><code>updated_at</code></td>
+<td>DATETIME</td>
+<td>更新時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_user_event (user_id, event_id), INDEX idx_event (event_id)
+<strong>讀寫 API</strong>：<code>api-001</code>, <code>api-007</code></p>
+<h3 id="topup_bonus_configmysql-table">topup_bonus_config（MySQL Table）</h3>
+<p>限時加碼儲值檔位設定</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>event_id</code></td>
+<td>VARCHAR(64)</td>
+<td>活動 ID</td>
+</tr>
+<tr>
+<td><code>sku_id</code></td>
+<td>VARCHAR(64)</td>
+<td>商品 SKU</td>
+</tr>
+<tr>
+<td><code>price</code></td>
+<td>DECIMAL(10,2)</td>
+<td>售價</td>
+</tr>
+<tr>
+<td><code>base_coins</code></td>
+<td>INT UNSIGNED</td>
+<td>基礎金幣</td>
+</tr>
+<tr>
+<td><code>bonus_coins</code></td>
+<td>INT UNSIGNED</td>
+<td>加碼金幣</td>
+</tr>
+<tr>
+<td><code>bonus_rate</code></td>
+<td>DECIMAL(4,2)</td>
+<td>加碼比例</td>
+</tr>
+<tr>
+<td><code>daily_limit</code></td>
+<td>INT UNSIGNED</td>
+<td>每日購買上限</td>
+</tr>
+<tr>
+<td><code>sort_order</code></td>
+<td>INT</td>
+<td>排序</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>TINYINT</td>
+<td>啟用狀態</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_event_sku (event_id, sku_id), INDEX idx_event_status (event_id, status)
+<strong>讀寫 API</strong>：<code>api-002</code>, <code>api-003</code></p>
+<h3 id="topup_bonus_ordersmysql-table">topup_bonus_orders（MySQL Table）</h3>
+<p>加碼儲值訂單</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>order_id</code></td>
+<td>VARCHAR(64)</td>
+<td>訂單號</td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td>BIGINT UNSIGNED</td>
+<td>玩家 ID</td>
+</tr>
+<tr>
+<td><code>agent_id</code></td>
+<td>BIGINT UNSIGNED</td>
+<td>代理商 ID</td>
+</tr>
+<tr>
+<td><code>event_id</code></td>
+<td>VARCHAR(64)</td>
+<td>活動 ID</td>
+</tr>
+<tr>
+<td><code>sku_id</code></td>
+<td>VARCHAR(64)</td>
+<td>SKU</td>
+</tr>
+<tr>
+<td><code>price</code></td>
+<td>DECIMAL(10,2)</td>
+<td>售價</td>
+</tr>
+<tr>
+<td><code>base_coins</code></td>
+<td>INT UNSIGNED</td>
+<td>基礎金幣</td>
+</tr>
+<tr>
+<td><code>bonus_coins</code></td>
+<td>INT UNSIGNED</td>
+<td>加碼金幣</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>TINYINT</td>
+<td>0=待付 1=已付 2=發放完成 9=取消</td>
+</tr>
+<tr>
+<td><code>paid_at</code></td>
+<td>DATETIME</td>
+<td>付款時間</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td>DATETIME</td>
+<td>建立時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_order_id (order_id), INDEX idx_user_event (user_id, event_id), INDEX idx_agent_date (agent_id, created_at), INDEX idx_status (status)
+<strong>讀寫 API</strong>：<code>api-003</code>, <code>api-008</code></p>
+<h3 id="redpacket_session_configmysql-table">redpacket_session_config（MySQL Table）</h3>
+<p>紅包雨場次設定</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>event_id</code></td>
+<td>VARCHAR(64)</td>
+<td>活動 ID</td>
+</tr>
+<tr>
+<td><code>session_time</code></td>
+<td>DATETIME</td>
+<td>場次開始時間</td>
+</tr>
+<tr>
+<td><code>duration_sec</code></td>
+<td>INT UNSIGNED</td>
+<td>持續秒數</td>
+</tr>
+<tr>
+<td><code>total_pool</code></td>
+<td>INT UNSIGNED</td>
+<td>場次總金幣池</td>
+</tr>
+<tr>
+<td><code>max_claims_per_user</code></td>
+<td>INT UNSIGNED</td>
+<td>每人最多領</td>
+</tr>
+<tr>
+<td><code>min_coins</code></td>
+<td>INT UNSIGNED</td>
+<td>單顆下限</td>
+</tr>
+<tr>
+<td><code>max_coins</code></td>
+<td>INT UNSIGNED</td>
+<td>單顆上限</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：INDEX idx_event_time (event_id, session_time)
+<strong>讀寫 API</strong>：<code>api-004</code></p>
+<h3 id="redpacket_claimsmysql-table">redpacket_claims（MySQL Table）</h3>
+<p>紅包領取紀錄（從 Redis 非同步落地）</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>claim_id</code></td>
+<td>VARCHAR(64)</td>
+<td>領取編號</td>
+</tr>
+<tr>
+<td><code>session_id</code></td>
+<td>VARCHAR(64)</td>
+<td>場次 ID</td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td>BIGINT UNSIGNED</td>
+<td>玩家 ID</td>
+</tr>
+<tr>
+<td><code>agent_id</code></td>
+<td>BIGINT UNSIGNED</td>
+<td>代理商 ID</td>
+</tr>
+<tr>
+<td><code>coins</code></td>
+<td>INT UNSIGNED</td>
+<td>獲得金幣</td>
+</tr>
+<tr>
+<td><code>claimed_at</code></td>
+<td>DATETIME(3)</td>
+<td>領取時間（毫秒精度）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_claim_id (claim_id), INDEX idx_session_user (session_id, user_id), INDEX idx_user_time (user_id, claimed_at)
+<strong>讀寫 API</strong>：<code>api-005</code>, <code>api-008</code></p>
+<h3 id="wheel_prize_configmysql-table">wheel_prize_config（MySQL Table）</h3>
+<p>轉盤獎項與權重</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>event_id</code></td>
+<td>VARCHAR(64)</td>
+<td>活動 ID</td>
+</tr>
+<tr>
+<td><code>prize_index</code></td>
+<td>TINYINT UNSIGNED</td>
+<td>轉盤位置 0-7</td>
+</tr>
+<tr>
+<td><code>prize_type</code></td>
+<td>VARCHAR(32)</td>
+<td>coin/item/thanks</td>
+</tr>
+<tr>
+<td><code>prize_value</code></td>
+<td>INT UNSIGNED</td>
+<td>數值（金幣數）</td>
+</tr>
+<tr>
+<td><code>weight</code></td>
+<td>INT UNSIGNED</td>
+<td>權重（千分位）</td>
+</tr>
+<tr>
+<td><code>cost</code></td>
+<td>INT UNSIGNED</td>
+<td>代理商成本（折算）</td>
+</tr>
+<tr>
+<td><code>is_big_prize</code></td>
+<td>TINYINT</td>
+<td>是否大獎（降級判斷）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_event_index (event_id, prize_index)
+<strong>讀寫 API</strong>：<code>api-006</code>, <code>api-007</code></p>
+<h3 id="wheel_spinsmysql-table">wheel_spins（MySQL Table）</h3>
+<p>轉盤抽獎紀錄</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>spin_id</code></td>
+<td>VARCHAR(64)</td>
+<td>抽獎編號</td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td>BIGINT UNSIGNED</td>
+<td>玩家 ID</td>
+</tr>
+<tr>
+<td><code>agent_id</code></td>
+<td>BIGINT UNSIGNED</td>
+<td>代理商 ID</td>
+</tr>
+<tr>
+<td><code>event_id</code></td>
+<td>VARCHAR(64)</td>
+<td>活動 ID</td>
+</tr>
+<tr>
+<td><code>prize_index</code></td>
+<td>TINYINT UNSIGNED</td>
+<td>中獎位置</td>
+</tr>
+<tr>
+<td><code>prize_value</code></td>
+<td>INT UNSIGNED</td>
+<td>獲得數值</td>
+</tr>
+<tr>
+<td><code>is_free</code></td>
+<td>TINYINT</td>
+<td>1=免費 0=付費</td>
+</tr>
+<tr>
+<td><code>is_degraded</code></td>
+<td>TINYINT</td>
+<td>是否被降級</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td>DATETIME(3)</td>
+<td>時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_spin_id (spin_id), INDEX idx_user_time (user_id, created_at), INDEX idx_agent_date (agent_id, created_at)
+<strong>讀寫 API</strong>：<code>api-007</code>, <code>api-008</code></p>
+<h3 id="agent_cost_ledgermysql-table">agent_cost_ledger（MySQL Table）</h3>
+<p>代理商活動成本帳本（保護代理商不損失）</p>
+<table>
+<thead>
+<tr>
+<th>欄位</th>
+<th>型別</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT UNSIGNED PK AUTO_INCREMENT</td>
+<td>PK</td>
+</tr>
+<tr>
+<td><code>agent_id</code></td>
+<td>BIGINT UNSIGNED</td>
+<td>代理商 ID</td>
+</tr>
+<tr>
+<td><code>event_id</code></td>
+<td>VARCHAR(64)</td>
+<td>活動 ID</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>DATE</td>
+<td>統計日期</td>
+</tr>
+<tr>
+<td><code>daily_budget</code></td>
+<td>INT UNSIGNED</td>
+<td>當日預算上限</td>
+</tr>
+<tr>
+<td><code>used_cost</code></td>
+<td>INT UNSIGNED</td>
+<td>已用成本</td>
+</tr>
+<tr>
+<td><code>topup_revenue</code></td>
+<td>INT UNSIGNED</td>
+<td>當日儲值營收</td>
+</tr>
+<tr>
+<td><code>updated_at</code></td>
+<td>DATETIME</td>
+<td>更新時間</td>
+</tr>
+</tbody>
+</table>
+<p><strong>索引</strong>：UNIQUE KEY uk_agent_event_date (agent_id, event_id, date), INDEX idx_date (date)
+<strong>讀寫 API</strong>：<code>api-003</code>, <code>api-005</code>, <code>api-007</code></p>
+<h2 id="_4">五、業務邏輯</h2>
+<h3 id="_5">活動階段判定</h3>
+<p>依 server_time 與 event_config.start_at/end_at 決定 pre/active/end</p>
+<pre><code>function getPhase(now, cfg) {
+  if (now &lt; cfg.start_at) return 'pre';
+  if (now &gt;= cfg.end_at) return 'end';
+  return 'active';
+}
+</code></pre>
+<h3 id="lua">紅包雨原子領取（Lua）</h3>
+<p>Redis Lua script 確保扣池、扣次數、隨機金額為單一原子操作</p>
+<pre><code>-- KEYS: pool_key, user_claim_key
+-- ARGV: max_claims, min_coin, max_coin, ttl
+local claimed = tonumber(redis.call('GET', KEYS[2]) or 0)
+if claimed &gt;= tonumber(ARGV[1]) then return -1 end
+local pool = tonumber(redis.call('GET', KEYS[1]) or 0)
+if pool &lt;= 0 then return 0 end
+local coin = math.random(tonumber(ARGV[2]), tonumber(ARGV[3]))
+if coin &gt; pool then coin = pool end
+redis.call('DECRBY', KEYS[1], coin)
+redis.call('INCR', KEYS[2])
+redis.call('EXPIRE', KEYS[2], tonumber(ARGV[4]))
+return coin
+</code></pre>
+<h3 id="_6">轉盤加權抽獎 + 代理商保護降級</h3>
+<p>先依權重抽獎，若中大獎但代理商當日預算 &lt; 成本，則降級為小獎或謝謝參與</p>
+<pre><code>function spinWheel(userId, agentId, eventId) {
+  const prizes = loadPrizes(eventId);
+  const totalW = sum(prizes.map(p =&gt; p.weight));
+  let r = secureRandom(totalW);
+  let hit = prizes.find(p =&gt; (r -= p.weight) &lt; 0);
+  const budget = getAgentBudget(agentId, today);
+  if (hit.is_big_prize &amp;&amp; budget.used + hit.cost &gt; budget.daily) {
+    hit = prizes.find(p =&gt; !p.is_big_prize &amp;&amp; p.prize_type !== 'thanks')
+          || prizes.find(p =&gt; p.prize_type === 'thanks');
+    markDegraded();
+  }
+  deductBudget(agentId, hit.cost);
+  return hit;
+}
+</code></pre>
+<h3 id="agentcostguard">代理商預算守衛（AgentCostGuard）</h3>
+<p>所有派獎前先檢查 Redis 即時池，超過則拒絕或降級，每分鐘 sync 回 MySQL.agent_cost_ledger</p>
+<pre><code>function reserve(agentId, cost) {
+  const key = `agent:budget:${agentId}:${today}`;
+  const used = redis.incrBy(key, cost);
+  redis.expire(key, 172800);
+  const limit = getDailyBudget(agentId);
+  if (used &gt; limit) {
+    redis.decrBy(key, cost);
+    return false;
+  }
+  return true;
+}
+</code></pre>
+<h3 id="_7">限時加碼每日限購</h3>
+<p>以 Redis 計數器 + MySQL 訂單為雙重保險，避免重複扣與超購</p>
+<pre><code>function purchaseBonus(userId, skuId) {
+  const lockKey = `lock:topup:${userId}:${skuId}`;
+  if (!redis.setNx(lockKey, 1, 'EX', 5)) throw '4029';
+  try {
+    const used = redis.get(`topup:${userId}:${skuId}:${today}`) || 0;
+    if (used &gt;= sku.daily_limit) throw '4002';
+    if (!agentGuard.reserve(agentId, sku.cost)) throw '4003';
+    const order = createOrder(...);
+    redis.incr(counterKey); redis.expire(counterKey, 86400);
+    return order;
+  } finally { redis.del(lockKey); }
+}
+</code></pre>
+<h3 id="_8">每日重置</h3>
+<p>每日 00:00 由 cron 重置玩家轉盤次數、紅包參加狀態與代理商預算池</p>
+<pre><code>cron('0 0 * * *', () =&gt; {
+  resetPlayerDailyCounters();
+  rolloverAgentBudget();
+  preloadRedpacketPools();
+});
+</code></pre>
+<h2 id="cache">六、Cache 策略</h2>
+<ul>
+<li><strong>event:newyear:config</strong> (300s) — 活動主檔配置快取，後台變更時主動失效</li>
+<li><strong>event:newyear:progress:{user_id}</strong> (60s) — 玩家活動進度快取，減少 MySQL 查詢</li>
+<li><strong>event:newyear:redpacket:pool:{session_id}</strong> (至場次結束 +1h) — 紅包池剩餘金幣，Lua 原子扣減</li>
+<li><strong>event:newyear:redpacket:claimed:{user_id}:{session_id}</strong> (至活動結束) — 玩家該場次已領數，防超領</li>
+<li><strong>event:newyear:wheel:user:{user_id}</strong> (86400s（次日 00:00 失效）) — 玩家當日免費/付費轉盤次數</li>
+<li><strong>event:newyear:topup:purchased:{user_id}:{sku_id}:{date}</strong> (86400s) — 加碼儲值每日購買計數</li>
+<li><strong>agent:budget:{agent_id}:{date}</strong> (172800s) — 代理商當日已用成本池，原子 incr/decr</li>
+<li><strong>lock:topup:{user_id}:{sku_id}</strong> (5s) — 加碼儲值下單分散式鎖，防重複</li>
+<li><strong>lock:wheel:{user_id}</strong> (3s) — 轉盤下注鎖，防併發雙抽</li>
+<li><strong>server_time</strong> (無（即時）) — 伺服器時間，由 Client 拉取校正倒數</li>
+</ul>
+<h2 id="_9">七、相關文件</h2>
+<ul>
+<li>資源清單：<a href="./new-year-event-assets.md"><code>new-year-event-assets.md</code></a></li>
+<li>BDD 測試：<a href="./new-year-event-bdd.md"><code>new-year-event-bdd.md</code></a></li>
+<li>SCRUM：<a href="./new-year-event-scrum.md"><code>new-year-event-scrum.md</code></a></li>
+</ul>
+    </div>
+    <div class="panel" id="panel-2">
+      <h1 id="ai-prompt">元旦跨年活動 資源清單與 AI Prompt</h1>
+<p>共 15 個資源。</p>
+<h2 id="_1">索引</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>名稱</th>
+<th>類型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#ASSET-001"><code>ASSET-001</code></a></td>
+<td>跨年活動主視覺背景</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-002"><code>ASSET-002</code></a></td>
+<td>倒數計時器邊框</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-003"><code>ASSET-003</code></a></td>
+<td>跨年煙火特效</td>
+<td>特效粒子</td>
+</tr>
+<tr>
+<td><a href="#ASSET-004"><code>ASSET-004</code></a></td>
+<td>紅包雨紅包</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-005"><code>ASSET-005</code></a></td>
+<td>新年好運轉盤</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-006"><code>ASSET-006</code></a></td>
+<td>轉盤指針</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-007"><code>ASSET-007</code></a></td>
+<td>限時儲值加碼 Banner</td>
+<td>圖片</td>
+</tr>
+<tr>
+<td><a href="#ASSET-008"><code>ASSET-008</code></a></td>
+<td>煙火爆炸音效</td>
+<td>音效</td>
+</tr>
+<tr>
+<td><a href="#ASSET-009"><code>ASSET-009</code></a></td>
+<td>紅包開啟音效</td>
+<td>音效</td>
+</tr>
+<tr>
+<td><a href="#ASSET-010"><code>ASSET-010</code></a></td>
+<td>轉盤旋轉音效</td>
+<td>音效</td>
+</tr>
+<tr>
+<td><a href="#ASSET-011"><code>ASSET-011</code></a></td>
+<td>中獎歡呼音效</td>
+<td>音效</td>
+</tr>
+<tr>
+<td><a href="#ASSET-012"><code>ASSET-012</code></a></td>
+<td>倒數最後 10 秒滴答音</td>
+<td>音效</td>
+</tr>
+<tr>
+<td><a href="#ASSET-013"><code>ASSET-013</code></a></td>
+<td>活動背景音樂</td>
+<td>音效</td>
+</tr>
+<tr>
+<td><a href="#ASSET-014"><code>ASSET-014</code></a></td>
+<td>金幣噴發特效</td>
+<td>特效粒子</td>
+</tr>
+<tr>
+<td><a href="#ASSET-015"><code>ASSET-015</code></a></td>
+<td>代理商配額警示圖示</td>
+<td>圖片</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="asset-001"><a id="ASSET-001"></a> [ASSET-001] 跨年活動主視覺背景</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：活動主頁全螢幕背景</li>
+<li><strong>規格</strong>：</li>
+<li>1080 x 1920 px</li>
+<li>PNG，不透明</li>
+<li>深藍紫漸層 + 金色煙火光暈</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>new year countdown casino event background, deep midnight blue to purple gradient sky, golden fireworks bursting, bokeh light particles, festive premium iGaming UI, mobile portrait, no text, ultra detailed, 8k</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：text, watermark, logo, characters, low quality, blurry
+- <strong>參考競業</strong>：<a href="https://tadagaming.com/zh-cn">TaDa Gaming</a></p>
+<hr />
+<h3 id="asset-002"><a id="ASSET-002"></a> [ASSET-002] 倒數計時器邊框</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：主頁倒數計時數字外框</li>
+<li><strong>規格</strong>：</li>
+<li>600 x 200 px</li>
+<li>PNG，透明背景</li>
+<li>金色描邊 + 紅色寶石點綴</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>luxury golden countdown timer frame, chinese new year style ornament, red gemstones, transparent background, premium casino UI component, festive</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：text, numbers, low quality</p>
+<hr />
+<h3 id="asset-003"><a id="ASSET-003"></a> [ASSET-003] 跨年煙火特效</h3>
+<ul>
+<li><strong>類型</strong>：特效粒子</li>
+<li><strong>用途</strong>：00:00 跨年瞬間全螢幕播放</li>
+<li><strong>規格</strong>：</li>
+<li>3 秒</li>
+<li>循環一次</li>
+<li>多色粒子 200+</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>spectacular new year fireworks explosion VFX, multicolor sparks gold red blue, transparent background, 3 seconds celebration burst, premium game effect</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：low quality, blurry, watermark</p>
+<hr />
+<h3 id="asset-004"><a id="ASSET-004"></a> [ASSET-004] 紅包雨紅包</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：紅包雨活動中由上往下掉落</li>
+<li><strong>規格</strong>：</li>
+<li>200 x 260 px</li>
+<li>PNG，透明背景</li>
+<li>紅金配色，含金幣裝飾</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>chinese red envelope hongbao with gold coin decoration, festive new year style, transparent background, mobile game asset, premium iGaming UI</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：text, watermark, low quality</p>
+<hr />
+<h3 id="asset-005"><a id="ASSET-005"></a> [ASSET-005] 新年好運轉盤</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：轉盤抽獎主畫面</li>
+<li><strong>規格</strong>：</li>
+<li>1000 x 1000 px</li>
+<li>PNG，透明背景</li>
+<li>8 等分扇形，金紅配色</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>luxury new year fortune wheel, 8 segments gold and red, chinese new year ornaments, premium casino lucky draw UI, top-down view, transparent background</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：text on segments, watermark, low quality</p>
+<hr />
+<h3 id="asset-006"><a id="ASSET-006"></a> [ASSET-006] 轉盤指針</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：轉盤中央指針</li>
+<li><strong>規格</strong>：</li>
+<li>120 x 320 px</li>
+<li>PNG，透明背景</li>
+<li>金色金屬質感</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>golden metallic pointer arrow for fortune wheel, luxury 3d render, transparent background, premium casino UI</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：low quality, blurry, watermark</p>
+<hr />
+<h3 id="asset-007-banner"><a id="ASSET-007"></a> [ASSET-007] 限時儲值加碼 Banner</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：大廳輪播 Banner 與活動入口</li>
+<li><strong>規格</strong>：</li>
+<li>1200 x 600 px</li>
+<li>PNG</li>
+<li>金色字體區留空供文字疊加</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>new year limited time deposit bonus banner background, exploding gold coins, fireworks, deep red velvet, festive premium iGaming promotion, copy space center</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：text, numbers, characters</p>
+<hr />
+<h3 id="asset-008"><a id="ASSET-008"></a> [ASSET-008] 煙火爆炸音效</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：跨年煙火特效播放時</li>
+<li><strong>規格</strong>：</li>
+<li>3 秒</li>
+<li>OGG</li>
+<li>不循環</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>new year fireworks explosion sound effect, multiple bursts, crackling sparkles, celebratory ambience, 3 seconds</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+<h3 id="asset-009"><a id="ASSET-009"></a> [ASSET-009] 紅包開啟音效</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：玩家點擊紅包領取時</li>
+<li><strong>規格</strong>：</li>
+<li>1 秒</li>
+<li>OGG</li>
+<li>不循環</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>chinese red envelope opening sound, paper tear with golden chime, coin jingle, satisfying reward cue, 1 second</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+<h3 id="asset-010"><a id="ASSET-010"></a> [ASSET-010] 轉盤旋轉音效</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：轉盤抽獎旋轉中</li>
+<li><strong>規格</strong>：</li>
+<li>4 秒</li>
+<li>OGG</li>
+<li>循環</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>fortune wheel spinning sound, ratchet ticking accelerating then decelerating, casino lucky draw, 4 seconds loop</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+<h3 id="asset-011"><a id="ASSET-011"></a> [ASSET-011] 中獎歡呼音效</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：轉盤停止指向大獎時</li>
+<li><strong>規格</strong>：</li>
+<li>2 秒</li>
+<li>OGG</li>
+<li>不循環</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>jackpot win celebration sound, crowd cheer, golden chime cascade, fireworks accent, premium casino victory cue, 2 seconds</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+<h3 id="asset-012-10"><a id="ASSET-012"></a> [ASSET-012] 倒數最後 10 秒滴答音</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：跨年倒數最後 10 秒</li>
+<li><strong>規格</strong>：</li>
+<li>1 秒/次</li>
+<li>OGG</li>
+<li>循環 10 次</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>countdown tick tock sound, deep dramatic clock tick, last 10 seconds new year countdown, 1 second per tick</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+<h3 id="asset-013"><a id="ASSET-013"></a> [ASSET-013] 活動背景音樂</h3>
+<ul>
+<li><strong>類型</strong>：音效</li>
+<li><strong>用途</strong>：活動頁面背景循環</li>
+<li><strong>規格</strong>：</li>
+<li>60 秒</li>
+<li>OGG</li>
+<li>循環</li>
+<li><strong>AI 音效 Prompt</strong>：<blockquote>
+<p>festive new year background music, upbeat orchestral with chinese instruments erhu and drums, celebratory casino lobby BGM, 60 seconds loop</p>
+</blockquote>
+</li>
+</ul>
+<hr />
+<h3 id="asset-014"><a id="ASSET-014"></a> [ASSET-014] 金幣噴發特效</h3>
+<ul>
+<li><strong>類型</strong>：特效粒子</li>
+<li><strong>用途</strong>：領取加碼獎勵與紅包獎勵時</li>
+<li><strong>規格</strong>：</li>
+<li>1.5 秒</li>
+<li>不循環</li>
+<li>粒子 80-120</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>explosive gold coins shower VFX, particles bursting upward then falling, transparent background, premium casino reward effect, 1.5 seconds</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：low quality, blurry, watermark</p>
+<hr />
+<h3 id="asset-015"><a id="ASSET-015"></a> [ASSET-015] 代理商配額警示圖示</h3>
+<ul>
+<li><strong>類型</strong>：圖片</li>
+<li><strong>用途</strong>：後台代理商儀表板配額告警</li>
+<li><strong>規格</strong>：</li>
+<li>128 x 128 px</li>
+<li>PNG，透明背景</li>
+<li>橘紅警示色</li>
+<li><strong>AI 圖像 Prompt</strong>（英文）：<blockquote>
+<p>warning quota alert icon, orange shield with exclamation, premium admin dashboard UI icon, transparent background, flat modern style</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>Negative</strong>：low quality, blurry, watermark
+- <strong>參考競業</strong>：<a href="https://www.jiligames.com/">Jili Gaming</a></p>
+<hr />
+    </div>
+    <div class="panel" id="panel-3">
+      <h1 id="bdd">元旦跨年活動 BDD 測試案例</h1>
+<p>共 7 個 Scenario。</p>
+<h2 id="_1">索引</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>標題</th>
+<th>類型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#sc-001"><code>sc-001</code></a></td>
+<td>活動期間進入活動頁顯示倒數計時</td>
+<td>正常</td>
+</tr>
+<tr>
+<td><a href="#sc-002"><code>sc-002</code></a></td>
+<td>活動期間內首次儲值觸發限時加碼</td>
+<td>正常</td>
+</tr>
+<tr>
+<td><a href="#sc-003"><code>sc-003</code></a></td>
+<td>跨年紅包雨整點開搶並掉落紅包</td>
+<td>正常</td>
+</tr>
+<tr>
+<td><a href="#sc-004"><code>sc-004</code></a></td>
+<td>新年好運轉盤抽獎</td>
+<td>正常</td>
+</tr>
+<tr>
+<td><a href="#sc-005"><code>sc-005</code></a></td>
+<td>活動結束後進入活動頁</td>
+<td>邊界</td>
+</tr>
+<tr>
+<td><a href="#sc-006"><code>sc-006</code></a></td>
+<td>紅包雨獎池耗盡的同時點擊紅包</td>
+<td>邊界</td>
+</tr>
+<tr>
+<td><a href="#sc-007"><code>sc-007</code></a></td>
+<td>代理商風控上限觸發限制儲值加碼</td>
+<td>邊界</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="scenario"><a id="sc-001"></a> Scenario: 活動期間進入活動頁顯示倒數計時</h3>
+<p><strong>類型</strong>：正常（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 玩家已登入且當前時間為 2025-12-31 20:00（活動期間內）
+When 玩家點擊跨年活動入口
+Then 系統回傳活動資訊與倒數秒數，前端顯示倒數計時與煙火特效
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given player is logged in during event window
+When player opens the new year event page
+Then server returns event info and countdown, client renders countdown and fireworks
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Express Server
+  participant R as Redis
+  participant D as MySQL
+  C-&gt;&gt;S: GET /api/event/newyear/info
+  S-&gt;&gt;R: GET event:newyear:config
+  R--&gt;&gt;S: cache hit (config + endTs)
+  S--&gt;&gt;C: 200 {config, countdown}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./new-year-event-spec-advanced.md#api-001"><code>api-001</code></a></p>
+<p><strong>後端資料來源</strong>
+- Redis:event:newyear:config
+- MySQL.event_config</p>
+<hr />
+<h3 id="scenario_1"><a id="sc-002"></a> Scenario: 活動期間內首次儲值觸發限時加碼</h3>
+<p><strong>類型</strong>：正常（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 玩家於 2025-12-31 22:00 進行儲值且尚未領取加碼
+When 玩家完成 1000 元儲值
+Then 系統發放加碼獎勵並寫入交易與獎勵紀錄
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given player tops up during event and has not claimed bonus
+When top-up of 1000 succeeds
+Then system grants bonus and records transaction
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Express Server
+  participant D as MySQL
+  participant R as Redis
+  C-&gt;&gt;S: POST /api/event/newyear/topup
+  S-&gt;&gt;D: BEGIN; INSERT topup_order
+  S-&gt;&gt;D: SELECT bonus_claimed FROM event_bonus
+  S-&gt;&gt;D: INSERT event_bonus_log; UPDATE wallet
+  S-&gt;&gt;D: COMMIT
+  S-&gt;&gt;R: INCR event:newyear:bonus:count
+  S--&gt;&gt;C: 200 {bonus, walletBalance}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./new-year-event-spec-advanced.md#api-002"><code>api-002</code></a></p>
+<p><strong>後端資料來源</strong>
+- MySQL.topup_order
+- MySQL.event_bonus_log
+- MySQL.wallet
+- Redis:event:newyear:bonus:count</p>
+<hr />
+<h3 id="scenario_2"><a id="sc-003"></a> Scenario: 跨年紅包雨整點開搶並掉落紅包</h3>
+<p><strong>類型</strong>：正常（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 玩家停留在活動頁且現在為紅包雨整點
+When 紅包雨開始，玩家點擊掉落的紅包
+Then 系統依紅包池發放金額並回傳結果
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given player on event page at red packet rain time
+When player taps a falling red packet
+Then server grants amount from pool and returns result
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Express Server
+  participant R as Redis
+  participant D as MySQL
+  C-&gt;&gt;S: POST /api/event/newyear/redpacket/grab
+  S-&gt;&gt;R: EVAL decr_pool.lua (atomic pool decrement)
+  R--&gt;&gt;S: amount
+  S-&gt;&gt;D: INSERT red_packet_log; UPDATE wallet
+  S--&gt;&gt;C: 200 {amount}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./new-year-event-spec-advanced.md#api-003"><code>api-003</code></a></p>
+<p><strong>後端資料來源</strong>
+- Redis:event:newyear:redpool
+- MySQL.red_packet_log
+- MySQL.wallet</p>
+<hr />
+<h3 id="scenario_3"><a id="sc-004"></a> Scenario: 新年好運轉盤抽獎</h3>
+<p><strong>類型</strong>：正常（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 玩家擁有 1 次轉盤次數
+When 玩家點擊「轉一次」
+Then 系統依權重抽出獎項，扣除次數並發放獎勵
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given player has 1 spin chance
+When player spins the wheel
+Then system draws prize by weight, deducts chance and grants reward
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Express Server
+  participant R as Redis
+  participant D as MySQL
+  C-&gt;&gt;S: POST /api/event/newyear/wheel/spin
+  S-&gt;&gt;R: DECR event:newyear:wheel:chance:{uid}
+  R--&gt;&gt;S: remaining&gt;=0
+  S-&gt;&gt;D: SELECT wheel_prize_config
+  S-&gt;&gt;D: INSERT wheel_spin_log; UPDATE wallet
+  S--&gt;&gt;C: 200 {prize, remaining}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./new-year-event-spec-advanced.md#api-004"><code>api-004</code></a></p>
+<p><strong>後端資料來源</strong>
+- Redis:event:newyear:wheel:chance:{uid}
+- MySQL.wheel_prize_config
+- MySQL.wheel_spin_log
+- MySQL.wallet</p>
+<hr />
+<h3 id="scenario_4"><a id="sc-005"></a> Scenario: 活動結束後進入活動頁</h3>
+<p><strong>類型</strong>：邊界（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 當前時間為 2026-01-03 00:00（活動已結束）
+When 玩家點擊跨年活動入口
+Then 系統回傳活動已結束狀態，前端顯示結算頁不再提供互動
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given current time is after event end
+When player opens the event page
+Then server returns ENDED status and client shows settlement view
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Express Server
+  participant R as Redis
+  C-&gt;&gt;S: GET /api/event/newyear/info
+  S-&gt;&gt;R: GET event:newyear:config
+  R--&gt;&gt;S: endTs &lt; now
+  S--&gt;&gt;C: 200 {status: ENDED}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./new-year-event-spec-advanced.md#api-001"><code>api-001</code></a></p>
+<p><strong>後端資料來源</strong>
+- Redis:event:newyear:config</p>
+<hr />
+<h3 id="scenario_5"><a id="sc-006"></a> Scenario: 紅包雨獎池耗盡的同時點擊紅包</h3>
+<p><strong>類型</strong>：邊界（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 紅包雨剩餘獎池為 0
+When 玩家點擊掉落的紅包
+Then 系統回傳獎池已空，不扣紅包不發獎
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given red packet pool is empty
+When player taps a red packet
+Then server returns POOL_EMPTY with no payout
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Express Server
+  participant R as Redis
+  C-&gt;&gt;S: POST /api/event/newyear/redpacket/grab
+  S-&gt;&gt;R: EVAL decr_pool.lua
+  R--&gt;&gt;S: 0 (empty)
+  S--&gt;&gt;C: 409 {code: POOL_EMPTY}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./new-year-event-spec-advanced.md#api-003"><code>api-003</code></a></p>
+<p><strong>後端資料來源</strong>
+- Redis:event:newyear:redpool</p>
+<hr />
+<h3 id="scenario_6"><a id="sc-007"></a> Scenario: 代理商風控上限觸發限制儲值加碼</h3>
+<p><strong>類型</strong>：邊界（正常 / 邊界 / 異常）</p>
+<p><strong>Gherkin（中）</strong></p>
+<pre><code class="language-gherkin"># language: zh-TW
+Given 代理商當日加碼總額已達設定上限
+When 旗下玩家嘗試領取限時儲值加碼
+Then 系統拒絕加碼以保護代理商損益，僅記錄原始儲值
+</code></pre>
+<p><strong>Gherkin（英）</strong></p>
+<pre><code class="language-gherkin">Given agent daily bonus cap reached
+When player attempts to claim top-up bonus
+Then system rejects bonus to protect agent P&amp;L; only records top-up
+</code></pre>
+<p><strong>互動時序圖</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant C as Cocos Client
+  participant S as Express Server
+  participant R as Redis
+  participant D as MySQL
+  C-&gt;&gt;S: POST /api/event/newyear/topup
+  S-&gt;&gt;R: GET agent:bonus:daily:{agentId}
+  R--&gt;&gt;S: &gt;= cap
+  S-&gt;&gt;D: INSERT topup_order (no bonus)
+  S--&gt;&gt;C: 200 {bonus:0, reason: AGENT_CAP_REACHED}
+</code></pre>
+<p><strong>涉及 API</strong>
+- <a href="./new-year-event-spec-advanced.md#api-002"><code>api-002</code></a></p>
+<p><strong>後端資料來源</strong>
+- Redis:agent:bonus:daily:{agentId}
+- MySQL.topup_order
+- MySQL.agent_risk_config</p>
+<hr />
+    </div>
+    <div class="panel" id="panel-4">
+      <h1 id="scrum">元旦跨年活動 SCRUM 故事卡</h1>
+<h2 id="epic">Epic：元旦跨年限時活動 — 倒數、煙火、紅包雨、好運轉盤、儲值加碼</h2>
+<p>於 12/31-1/2 期間推出跨年主題活動，含倒數計時、煙火特效、限時儲值加碼、紅包雨、新年轉盤等機制，刺激玩家活躍與儲值，並透過後台參數與代理商成本控管確保不造成代理商損失。</p>
+<p><strong>總計</strong>：10 張故事卡，預估 49 點。</p>
+<hr />
+<h2 id="_1">🏗️ 基礎建設</h2>
+<h3 id="story-1">Story #1：建立活動服務骨架</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 建立 Node.js + Express 活動服務，含 MySQL 與 Redis 連線，<strong>以便</strong> 所有跨年活動 API 都掛在此服務下統一管理</p>
+<p><strong>驗收標準</strong>：
+- [ ] 服務能啟動並通過 /health 健康檢查
+- [ ] MySQL/Redis 連線參數可由環境變數覆寫
+- [ ] 活動時間區間（12/31-1/2）可由設定檔調整</p>
+<ul>
+<li><strong>Story Points</strong>：3</li>
+<li><strong>負責團隊</strong>：<code>Server</code>- <strong>技術備注</strong>：Express + mysql2/Sequelize + ioredis；活動參數放 Redis hash 快取</li>
+</ul>
+<hr />
+<h3 id="story-2">Story #2：活動資料表與設定</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 設計 event_config / event_user_progress / event_reward_log 等資料表，<strong>以便</strong> 完整紀錄活動參數、玩家進度與發獎紀錄以便對帳</p>
+<p><strong>驗收標準</strong>：
+- [ ] MySQL schema 建立並有 migration 腳本
+- [ ] reward_log 含 agent_id 欄位以便分潤對帳
+- [ ] 所有時間欄位使用 UTC 並於 API 層轉時區</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Server</code> · <code>DBA</code>- <strong>技術備注</strong>：Sequelize migration；reward_log 加 idempotency_key 防重發</li>
+</ul>
+<hr />
+<h3 id="story-3">Story #3：後台活動參數與代理商成本上限</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 提供後台 API 設定加碼比率、紅包池上限、轉盤獎項機率與代理商成本上限，<strong>以便</strong> 營運可即時調整避免代理商損失</p>
+<p><strong>驗收標準</strong>：
+- [ ] 可設定每代理商每日成本上限
+- [ ] 超過上限時自動降級獎勵或停發
+- [ ] 所有變更寫入 audit log</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Server</code> · <code>Ops</code>- <strong>技術備注</strong>：Express admin route + JWT 權限；Redis 快取參數 TTL 60s</li>
+</ul>
+<hr />
+<h2 id="_2">🎨 美術與動畫</h2>
+<h3 id="story-4-ui">Story #4：跨年主題 UI 與倒數計時</h3>
+<p><strong>作為</strong> 客戶端工程師，<strong>我想要</strong> 在 Cocos Creator 製作跨年主題大廳橫幅與倒數計時元件，<strong>以便</strong> 營造跨年氛圍提升玩家停留</p>
+<p><strong>驗收標準</strong>：
+- [ ] 倒數至 00:00:00 觸發煙火特效
+- [ ] UI 支援 16:9 與直式比例
+- [ ] 低階機型可降級為靜態圖</p>
+<ul>
+<li><strong>Story Points</strong>：3</li>
+<li><strong>負責團隊</strong>：<code>Client</code> · <code>Art</code>- <strong>技術備注</strong>：Cocos Creator Prefab + Tween；server time 同步避免本機時鐘作弊</li>
+</ul>
+<hr />
+<h3 id="story-5">Story #5：跨年煙火與紅包雨特效</h3>
+<p><strong>作為</strong> 特效美術，<strong>我想要</strong> 製作煙火粒子與紅包雨掉落動畫，<strong>以便</strong> 強化跨年儀式感與互動樂趣</p>
+<p><strong>驗收標準</strong>：
+- [ ] 煙火於 12/31 23:59 起每 10 分鐘播放一次
+- [ ] 紅包雨於指定時段觸發並可點擊收集
+- [ ] 特效在中階手機維持 30 FPS 以上</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Art</code> · <code>Client</code>- <strong>技術備注</strong>：Cocos Particle System + Spine；資源以 bundle 分包熱更</li>
+</ul>
+<hr />
+<h2 id="_3">🎮 遊戲邏輯</h2>
+<h3 id="story-6">Story #6：限時儲值加碼活動</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 在活動期間針對指定儲值檔位給予加碼點數，<strong>以便</strong> 刺激玩家儲值衝量</p>
+<p><strong>驗收標準</strong>：
+- [ ] 加碼比率可由後台設定並支援分時段
+- [ ] 加碼成本納入代理商成本上限計算
+- [ ] 儲值失敗不發加碼，發放具冪等性</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Server</code> · <code>Payment</code>- <strong>技術備注</strong>：Express webhook 接金流；mysql2 交易 + Redis 分散鎖防重發</li>
+</ul>
+<hr />
+<h3 id="story-7">Story #7：跨年紅包雨機制</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 實作紅包雨開場、限額、點擊扣庫存與發獎邏輯，<strong>以便</strong> 提供高互動的限時福利刺激上線</p>
+<p><strong>驗收標準</strong>：
+- [ ] 每場紅包雨總額由後台設定
+- [ ] 玩家領取上限可設定
+- [ ] 庫存歸零後不再發放，全流程具冪等性</p>
+<ul>
+<li><strong>Story Points</strong>：8</li>
+<li><strong>負責團隊</strong>：<code>Server</code> · <code>Client</code>- <strong>技術備注</strong>：Redis Lua decr 控制原子扣量；MySQL 異步落庫</li>
+</ul>
+<hr />
+<h2 id="_4">🏆 獎勵系統</h2>
+<h3 id="story-8">Story #8：新年好運轉盤</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 提供每日免費 + 儲值獲得抽獎次數的好運轉盤，<strong>以便</strong> 延長活動黏著並導引儲值</p>
+<p><strong>驗收標準</strong>：
+- [ ] 獎項機率可由後台設定且總和=1
+- [ ] 保底機制：N 抽必中指定獎
+- [ ] 抽獎結果與庫存於同一交易內完成</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Server</code> · <code>Client</code>- <strong>技術備注</strong>：Sequelize transaction；Redis 快取機率表；別名法抽樣</li>
+</ul>
+<hr />
+<h3 id="story-9">Story #9：代理商成本守門與分潤對帳</h3>
+<p><strong>作為</strong> 後端工程師，<strong>我想要</strong> 即時統計各代理商活動成本並在超標時自動收斂獎勵，<strong>以便</strong> 確保不讓代理商損失</p>
+<p><strong>驗收標準</strong>：
+- [ ] 每筆發獎累加至 agent_cost Redis counter
+- [ ] 超過上限切換降級策略並通知營運
+- [ ] 每日產出對帳 CSV 供財務</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>Server</code> · <code>Finance</code>- <strong>技術備注</strong>：ioredis INCRBYFLOAT + 每日落 MySQL；Express cron 報表</li>
+</ul>
+<hr />
+<h2 id="qa">🧪 QA 測試</h2>
+<h3 id="story-10">Story #10：活動端對端測試與壓測</h3>
+<p><strong>作為</strong> QA 工程師，<strong>我想要</strong> 撰寫 BDD 測試與紅包雨／儲值加碼壓測腳本，<strong>以便</strong> 確保跨年高峰活動穩定且發獎正確</p>
+<p><strong>驗收標準</strong>：
+- [ ] 所有 BDD 場景通過
+- [ ] 紅包雨 5000 QPS 下無超發
+- [ ] 儲值加碼重送測試冪等通過</p>
+<ul>
+<li><strong>Story Points</strong>：5</li>
+<li><strong>負責團隊</strong>：<code>QA</code>- <strong>技術備注</strong>：Jest + Supertest + k6；對 Express API 與 Redis Lua 路徑壓測</li>
+</ul>
+<hr />
+    </div>
+
+    <div class="panel" id="panel-api">
+      <div id="api-detail">
+        <p style="color: var(--text-muted); padding: 32px; text-align: center;">
+          ← 點左側 endpoint 開始試打。所有回應為前端 mock，斷網可用。
+        </p>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-proto">
+      <h1>🎮 互動原型</h1>
+      <p style="color: var(--text-muted); margin: 16px 0 24px;">
+        互動原型是獨立 HTML 檔，需另開分頁體驗。
+      </p>
+      <a href="new-year-event-prototype.html" target="_blank" rel="noopener"
+         style="display: inline-block; padding: 14px 28px; background: var(--accent); color: #fff;
+                font-weight: 600; border-radius: 6px; text-decoration: none; font-size: 15px;">
+        🚀 在新分頁開啟原型 →
+      </a>
+      <p style="color: var(--text-muted); margin-top: 24px; font-size: 13px;">
+        檔案路徑：<code>new-year-event-prototype.html</code>
+      </p>
+    </div>
+  </main>
+
+</div>
+
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-controls">
+    <button onclick="lbZoom(0.2)">+</button>
+    <button onclick="lbZoom(-0.2)">−</button>
+    <button onclick="lbReset()">⤺</button>
+    <button onclick="closeLightbox()">✕</button>
+  </div>
+  <div class="lightbox-inner" id="lightbox-inner"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+const API_CONFIG = [{"desc": "\u53d6\u5f97\u8de8\u5e74\u6d3b\u52d5\u8cc7\u8a0a\uff08\u8d77\u8a16\u6642\u9593\u3001\u5012\u6578\u79d2\u6578\u3001\u6d3b\u52d5\u72c0\u614b\uff09", "id": "api-event-info", "method": "GET", "params": [{"default": "P10001", "in": "query", "name": "player_id", "type": "string"}], "path": "/api/v1/newyear/event", "responses": {"200": {"body": {"code": 200, "data": {"countdown_seconds": 60, "end_at": "2026-01-02T23:59:59+08:00", "event_id": "NY2026", "server_time": "2025-12-31T23:59:00+08:00", "start_at": "2025-12-31T00:00:00+08:00", "status": "active"}}, "status": 200}}}, {"desc": "\u9650\u6642\u5132\u503c\u52a0\u78bc\uff08\u4e0d\u5f71\u97ff\u4ee3\u7406\u5546\u5206\u6f64\uff0c\u52a0\u78bc\u7531\u5e73\u53f0\u88dc\u8cbc\uff09", "id": "api-topup-bonus", "method": "POST", "params": [{"default": "P10001", "in": "body", "name": "player_id", "type": "string"}, {"default": 1000, "in": "body", "name": "amount", "type": "number"}, {"default": "credit_card", "in": "body", "name": "channel", "type": "string"}], "path": "/api/v1/newyear/topup", "responses": {"200": {"body": {"code": 200, "data": {"agent_commission_base": 1000, "bonus_amount": 200, "bonus_source": "platform_subsidy", "credited_at": "2026-01-01T00:01:23+08:00", "order_id": "TP20260101001", "paid_amount": 1000}}, "status": 200}}}, {"desc": "\u8de8\u5e74\u7d05\u5305\u96e8\u6293\u53d6\uff08\u6bcf\u5834 60 \u79d2\uff0c\u734e\u6c60\u4e0a\u9650\u4fdd\u8b77\u4ee3\u7406\u5546\u6210\u672c\uff09", "id": "api-redpacket-rain", "method": "POST", "params": [{"default": "P10001", "in": "body", "name": "player_id", "type": "string"}, {"default": "RR-20260101-00", "in": "body", "name": "round_id", "type": "string"}], "path": "/api/v1/newyear/redpacket/grab", "responses": {"200": {"body": {"code": 200, "data": {"grabbed_at": "2026-01-01T00:00:15+08:00", "pool_remaining": 120000, "reward_amount": 888, "reward_type": "coin", "round_id": "RR-20260101-00"}}, "status": 200}}}, {"desc": "\u65b0\u5e74\u597d\u904b\u8f49\u76e4\u62bd\u734e\uff08\u6bcf\u65e5\u514d\u8cbb 1 \u6b21 + \u5132\u503c\u7372\u5f97\u62bd\u734e\u5238\uff09", "id": "api-lucky-wheel", "method": "POST", "params": [{"default": "P10001", "in": "body", "name": "player_id", "type": "string"}, {"default": "free_daily", "in": "body", "name": "ticket_type", "type": "string"}], "path": "/api/v1/newyear/wheel/spin", "responses": {"200": {"body": {"code": 200, "data": {"prize_id": "PRIZE_05", "prize_name": "500 \u91d1\u5e63", "prize_value": 500, "remaining_tickets": 2, "spin_id": "SP20260101P10001"}}, "status": 200}}}, {"desc": "\u8de8\u5e74\u7159\u706b\u7279\u6548\u89f8\u767c\uff0800:00:00 \u5168\u670d\u5ee3\u64ad\uff09", "id": "api-fireworks-trigger", "method": "POST", "params": [{"default": "P10001", "in": "body", "name": "player_id", "type": "string"}], "path": "/api/v1/newyear/fireworks/trigger", "responses": {"200": {"body": {"code": 200, "data": {"broadcast": "global", "duration_ms": 15000, "effect_id": "FW_COUNTDOWN_ZERO"}}, "status": 200}}}, {"desc": "\u5f8c\u53f0\u6d3b\u52d5\u6578\u64da\uff08\u6d3b\u8e8d\u3001\u5132\u503c\u3001\u52a0\u78bc\u6210\u672c\u3001\u4ee3\u7406\u5546\u5206\u6f64\uff09", "id": "api-event-stats", "method": "GET", "params": [{"default": "AG001", "in": "query", "name": "agent_id", "type": "string"}, {"default": "2026-01-01", "in": "query", "name": "date", "type": "string"}], "path": "/api/v1/newyear/stats", "responses": {"200": {"body": {"code": 200, "data": {"agent_commission": 238000, "agent_net_gain": 238000, "dau": 12450, "platform_bonus_cost": 476000, "topup_amount": 2380000}}, "status": 200}}}];
+const RESPONSE_MAP = {};
+API_CONFIG.forEach(a => RESPONSE_MAP[a.id] = a.responses || {});
+
+mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+
+function transformMermaid() {
+  document.querySelectorAll('pre code.language-mermaid').forEach(code => {
+    const src = code.textContent;
+    const wrap = document.createElement('div');
+    wrap.className = 'diagram-container';
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = src;
+    div.setAttribute('data-source', src);
+    wrap.appendChild(div);
+    wrap.addEventListener('click', () => openLightbox(wrap));
+    code.parentElement.replaceWith(wrap);
+  });
+}
+
+async function renderMermaidIn(panel) {
+  const nodes = panel.querySelectorAll('.mermaid:not([data-processed="true"])');
+  if (nodes.length) {
+    try { await mermaid.run({ nodes: Array.from(nodes) }); } catch (e) { console.error(e); }
+  }
+}
+
+// ─── Sidebar: collapse toggle ───
+const wrapper = document.querySelector('.page-wrapper');
+const toggleBtn = document.getElementById('sidebarToggle');
+toggleBtn.addEventListener('click', () => {
+  wrapper.classList.toggle('sidebar-collapsed');
+  toggleBtn.textContent = wrapper.classList.contains('sidebar-collapsed') ? '›' : '‹';
+});
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === '\\') { e.preventDefault(); toggleBtn.click(); }
+});
+
+// ─── Sidebar: 文件 / TOC tabs ───
+document.querySelectorAll('.sidebar__tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar__tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar__panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('sidebar-' + tab.dataset.panel).classList.add('active');
+    if (tab.dataset.panel === 'toc') buildToc();
+  });
+});
+
+// ─── TOC builder: scan current panel ───
+function buildToc() {
+  const listEl = document.getElementById('toc-list');
+  const active = document.querySelector('.panel.active');
+  if (!active) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無</div>'; return; }
+
+  // API panel: list endpoints from API_CONFIG
+  if (active.id === 'panel-api') {
+    const eps = API_CONFIG;
+    if (!eps.length) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無符合 endpoint</div>'; return; }
+    listEl.innerHTML = eps.map(e =>
+      `<a class="toc__link toc__link--api" data-api-id="${e.id}" style="padding:8px 12px;display:block">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <span style="display:inline-block;min-width:48px;font-size:10px;font-weight:700;color:#fff;background:${methodColor(e.method)};padding:2px 6px;border-radius:3px;text-align:center">${e.method}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.path}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);padding-left:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.desc || ''}</div>
+      </a>`
+    ).join('');
+    listEl.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', ev => { ev.preventDefault(); renderApi(a.dataset.apiId); });
+    });
+    return;
+  }
+
+  // Default: scan h1-h4
+  const heads = Array.from(active.querySelectorAll('h1, h2, h3, h4'));
+  if (!heads.length) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無標題</div>'; return; }
+  let html = '';
+  heads.forEach((h, i) => {
+    if (!h.id) h.id = 'h-' + i + '-' + (h.textContent || '').replace(/\s+/g, '-').slice(0, 30);
+    html += `<a class="toc__link toc__link--${h.tagName.toLowerCase()}" href="#${h.id}">${h.textContent}</a>`;
+  });
+  listEl.innerHTML = html;
+  listEl.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const tgt = document.getElementById(a.getAttribute('href').slice(1));
+      if (tgt) tgt.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+}
+
+function methodColor(m) {
+  return { GET:'#16a34a', POST:'#2563eb', PUT:'#ea580c', PATCH:'#7c3aed', DELETE:'#dc2626' }[m] || '#64748b';
+}
+
+
+// ─── API Explorer: render single endpoint ───
+function findApi(id) { return API_CONFIG.find(e => e.id === id); }
+
+// Detect path params from path like /api/v1/foo/{id}/bar — return param names
+function detectPathParams(path) { return [...path.matchAll(/\{([^}]+)\}/g)].map(m => m[1]); }
+
+function renderApi(id) {
+  const ep = findApi(id); if (!ep) return;
+  document.querySelectorAll('.toc__link--api').forEach(x => x.classList.toggle('active', x.dataset.apiId === id));
+  location.hash = id;
+
+  // Merge declared params with auto-detected path params
+  const declaredPath = (ep.params || []).filter(p => p.in === 'path').map(p => p.name);
+  const autoPath = detectPathParams(ep.path).filter(n => !declaredPath.includes(n))
+                     .map(n => ({name: n, in: 'path', type: 'string', required: true}));
+  const allPathParams = [...(ep.params || []).filter(p => p.in === 'path'), ...autoPath];
+  const queryParams = (ep.params || []).filter(p => p.in === 'query');
+
+  const presets = ep.body && ep.body.presets ? ep.body.presets : null;
+
+  const html = `
+    <h1 style="margin-bottom:6px"><span class="method ${ep.method}" style="margin-right:8px">${ep.method}</span>${ep.summary || ep.desc || ep.id}</h1>
+    <div class="api-path" style="font-size:14px;margin-bottom:18px;color:var(--text-muted)">${ep.path}</div>
+    <p style="color:var(--text-muted);margin:0 0 20px">${ep.desc || ''}</p>
+
+    ${allPathParams.length ? `
+    <div class="api-card">
+      <h3 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Path Parameters</h3>
+      ${allPathParams.map(p => `
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:600">${p.name}${p.required?' <span style="color:#dc2626">*</span>':''}<div style="font-size:11px;color:var(--text-muted);font-weight:400">${p.type || 'string'}</div></label>
+          <input id="path-${p.name}" type="text" value="${p.default||''}" placeholder="${p.description||''}" style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px">
+        </div>
+      `).join('')}
+    </div>` : ''}
+
+    ${queryParams.length ? `
+    <div class="api-card">
+      <h3 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Query Parameters</h3>
+      ${queryParams.map(p => `
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:600">${p.name}${p.required?' <span style="color:#dc2626">*</span>':''}<div style="font-size:11px;color:var(--text-muted);font-weight:400">${p.type || 'string'}</div></label>
+          <input id="query-${p.name}" type="text" value="${p.default||''}" placeholder="${p.description||''}" style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px">
+        </div>
+      `).join('')}
+    </div>` : ''}
+
+    ${presets ? `
+    <div class="api-card">
+      <h3 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Request Body</h3>
+      <label style="font-size:12px;color:var(--text-muted);font-weight:600">Preset</label>
+      <select id="body-preset" style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:inherit;font-size:13px;margin-top:4px">
+        ${presets.map((p,i) => `<option value="${i}">${p.label}</option>`).join('')}
+      </select>
+      <label style="font-size:12px;color:var(--text-muted);font-weight:600;margin-top:10px">JSON</label>
+      <textarea id="body-input" style="width:100%;min-height:140px;padding:10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:4px">${presets[0].value}</textarea>
+    </div>` : ''}
+
+    <div class="btns" style="display:flex;gap:8px;margin:18px 0">
+      <button class="btn-try" onclick="tryApi()">▶ Try It</button>
+      <button class="btn-curl" onclick="copyCurl()">📋 Copy as cURL</button>
+    </div>
+
+    <div id="api-resp-section" style="display:none">
+      <h3 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Response</h3>
+      <div id="api-resp-status" style="margin-bottom:8px"></div>
+      <div class="response" id="api-resp-body"></div>
+    </div>
+
+    <div id="api-curl-section" style="display:none;margin-top:18px">
+      <h3 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">cURL <span style="font-size:11px;text-transform:none;color:#16a34a">✓ 已複製</span></h3>
+      <pre id="api-curl-out" style="white-space:pre-wrap;word-break:break-all"></pre>
+    </div>
+  `;
+  document.getElementById('api-detail').innerHTML = html;
+  document.getElementById('api-detail').dataset.currentId = id;
+
+  const presetSel = document.getElementById('body-preset');
+  if (presetSel) {
+    presetSel.addEventListener('change', () => {
+      const idx = Number(presetSel.value);
+      document.getElementById('body-input').value = presets[idx].value;
+    });
+  }
+}
+
+function _currentApi() {
+  const id = document.getElementById('api-detail').dataset.currentId;
+  return findApi(id);
+}
+
+function _collectInputs(ep) {
+  const path = {}, query = {};
+  for (const p of (ep.params||[])) {
+    const el = document.getElementById(`${p.in}-${p.name}`);
+    if (el) (p.in === 'path' ? path : query)[p.name] = el.value;
+  }
+  // Auto-detected path params
+  for (const n of detectPathParams(ep.path)) {
+    if (!(n in path)) {
+      const el = document.getElementById(`path-${n}`);
+      if (el) path[n] = el.value;
+    }
+  }
+  let body = null;
+  const ta = document.getElementById('body-input');
+  if (ta) { try { body = JSON.parse(ta.value); } catch { body = ta.value; } }
+  return { path, query, body };
+}
+
+function _resolveUrl(ep, path, query) {
+  let url = ep.path;
+  Object.entries(path).forEach(([k, v]) => url = url.replace(`{${k}}`, encodeURIComponent(v)));
+  const qs = Object.entries(query).filter(([_, v]) => v !== '' && v != null)
+                .map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  if (qs) url += '?' + qs;
+  return url;
+}
+
+function tryApi() {
+  const ep = _currentApi(); if (!ep) return;
+  const sec = document.getElementById('api-resp-section');
+  const statusEl = document.getElementById('api-resp-status');
+  const bodyEl = document.getElementById('api-resp-body');
+  sec.style.display = 'block';
+  statusEl.textContent = '⏳ Loading...';
+  bodyEl.textContent = '';
+  setTimeout(() => {
+    const responses = RESPONSE_MAP[ep.id] || {};
+    const resp = responses['200'] || responses[Object.keys(responses)[0]] || { status: 200, body: {} };
+    const code = resp.status || 200;
+    const cls = 'status-' + String(code)[0] + 'xx';
+    bodyEl.className = 'response ' + cls;
+    statusEl.innerHTML = `<span style="display:inline-block;padding:3px 10px;background:${methodColor(ep.method)};color:#fff;border-radius:4px;font-weight:700;font-size:12px;margin-right:8px">HTTP ${code}</span><span style="color:var(--text-muted);font-size:12px">~200ms</span>`;
+    bodyEl.textContent = typeof resp.body === 'string' ? resp.body : JSON.stringify(resp.body, null, 2);
+  }, 200);
+}
+
+function copyCurl() {
+  const ep = _currentApi(); if (!ep) return;
+  const { path, query, body } = _collectInputs(ep);
+  const url = _resolveUrl(ep, path, query);
+  let cmd = `curl -X ${ep.method} 'https://api.example.com${url}'`;
+  if (body) cmd += ` \\\n  -H 'Content-Type: application/json' \\\n  -d '${typeof body === 'string' ? body : JSON.stringify(body)}'`;
+
+  // Show inline in main content (not alert) + copy to clipboard
+  const sec = document.getElementById('api-curl-section');
+  const out = document.getElementById('api-curl-out');
+  if (sec && out) {
+    sec.style.display = 'block';
+    out.textContent = cmd;
+  }
+  try { navigator.clipboard.writeText(cmd); } catch {}
+}
+
+
+// ─── Section navigation (sidebar 文件 panel) ───
+function activateTab(panelName) {
+  document.querySelectorAll('.sidebar__tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.panel === panelName));
+  document.querySelectorAll('.sidebar__panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'sidebar-' + panelName));
+}
+
+document.querySelectorAll('.sidebar__link').forEach(link => {
+  link.addEventListener('click', async (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.sidebar__link').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    link.classList.add('active');
+    const panel = document.getElementById(link.dataset.target);
+    panel.classList.add('active');
+    await renderMermaidIn(panel);
+    location.hash = link.dataset.target;
+    // For API panel, auto-switch sidebar to TOC + render first endpoint
+    if (link.dataset.target === 'panel-api') {
+      activateTab('toc');
+      buildToc();
+      if (API_CONFIG.length) renderApi(API_CONFIG[0].id);
+    } else if (document.querySelector('.sidebar__tab[data-panel="toc"]').classList.contains('active')) {
+      buildToc();
+    }
+  });
+});
+
+// Lightbox — zoom + pan
+let lbScale = 1, lbX = 0, lbY = 0;
+function lbApply() {
+  document.getElementById('lightbox-inner').style.transform =
+    `translate(${lbX}px, ${lbY}px) scale(${lbScale})`;
+}
+function openLightbox(diagramWrap) {
+  const inner = document.getElementById('lightbox-inner');
+  inner.innerHTML = '';
+  const source = diagramWrap.querySelector('.mermaid')?.getAttribute('data-source') || '';
+  const div = document.createElement('div');
+  div.className = 'mermaid';
+  div.textContent = source;
+  div.setAttribute('data-source', source);
+  inner.appendChild(div);
+  mermaid.run({ nodes: [div] });
+  lbScale = 1; lbX = 0; lbY = 0; lbApply();
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
+function lbZoom(d) { lbScale = Math.max(0.2, Math.min(8, lbScale + d)); lbApply(); }
+function lbReset() { lbScale = 1; lbX = 0; lbY = 0; lbApply(); }
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === '+' || e.key === '=') lbZoom(0.2);
+  if (e.key === '-') lbZoom(-0.2);
+  if (e.key === '0') lbReset();
+});
+
+document.getElementById('lightbox').addEventListener('wheel', e => {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  e.preventDefault();
+  lbZoom(e.deltaY < 0 ? 0.15 : -0.15);
+}, { passive: false });
+
+(function () {
+  const lb = document.getElementById('lightbox');
+  let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+  lb.addEventListener('mousedown', e => {
+    if (e.target.closest('.lightbox-controls')) return;
+    dragging = true; sx = e.clientX; sy = e.clientY; ox = lbX; oy = lbY;
+    lb.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    lbX = ox + (e.clientX - sx);
+    lbY = oy + (e.clientY - sy);
+    lbApply();
+  });
+  window.addEventListener('mouseup', () => { dragging = false; lb.style.cursor = 'default'; });
+  lb.addEventListener('click', e => {
+    if (e.target === lb) closeLightbox();
+  });
+})();
+
+
+// Init
+transformMermaid();
+renderMermaidIn(document.querySelector('.panel.active'));
+if (location.hash) {
+  const target = location.hash.slice(1);
+  const link = document.querySelector(`.sidebar__link[data-target="${target}"]`);
+  if (link) link.click();
+  else {
+    const el = document.getElementById(target);
+    if (el) {
+      const panel = el.closest('.panel');
+      if (panel) {
+        const link2 = document.querySelector(`.sidebar__link[data-target="${panel.id}"]`);
+        if (link2) link2.click();
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 300);
+      }
+    }
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1, maximum-scale=1">
+<title>儲值刮刮樂幸運券 — 互動原型</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: #0a0a14;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+</style>
+</head>
+<body>
+<style>*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}body{background:#0a0a14;min-height:100vh;display:flex;justify-content:center;align-items:center;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;padding:20px;color:#fff}.phone{width:360px;height:720px;background:#1a1a2e;border-radius:32px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.6);border:2px solid #2a2a44}.statusbar{height:28px;display:flex;justify-content:space-between;align-items:center;padding:0 18px;font-size:11px;color:#bbb;background:#12121f}.appbar{height:48px;display:flex;justify-content:space-between;align-items:center;padding:0 16px;background:linear-gradient(180deg,#2a1d4a,#1a1a2e);border-bottom:1px solid rgba(255,215,0,.2)}.appbar .title{font-size:15px;font-weight:600;color:#ffd700}.dot{width:8px;height:8px;border-radius:50%;background:#ff6b35;box-shadow:0 0 8px #ff6b35}.pill{background:rgba(255,215,0,.15);color:#ffd700;padding:4px 10px;border-radius:12px;font-size:11px;border:1px solid rgba(255,215,0,.3)}.screen{height:calc(720px - 28px - 48px - 56px);overflow-y:auto;position:relative}.screen::-webkit-scrollbar{display:none}.view{display:none;padding:14px;animation:fadeIn .4s}.view.active{display:block}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}.banner{background:linear-gradient(135deg,#ff6b35,#ffd700);border-radius:14px;padding:16px;text-align:center;position:relative;overflow:hidden;margin-bottom:10px}.banner::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,.3) 50%,transparent 70%);animation:shimmer 3s infinite}@keyframes shimmer{0%{transform:translateX(-50%) translateY(-50%) rotate(0)}100%{transform:translateX(-50%) translateY(-50%) rotate(360deg)}}.banner .big{font-size:24px;font-weight:900;color:#1a1a2e;text-shadow:0 2px 0 rgba(255,255,255,.4);position:relative;z-index:1}.banner .sub{font-size:11px;color:#1a1a2e;margin-top:4px;position:relative;z-index:1;font-weight:600}.marquee{background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:8px;padding:6px 10px;font-size:11px;color:#ffd700;overflow:hidden;white-space:nowrap;margin-bottom:12px}.marquee span{display:inline-block;animation:scroll 18s linear infinite;padding-left:100%}@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}.tabs{display:flex;gap:6px;margin-bottom:10px}.tab{flex:1;text-align:center;padding:6px;font-size:12px;background:rgba(255,255,255,.05);border-radius:10px;color:#aaa;border:1px solid transparent;cursor:pointer}.tab.on{background:rgba(255,215,0,.15);color:#ffd700;border-color:rgba(255,215,0,.4)}.deck{position:relative;height:200px;display:flex;justify-content:center;align-items:center;perspective:800px}.ticket{position:absolute;width:240px;height:160px;background:linear-gradient(135deg,#3a2862,#1f1438);border-radius:14px;border:2px solid #ffd700;padding:14px;box-shadow:0 8px 24px rgba(255,215,0,.2);transition:transform .5s,opacity .5s;cursor:pointer}.ticket .src{font-size:10px;color:#ffd700;background:rgba(255,215,0,.15);padding:2px 8px;border-radius:8px;display:inline-block}.ticket .num{font-size:14px;color:#fff;margin-top:8px;font-weight:600}.ticket .mul{font-size:32px;font-weight:900;background:linear-gradient(135deg,#ffd700,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-top:6px;text-align:center}.ticket .exp{font-size:10px;color:#ff6b35;text-align:right;margin-top:8px}.ticket.t1{transform:translateX(-30px) rotate(-6deg) scale(.92);opacity:.6}.ticket.t3{transform:translateX(30px) rotate(6deg) scale(.92);opacity:.6}.ticket.t2{z-index:3}.helper-txt{text-align:center;font-size:12px;color:#aaa;margin-top:8px}.actionbar{position:absolute;bottom:56px;left:0;right:0;padding:10px 14px;background:linear-gradient(180deg,transparent,#1a1a2e 30%)}.btn{width:100%;padding:12px;border-radius:24px;border:none;font-size:14px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.1);color:#fff}.btn.primary{background:linear-gradient(135deg,#ff6b35,#ffd700);color:#1a1a2e;box-shadow:0 6px 18px rgba(255,107,53,.4)}.btn.primary:active{transform:scale(.97)}.bottomnav{position:absolute;bottom:0;left:0;right:0;height:56px;background:#12121f;display:flex;border-top:1px solid #2a2a44}.bottomnav span{flex:1;text-align:center;line-height:56px;font-size:11px;color:#888}.bottomnav span.on{color:#ffd700}.scratch-wrap{padding:16px}.scratch-title{text-align:center;font-size:14px;color:#ffd700;margin-bottom:14px}.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}.cell{position:relative;aspect-ratio:1;border-radius:12px;background:linear-gradient(135deg,#2a1d4a,#1f1438);border:2px solid rgba(255,215,0,.3);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;cursor:pointer}.cell .cover{position:absolute;inset:0;background:linear-gradient(135deg,#888,#444);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;transition:opacity .4s,transform .4s}.cell.scratched .cover{opacity:0;transform:scale(0)}.cell.win{animation:pulse 1s infinite;border-color:#ffd700;box-shadow:0 0 20px rgba(255,215,0,.6)}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}.rtp{display:flex;justify-content:space-around;font-size:10px;color:#aaa;background:rgba(255,255,255,.05);padding:8px;border-radius:8px;margin-bottom:14px}.rtp b{color:#ffd700}.modal-mask{position:absolute;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:10;backdrop-filter:blur(4px)}.modal-mask.show{display:flex;animation:fadeIn .3s}.modal{width:280px;background:linear-gradient(180deg,#2a1d4a,#1a1a2e);border:2px solid #ffd700;border-radius:18px;padding:22px;text-align:center;animation:pop .4s}@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}.modal .icon{font-size:48px;margin-bottom:8px}.modal h3{font-size:18px;color:#ffd700;margin-bottom:6px}.modal .big-mul{font-size:48px;font-weight:900;background:linear-gradient(135deg,#ffd700,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:8px 0}.modal .desc{font-size:12px;color:#aaa;margin-bottom:8px}.modal .meta{font-size:10px;color:#777;margin:8px 0 14px}.modal .code{font-size:32px;font-weight:900;color:#ffd700;letter-spacing:4px;margin:10px 0;font-family:monospace}.modal .countdown{display:flex;justify-content:center;gap:6px;margin:10px 0}.modal .countdown .seg{background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.3);border-radius:6px;padding:6px 8px;font-size:14px;font-weight:700;color:#ffd700;min-width:36px}.modal .countdown .seg small{display:block;font-size:8px;color:#aaa;font-weight:400}.modal-acts{display:flex;gap:8px;margin-top:12px}.modal-acts .btn{padding:10px;font-size:12px}.weekly-banner{background:linear-gradient(135deg,#2a1d4a,#3a2862);border:1px solid rgba(255,215,0,.3);border-radius:14px;padding:14px;text-align:center;margin-bottom:12px}.weekly-banner .label{font-size:11px;color:#aaa;margin-bottom:6px}.code-list{background:rgba(255,255,255,.04);border-radius:12px;padding:8px}.code-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:14px}.code-row:last-child{border:none}.code-row .c{font-family:monospace;color:#ffd700;font-weight:700;letter-spacing:2px}.code-row .me{background:#ff6b35;color:#1a1a2e;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700}.empty-state{text-align:center;padding:50px 20px}.empty-state .ico{font-size:56px;opacity:.4;margin-bottom:14px}.empty-state h4{color:#ffd700;font-size:16px;margin-bottom:8px}.empty-state p{color:#888;font-size:12px}.toast{position:absolute;top:90px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ffd700,#ff6b35);color:#1a1a2e;padding:10px 18px;border-radius:24px;font-size:13px;font-weight:700;box-shadow:0 8px 20px rgba(255,107,53,.5);z-index:20;opacity:0;transition:opacity .3s,top .3s}.toast.show{opacity:1;top:60px}.help{position:fixed;top:20px;left:20px;background:rgba(26,26,46,.95);border:1px solid #ffd700;border-radius:12px;padding:14px;width:230px;color:#fff;font-size:12px;z-index:100;box-shadow:0 10px 30px rgba(0,0,0,.5)}.help h3{font-size:13px;color:#ffd700;margin-bottom:8px}.help ol{padding-left:18px;line-height:1.7;color:#ccc}.help ol li.cur{color:#ffd700;font-weight:600}.help button{margin-top:10px;width:100%;padding:8px;background:linear-gradient(135deg,#ff6b35,#ffd700);border:none;border-radius:8px;font-weight:700;cursor:pointer;color:#1a1a2e}.particles{position:absolute;inset:0;pointer-events:none;overflow:hidden}.particle{position:absolute;width:8px;height:8px;background:#ffd700;border-radius:50%;animation:fall 1.6s ease-out forwards}@keyframes fall{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(400px) scale(0);opacity:0}}</style>
+<div class="help"><h3>📖 操作說明 / Demo Steps</h3><ol id="steps"><li class="cur">儲值 1000 獲得刮券</li><li>點券進入刮獎，刮開三格</li><li>未中獎查看幸運代號</li><li>查看週抽開獎池</li></ol><button onclick="nextStep()">下一步</button></div>
+<div class="phone">
+  <div class="statusbar"><span>09:41</span><span>● ● ●</span></div>
+  <div class="appbar"><span class="dot"></span><span class="title" id="appTitle">刮刮券 Scratch</span><span class="pill" id="balance">餘額 9,999</span></div>
+  <div class="screen">
+    <!-- View 1: Lobby -->
+    <div class="view active" id="v1">
+      <div class="banner"><div class="big">最高 5000x</div><div class="sub">Up to 5000x · 沒中也有週抽</div></div>
+      <div class="marquee"><span>★ ID***88 中 500x  ★ ID***12 中 1000x  ★ ID***45 中 50x  ★ 本週池 12,348 張</span></div>
+      <div class="tabs"><div class="tab on">全部</div><div class="tab">儲值</div><div class="tab">遊戲</div></div>
+      <div class="deck" id="deck">
+        <div class="ticket t1"><span class="src">遊戲掉券</span><div class="num">#00003</div><div class="mul">?</div><div class="exp">2 日內</div></div>
+        <div class="ticket t2" onclick="goScratch()"><span class="src">儲值贈券</span><div class="num">TKT-2026051300001</div><div class="mul">?</div><div class="exp">7 日內到期</div></div>
+        <div class="ticket t3"><span class="src">儲值贈券</span><div class="num">#00002</div><div class="mul">?</div><div class="exp">5 日內</div></div>
+      </div>
+      <div class="helper-txt">未刮 <b style="color:#ffd700">3</b> 張 · 點擊中央券進入刮獎</div>
+    </div>
+    <!-- View 2: Scratch -->
+    <div class="view" id="v2">
+      <div class="scratch-wrap">
+        <div class="scratch-title">刮開三格符號 · 三同即中</div>
+        <div class="board" id="board"></div>
+        <div class="rtp"><span>倍率 <b>20x-5000x</b></span><span>RTP <b>92%</b></span><span>基準 <b>10</b></span></div>
+        <button class="btn primary" onclick="scratchAll()">✨ 一鍵全刮</button>
+      </div>
+    </div>
+    <!-- View 3: Weekly -->
+    <div class="view" id="v3">
+      <div class="weekly-banner"><div class="label">距離本週開獎</div><div class="countdown" id="cd"></div><div style="font-size:10px;color:#aaa;margin-top:8px">每週日 21:00 直播開獎</div></div>
+      <div class="tabs"><div class="tab on">我的代號</div><div class="tab">全部池</div><div class="tab">歷屆</div></div>
+      <div class="code-list">
+        <div class="code-row"><span class="c" id="myCode">328-491</span><span class="me">我</span></div>
+        <div class="code-row"><span class="c">102-883</span><span style="color:#888;font-size:11px">2 分鐘前</span></div>
+        <div class="code-row"><span class="c">771-204</span><span style="color:#888;font-size:11px">5 分鐘前</span></div>
+        <div class="code-row"><span class="c">449-117</span><span style="color:#888;font-size:11px">7 分鐘前</span></div>
+        <div class="code-row"><span class="c">883-052</span><span style="color:#888;font-size:11px">10 分鐘前</span></div>
+      </div>
+      <div class="helper-txt" style="margin-top:10px">本週共 <b style="color:#ffd700">12,348</b> 張代號參與</div>
+    </div>
+    <!-- Modals -->
+    <div class="modal-mask" id="toast1"><div class="toast show">🎁 已獲 1 張刮刮券！</div></div>
+    <div class="modal-mask" id="winModal"><div class="modal"><div class="icon">🎉</div><h3>恭喜中獎 Congrats!</h3><div class="big-mul" id="winMul">500x</div><div class="desc">派彩金額 <b style="color:#ffd700" id="winAmt">5,000</b> 已入錢包</div><div class="meta">本獎已記錄至歷史 · 即時到帳</div><div class="modal-acts"><button class="btn" onclick="closeModal('winModal')">分享</button><button class="btn primary" onclick="closeModal('winModal');goLobby()">繼續刮</button></div></div></div>
+    <div class="modal-mask" id="loseModal"><div class="modal"><div class="icon">✨</div><h3>差一點 So close!</h3><div class="desc">您的幸運代號已進入本週開獎池</div><div class="code" id="luckyCode">328-491</div><div class="countdown" id="cd2"></div><div class="meta">每週日 21:00 直播開獎</div><div class="modal-acts"><button class="btn" onclick="closeModal('loseModal');goWeekly()">查看週抽</button><button class="btn primary" onclick="closeModal('loseModal');goLobby()">繼續刮</button></div></div></div>
+  </div>
+  <div class="actionbar" id="actionbar"><button class="btn primary" onclick="primaryAction()" id="primaryBtn">立即刮獎 Scratch Now</button></div>
+  <div class="bottomnav"><span>大廳</span><span class="on">活動</span><span>錢包</span><span>我的</span></div>
+</div>
+<script>
+const SYMBOLS=['💎','🍒','7️⃣','⭐','🍀','👑'];
+let curView='v1',curStep=0;
+const totalSteps=4;
+
+function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');curView=id;const t=document.getElementById('appTitle'),b=document.getElementById('primaryBtn');if(id==='v1'){t.textContent='刮刮券 Scratch';b.textContent='立即刮獎 Scratch Now'}else if(id==='v2'){t.textContent='刮獎中 Scratching';b.textContent='返回券堆 Back';buildBoard()}else if(id==='v3'){t.textContent='本週開獎 Weekly Draw';b.textContent='前往直播 Go Live'}}
+function goLobby(){show('v1')}
+function goScratch(){show('v2')}
+function goWeekly(){show('v3')}
+function primaryAction(){if(curView==='v1')goScratch();else if(curView==='v2')goLobby();else goLobby()}
+
+function buildBoard(){const b=document.getElementById('board');b.innerHTML='';const win=Math.random()<0.5;const syms=win?[SYMBOLS[1],SYMBOLS[1],SYMBOLS[1]]:[SYMBOLS[0],SYMBOLS[3],SYMBOLS[2]];for(let i=0;i<3;i++){const c=document.createElement('div');c.className='cell';c.innerHTML=`<span style="font-size:48px">${syms[i]}</span><div class="cover">?</div>`;c.dataset.win=win;c.onclick=()=>scratchOne(c,i);b.appendChild(c)}}
+function scratchOne(c,i){if(c.classList.contains('scratched'))return;c.classList.add('scratched');setTimeout(()=>{const cells=document.querySelectorAll('.cell');if([...cells].every(x=>x.classList.contains('scratched'))){revealResult(c.dataset.win==='true')}},420)}
+function scratchAll(){const cells=document.querySelectorAll('.cell');cells.forEach((c,i)=>setTimeout(()=>c.classList.add('scratched'),i*180));setTimeout(()=>revealResult(cells[0].dataset.win==='true'),700)}
+function revealResult(win){if(win){document.querySelectorAll('.cell').forEach(c=>c.classList.add('win'));particles();const mul=[20,50,100,500,1000,5000][Math.floor(Math.random()*6)];document.getElementById('winMul').textContent=mul+'x';document.getElementById('winAmt').textContent=(mul*10).toLocaleString();setTimeout(()=>openModal('winModal'),800)}else{const code=Math.floor(Math.random()*900+100)+'-'+Math.floor(Math.random()*900+100);document.getElementById('luckyCode').textContent=code;document.getElementById('myCode').textContent=code;setTimeout(()=>openModal('loseModal'),500)}}
+function particles(){const wrap=document.createElement('div');wrap.className='particles';for(let i=0;i<24;i++){const p=document.createElement('div');p.className='particle';p.style.left=Math.random()*100+'%';p.style.top=Math.random()*30+'%';p.style.background=['#ffd700','#ff6b35','#fff'][i%3];p.style.animationDelay=(Math.random()*.4)+'s';wrap.appendChild(p)}document.querySelector('.phone').appendChild(wrap);setTimeout(()=>wrap.remove(),2000)}
+function openModal(id){document.getElementById(id).classList.add('show')}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+
+function countdown(){const t=document.getElementById('cd'),t2=document.getElementById('cd2');const end=new Date();end.setDate(end.getDate()+3);end.setHours(21,0,0,0);const diff=end-new Date();const d=Math.floor(diff/86400000),h=Math.floor(diff/3600000)%24,m=Math.floor(diff/60000)%60,s=Math.floor(diff/1000)%60;const html=`<div class="seg">${String(d).padStart(2,'0')}<small>日</small></div><div class="seg">${String(h).padStart(2,'0')}<small>時</small></div><div class="seg">${String(m).padStart(2,'0')}<small>分</small></div><div class="seg">${String(s).padStart(2,'0')}<small>秒</small></div>`;if(t)t.innerHTML=html;if(t2)t2.innerHTML=html}
+countdown();setInterval(countdown,1000);
+
+function showRechargeToast(){const m=document.getElementById('toast1');m.classList.add('show');setTimeout(()=>m.classList.remove('show'),1600)}
+
+function nextStep(){curStep=(curStep+1)%totalSteps;document.querySelectorAll('#steps li').forEach((li,i)=>li.classList.toggle('cur',i===curStep));if(curStep===0){goLobby();showRechargeToast()}else if(curStep===1){goScratch()}else if(curStep===2){goScratch();setTimeout(()=>{document.querySelectorAll('.cell').forEach(c=>c.dataset.win='false');scratchAll()},300)}else if(curStep===3){closeModal('loseModal');goWeekly()}}
+
+setTimeout(showRechargeToast,600);
+</script>
+</body>
+</html>

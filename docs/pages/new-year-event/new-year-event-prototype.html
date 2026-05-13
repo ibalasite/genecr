@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1, maximum-scale=1">
+<title>元旦跨年活動 — 互動原型</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background: #0a0a14;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+</style>
+</head>
+<body>
+<style>*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}body{font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;background:#0a0a14;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:20px 0;color:#fff;overflow-x:hidden}.phone{width:360px;min-height:720px;background:linear-gradient(180deg,#1a1a2e 0%,#16213e 50%,#0f1626 100%);border-radius:32px;box-shadow:0 0 60px rgba(255,215,0,.15),0 0 0 8px #1a1a1a;position:relative;overflow:hidden}.statusbar{display:flex;justify-content:space-between;padding:10px 20px;font-size:12px;color:#ffd700;font-weight:600}.appbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:rgba(0,0,0,.3);backdrop-filter:blur(10px)}.appbar .title{font-size:16px;font-weight:700;color:#ffd700;text-shadow:0 0 8px rgba(255,215,0,.5)}.bal{background:linear-gradient(135deg,#ffd700,#ff6b35);color:#1a1a2e;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700}.banner{position:relative;height:160px;background:linear-gradient(180deg,#1a1a4e 0%,#3d1a5e 60%,#1a1a2e 100%);overflow:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center}.banner::before{content:'';position:absolute;inset:0;background-image:radial-gradient(2px 2px at 20px 30px,#fff,transparent),radial-gradient(1px 1px at 60px 70px,#ffd700,transparent),radial-gradient(1.5px 1.5px at 120px 40px,#fff,transparent),radial-gradient(1px 1px at 200px 90px,#ff6b35,transparent),radial-gradient(2px 2px at 280px 60px,#fff,transparent),radial-gradient(1px 1px at 320px 110px,#ffd700,transparent);background-repeat:repeat;background-size:360px 160px;animation:twinkle 3s infinite}@keyframes twinkle{0%,100%{opacity:.4}50%{opacity:1}}.city{position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(180deg,transparent,#0a0a14);clip-path:polygon(0 100%,5% 60%,10% 100%,15% 40%,22% 70%,28% 30%,35% 60%,42% 50%,50% 20%,58% 60%,65% 40%,72% 70%,80% 30%,88% 60%,95% 50%,100% 70%,100% 100%)}.banner-title{font-size:13px;color:#fff;opacity:.85;margin-bottom:6px;z-index:2;letter-spacing:2px}.countdown{font-size:34px;font-weight:900;color:#ffd700;text-shadow:0 0 20px rgba(255,215,0,.8),0 0 40px rgba(255,107,53,.5);z-index:2;font-variant-numeric:tabular-nums;letter-spacing:2px}.vip-badge{position:absolute;top:8px;right:8px;background:linear-gradient(135deg,#ffd700,#ff6b35);color:#1a1a2e;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:800;z-index:3;box-shadow:0 0 12px rgba(255,215,0,.6)}.marquee{background:rgba(255,107,53,.15);border-top:1px solid rgba(255,215,0,.3);border-bottom:1px solid rgba(255,215,0,.3);overflow:hidden;height:28px;display:flex;align-items:center}.marquee-track{display:inline-flex;white-space:nowrap;animation:scroll 18s linear infinite;color:#ffd700;font-size:12px;font-weight:600}.marquee-track span{padding:0 20px}@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.tabs{display:flex;gap:6px;padding:12px 12px 8px;overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;padding:6px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.2);border-radius:14px;font-size:12px;color:#aaa;cursor:pointer;transition:all .25s;font-weight:600}.tab.active{background:linear-gradient(135deg,#ffd700,#ff6b35);color:#1a1a2e;border-color:transparent;box-shadow:0 0 12px rgba(255,215,0,.5)}.stage{padding:10px 14px;min-height:280px}.panel{display:none;animation:fadeIn .4s}.panel.active{display:block}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.section-title{font-size:13px;color:#ffd700;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}.ladder{display:flex;flex-direction:column;gap:8px}.tier{background:linear-gradient(90deg,rgba(255,215,0,.08),rgba(255,107,53,.04));border:1px solid rgba(255,215,0,.2);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;transition:all .3s}.tier.mine{border-color:#ffd700;box-shadow:0 0 16px rgba(255,215,0,.3);background:linear-gradient(90deg,rgba(255,215,0,.18),rgba(255,107,53,.1))}.tier-amount{font-size:13px;font-weight:700;color:#fff}.tier-bonus{font-size:14px;font-weight:800;color:#ffd700}.tier-mine-label{font-size:9px;color:#ff6b35;font-weight:700;margin-left:6px}.rain-area{position:relative;height:240px;background:radial-gradient(ellipse at top,rgba(255,107,53,.15),transparent 60%),linear-gradient(180deg,#1a1a4e,#0f0f2e);border-radius:12px;overflow:hidden;cursor:pointer;border:1px solid rgba(255,215,0,.2)}.rp{position:absolute;width:32px;height:40px;cursor:pointer;transition:transform .15s}.rp svg{width:100%;height:100%;filter:drop-shadow(0 0 4px rgba(255,215,0,.6))}.rp.caught{animation:catch .4s forwards}@keyframes catch{0%{transform:scale(1)}50%{transform:scale(1.4) rotate(20deg)}100%{transform:scale(0) translateY(-30px);opacity:0}}@keyframes fall{0%{transform:translateY(-50px) rotate(0)}100%{transform:translateY(280px) rotate(360deg)}}.pool-bar{display:flex;justify-content:space-between;padding:6px 10px;background:rgba(0,0,0,.3);border-radius:8px;margin-bottom:8px;font-size:11px}.pool-bar b{color:#ffd700}.wheel-wrap{display:flex;flex-direction:column;align-items:center;padding:10px 0}.wheel{position:relative;width:220px;height:220px}.wheel-svg{width:100%;height:100%;transition:transform 4s cubic-bezier(.17,.67,.32,1.28);filter:drop-shadow(0 0 12px rgba(255,215,0,.4))}.wheel-pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid #ffd700;z-index:5;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}.wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:radial-gradient(circle,#ffd700,#ff6b35);display:flex;align-items:center;justify-content:center;color:#1a1a2e;font-weight:900;font-size:14px;cursor:pointer;box-shadow:0 0 20px rgba(255,215,0,.7),inset 0 -3px 6px rgba(0,0,0,.3);z-index:4;border:3px solid #fff;transition:transform .2s}.wheel-hub:active{transform:translate(-50%,-50%) scale(.92)}.spin-info{display:flex;gap:10px;margin-top:10px;justify-content:center;font-size:12px;color:#aaa}.spin-info b{color:#ffd700}.fw-area{position:relative;height:240px;background:linear-gradient(180deg,#0a0a3e,#1a0a2e);border-radius:12px;overflow:hidden;border:1px solid rgba(255,215,0,.2)}.fw{position:absolute;width:6px;height:6px;border-radius:50%;pointer-events:none}.cd-big{font-size:48px;font-weight:900;color:#ffd700;text-align:center;padding:30px 0;text-shadow:0 0 24px rgba(255,215,0,.8);font-variant-numeric:tabular-nums;animation:pulse 1s infinite}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}.actionbar{padding:10px 14px;display:flex;gap:8px}.btn{flex:1;padding:11px 0;border-radius:22px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,215,0,.3)}.btn.primary{background:linear-gradient(135deg,#ffd700,#ff6b35);color:#1a1a2e;border:none;box-shadow:0 4px 14px rgba(255,107,53,.4)}.btn:active{transform:scale(.96)}.bottomnav{display:flex;justify-content:space-around;padding:8px 0 14px;border-top:1px solid rgba(255,215,0,.15);background:rgba(0,0,0,.3)}.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:#888}.nav-item.active{color:#ffd700}.nav-icon{font-size:18px}.help{position:fixed;top:20px;left:20px;width:260px;background:linear-gradient(135deg,rgba(26,26,46,.96),rgba(15,22,38,.96));border:1px solid rgba(255,215,0,.4);border-radius:14px;padding:14px;font-size:12px;backdrop-filter:blur(10px);box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:100}.help h3{font-size:13px;color:#ffd700;margin-bottom:8px}.help-step{padding:6px 8px;margin:4px 0;border-radius:6px;background:rgba(255,255,255,.04);font-size:11px;line-height:1.5;border-left:2px solid transparent;transition:all .25s}.help-step.active{background:rgba(255,215,0,.12);border-left-color:#ffd700;color:#fff}.help-step.done{opacity:.5;text-decoration:line-through}.help-btn{margin-top:8px;width:100%;padding:7px;background:linear-gradient(135deg,#ffd700,#ff6b35);border:none;border-radius:8px;color:#1a1a2e;font-weight:700;font-size:12px;cursor:pointer}.modal{position:absolute;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:50;backdrop-filter:blur(4px)}.modal.show{display:flex;animation:fadeIn .3s}.modal-box{width:280px;background:linear-gradient(180deg,#2a1a4e,#1a1a2e);border:2px solid #ffd700;border-radius:18px;padding:20px;text-align:center;box-shadow:0 0 40px rgba(255,215,0,.5);animation:popIn .4s}@keyframes popIn{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}.modal-icon{font-size:48px;margin-bottom:8px;animation:bounce 1s infinite}@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}.modal-title{font-size:16px;color:#ffd700;font-weight:800;margin-bottom:8px}.modal-amount{font-size:36px;font-weight:900;color:#fff;text-shadow:0 0 16px rgba(255,215,0,.8);margin:10px 0;font-variant-numeric:tabular-nums}.modal-meta{font-size:10px;color:#999;margin:8px 0 14px}.toast{position:absolute;top:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ffd700,#ff6b35);color:#1a1a2e;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:700;z-index:60;opacity:0;transition:opacity .3s;pointer-events:none}.toast.show{opacity:1}</style>
+<div class="help">
+  <h3>📖 操作說明</h3>
+  <div class="help-step" data-step="0">1. 點「儲值加碼」Tab 查看 VIP 5 加碼階梯</div>
+  <div class="help-step" data-step="1">2. 切到「紅包雨」點擊飛落紅包搶獎</div>
+  <div class="help-step" data-step="2">3. 切到「好運轉盤」點 GO 按鈕抽獎</div>
+  <div class="help-step" data-step="3">4. 切到「煙火」感受 0:00 跨年特效</div>
+  <button class="help-btn" onclick="nextStep()">下一步 →</button>
+</div>
+<div class="phone">
+  <div class="statusbar"><span>23:55</span><span>5G ●●●</span></div>
+  <div class="appbar">
+    <span class="title">🎆 元旦跨年活動</span>
+    <span class="bal">餘額 9,999</span>
+  </div>
+  <div class="banner">
+    <div class="vip-badge">VIP 5 · +10%</div>
+    <div class="banner-title">距離 2026 還剩</div>
+    <div class="countdown" id="cd">00:04:23</div>
+    <div class="city"></div>
+  </div>
+  <div class="marquee">
+    <div class="marquee-track">
+      <span>★ 玩家 K***88 拿到 8,888 紅包</span><span>★ 玩家 L***23 轉盤中 88 倍</span><span>★ 全站獎池 ¥888,888</span><span>★ 儲值加碼最高 18%</span>
+      <span>★ 玩家 K***88 拿到 8,888 紅包</span><span>★ 玩家 L***23 轉盤中 88 倍</span><span>★ 全站獎池 ¥888,888</span><span>★ 儲值加碼最高 18%</span>
+    </div>
+  </div>
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-p="recharge">💰 儲值加碼</div>
+    <div class="tab" data-p="rain">🧧 紅包雨</div>
+    <div class="tab" data-p="wheel">🎰 好運轉盤</div>
+    <div class="tab" data-p="firework">🎆 煙火</div>
+    <div class="tab" data-p="countdown">⏰ 倒數</div>
+  </div>
+  <div class="stage">
+    <div class="panel active" id="p-recharge">
+      <div class="section-title">⚡ 限時儲值加碼 · 剩 35:12:08</div>
+      <div class="ladder">
+        <div class="tier"><span class="tier-amount">儲 1,000</span><span class="tier-bonus">+6%</span></div>
+        <div class="tier mine"><span class="tier-amount">儲 3,000<span class="tier-mine-label">你的等級</span></span><span class="tier-bonus">+10%</span></div>
+        <div class="tier"><span class="tier-amount">儲 5,000</span><span class="tier-bonus">+14%</span></div>
+        <div class="tier"><span class="tier-amount">儲 10,000</span><span class="tier-bonus">+18%</span></div>
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:#888;text-align:center">所有獎金走平台補貼，代理分潤不受影響</div>
+    </div>
+    <div class="panel" id="p-rain">
+      <div class="pool-bar">
+        <span>本場池 <b>¥888,888</b></span>
+        <span>剩餘 <b id="rain-t">02:30</b></span>
+        <span>已拾 <b id="caught">0</b></span>
+      </div>
+      <div class="rain-area" id="rainArea"></div>
+      <div style="margin-top:6px;font-size:10px;color:#888;text-align:center">點擊飛落紅包搶獎 · 每日上限 30 次</div>
+    </div>
+    <div class="panel" id="p-wheel">
+      <div class="wheel-wrap">
+        <div class="wheel">
+          <div class="wheel-pointer"></div>
+          <svg class="wheel-svg" id="wheelSvg" viewBox="0 0 200 200">
+            <g id="wheelG"></g>
+          </svg>
+          <div class="wheel-hub" onclick="spinWheel()">GO</div>
+        </div>
+        <div class="spin-info">
+          <span>剩餘 <b id="spins">4</b> 抽</span><span>·</span><span>跨年夜 <b>雙倍機率</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="panel" id="p-firework">
+      <div class="fw-area" id="fwArea"></div>
+      <div style="margin-top:6px;font-size:11px;color:#ffd700;text-align:center">0:00-0:30 全站煙火 · 所有中獎 ×1.5</div>
+    </div>
+    <div class="panel" id="p-countdown">
+      <div class="section-title" style="justify-content:center">距離 2026 元旦</div>
+      <div class="cd-big" id="cdBig">00:04:23</div>
+      <div style="text-align:center;font-size:11px;color:#aaa;line-height:1.6">🎆 0:00 自動觸發煙火<br>🧧 0:00 紅包雨自動入場<br>🎰 轉盤雙倍機率啟動</div>
+    </div>
+  </div>
+  <div class="actionbar">
+    <button class="btn" onclick="showToast('查看獎勵信箱')">📬 獎勵</button>
+    <button class="btn primary" onclick="recharge()">立即儲值</button>
+  </div>
+  <div class="bottomnav">
+    <div class="nav-item"><span class="nav-icon">🏠</span>首頁</div>
+    <div class="nav-item active"><span class="nav-icon">🎆</span>活動</div>
+    <div class="nav-item"><span class="nav-icon">🏆</span>排行</div>
+    <div class="nav-item"><span class="nav-icon">👤</span>我的</div>
+  </div>
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <div class="modal-icon" id="mIcon">🎆</div>
+      <div class="modal-title" id="mTitle">恭喜獲得跨年大獎</div>
+      <div class="modal-amount" id="mAmount">8,888</div>
+      <div class="modal-meta">獎金 7 日內未領視為放棄 · 流水 1 倍</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal()">稍後</button>
+        <button class="btn primary" onclick="closeModal()">立即領取</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+<script>
+const WHEEL_PRIZES=[{l:'5',c:'#ff6b35'},{l:'88',c:'#ffd700'},{l:'10',c:'#ff6b35'},{l:'18',c:'#ffd700'},{l:'8',c:'#ff6b35'},{l:'888',c:'#ffd700'},{l:'5',c:'#ff6b35'},{l:'66',c:'#ffd700'},{l:'10',c:'#ff6b35'},{l:'38',c:'#ffd700'},{l:'8',c:'#ff6b35'},{l:'168',c:'#ffd700'}];
+function drawWheel(){const g=document.getElementById('wheelG');const N=12,R=95,cx=100,cy=100;let html='';for(let i=0;i<N;i++){const a1=(i*360/N-90)*Math.PI/180,a2=((i+1)*360/N-90)*Math.PI/180;const x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);const x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);const fill=WHEEL_PRIZES[i].c;html+=`<path d="M${cx},${cy} L${x1},${y1} A${R},${R} 0 0 1 ${x2},${y2} Z" fill="${fill}" stroke="#1a1a2e" stroke-width="1.5"/>`;const ta=(i*360/N+15-90)*Math.PI/180,tx=cx+65*Math.cos(ta),ty=cy+65*Math.sin(ta);html+=`<text x="${tx}" y="${ty}" text-anchor="middle" fill="#1a1a2e" font-size="13" font-weight="800" dy="4">${WHEEL_PRIZES[i].l}</text>`}html+=`<circle cx="100" cy="100" r="96" fill="none" stroke="#ffd700" stroke-width="2"/>`;g.innerHTML=html}
+drawWheel();
+let spins=4,rotation=0,spinning=false;
+function spinWheel(){if(spinning)return;if(spins<=0){showToast('抽數不足，請儲值贈抽');return}spinning=true;spins--;document.getElementById('spins').textContent=spins;const idx=Math.floor(Math.random()*12);const target=360*5+(360-idx*30-15);rotation+=target;const svg=document.getElementById('wheelSvg');svg.style.transform=`rotate(${rotation}deg)`;setTimeout(()=>{spinning=false;const prize=WHEEL_PRIZES[idx].l;openModal('🎰','轉盤中獎',prize+' 倍')},4100)}
+let caughtCnt=0,rainTimer=null,rainSec=150;
+function spawnRain(){const a=document.getElementById('rainArea');if(!a.offsetParent)return;const rp=document.createElement('div');rp.className='rp';rp.style.left=Math.random()*320+'px';rp.style.top='-50px';rp.style.animation=`fall ${2.5+Math.random()*1.5}s linear forwards`;rp.innerHTML='<svg viewBox="0 0 32 40"><rect x="4" y="8" width="24" height="28" rx="3" fill="#e63946" stroke="#ffd700" stroke-width="1.5"/><circle cx="16" cy="8" r="5" fill="#ffd700"/><text x="16" y="26" text-anchor="middle" fill="#ffd700" font-size="12" font-weight="900">福</text></svg>';rp.onclick=(e)=>{e.stopPropagation();if(rp.classList.contains('caught'))return;rp.classList.add('caught');caughtCnt++;document.getElementById('caught').textContent=caughtCnt;const amt=[8,18,28,88,188,888][Math.floor(Math.random()*6)];showToast('+'+amt+' 元');if(caughtCnt===5){setTimeout(()=>openModal('🧧','紅包大獎','1,888'),300)}};a.appendChild(rp);setTimeout(()=>rp.remove(),4500)}
+function startRain(){if(rainTimer)return;rainTimer=setInterval(()=>{if(document.getElementById('p-rain').classList.contains('active')){spawnRain();if(Math.random()>.5)setTimeout(spawnRain,300)}},700)}
+function launchFw(){const a=document.getElementById('fwArea');if(!a)return;const cx=Math.random()*280+20,cy=Math.random()*120+40;const colors=['#ffd700','#ff6b35','#ff3860','#ffffff','#00d4ff'];const c=colors[Math.floor(Math.random()*colors.length)];for(let i=0;i<24;i++){const p=document.createElement('div');p.className='fw';p.style.left=cx+'px';p.style.top=cy+'px';p.style.background=c;p.style.boxShadow=`0 0 6px ${c}`;const ang=(i/24)*Math.PI*2,dist=40+Math.random()*30;a.appendChild(p);p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${Math.cos(ang)*dist}px,${Math.sin(ang)*dist}px) scale(0)`,opacity:0}],{duration:900,easing:'ease-out'});setTimeout(()=>p.remove(),900)}}
+let fwTimer=null;
+function startFw(){if(fwTimer)return;fwTimer=setInterval(()=>{if(document.getElementById('p-firework').classList.contains('active'))launchFw()},600)}
+document.getElementById('tabs').addEventListener('click',e=>{const t=e.target.closest('.tab');if(!t)return;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');const p=t.dataset.p;document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));document.getElementById('p-'+p).classList.add('active');if(p==='rain')startRain();if(p==='firework')startFw()});
+let cdSec=263;
+setInterval(()=>{cdSec--;if(cdSec<0)cdSec=263;const h=String(Math.floor(cdSec/3600)).padStart(2,'0'),m=String(Math.floor((cdSec%3600)/60)).padStart(2,'0'),s=String(cdSec%60).padStart(2,'0');document.getElementById('cd').textContent=`${h}:${m}:${s}`;document.getElementById('cdBig').textContent=`${h}:${m}:${s}`},1000);
+setInterval(()=>{rainSec--;if(rainSec<0)rainSec=150;const m=String(Math.floor(rainSec/60)).padStart(2,'0'),s=String(rainSec%60).padStart(2,'0');document.getElementById('rain-t').textContent=`${m}:${s}`},1000);
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500)}
+function openModal(icon,title,amt){document.getElementById('mIcon').textContent=icon;document.getElementById('mTitle').textContent=title;document.getElementById('mAmount').textContent=amt;document.getElementById('modal').classList.add('show')}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+function recharge(){openModal('💰','儲值加碼成功','3,300');showToast('+10% VIP 5 加碼已入帳')}
+let curStep=0;
+function nextStep(){const steps=document.querySelectorAll('.help-step');steps.forEach(s=>s.classList.remove('active'));if(curStep>0)steps[curStep-1].classList.add('done');if(curStep>=steps.length){curStep=0;steps.forEach(s=>s.classList.remove('done'));steps[0].classList.add('active');document.querySelector('[data-p=recharge]').click();return}steps[curStep].classList.add('active');const tabs=['recharge','rain','wheel','firework'];document.querySelector(`[data-p=${tabs[curStep]}]`).click();curStep++}
+document.querySelector('.help-step').classList.add('active');
+</script>
+</body>
+</html>

@@ -136,9 +136,25 @@ def print_status(steps: list[StepState], run_dir: Path) -> None:
     print(f"Progress: {n_done}/{len(steps)} done\n")
 
 
+def _read_file(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8") if path.exists() else ""
+    except Exception:
+        return ""
+
+
 def _substitute(raw: str, brief_file: Path, output_path: Path, type_: str, extra: dict[str, str] | None = None) -> str:
+    """Inline file CONTENTS (not paths) so the AI doesn't need Read tool / outside-cwd permission."""
+    schema_path  = REPO_ROOT / "templates" / "schemas"  / f"{type_}.schema.json"
+    example_path = REPO_ROOT / "templates" / "examples" / f"{type_}.input.json"
     out = (
         raw
+        .replace("{type}",            type_)
+        .replace("{brief_content}",   _read_file(brief_file))
+        .replace("{schema_content}",  _read_file(schema_path)  or "(no schema for this type)")
+        .replace("{example_content}", _read_file(example_path) or "(no example for this type)")
+        .replace("{previous_json}",   _read_file(output_path))
+        # Legacy path-style placeholders (still substituted for any prompt that uses them)
         .replace("${GENECR_DIR}",       str(REPO_ROOT))
         .replace("${GENECR_TEMPLATES}", str(REPO_ROOT / "templates"))
         .replace("${GENECR_BIN}",       str(REPO_ROOT / "bin"))
@@ -147,11 +163,14 @@ def _substitute(raw: str, brief_file: Path, output_path: Path, type_: str, extra
         .replace("${GENECR_REFERENCES}", str(REPO_ROOT / "references"))
         .replace("{brief_file}", str(brief_file))
         .replace("{output}",     str(output_path))
-        .replace("{type}",       type_)
     )
     if extra:
         for k, v in extra.items():
+            # extra may be a path (errors_file) → also offer {errors_content} via reading
             out = out.replace("{" + k + "}", str(v))
+            if k.endswith("_file"):
+                content_key = k[:-5] + "_content"
+                out = out.replace("{" + content_key + "}", _read_file(Path(v)))
     return out
 
 
@@ -160,6 +179,7 @@ def _run_ai(ai_cfg: dict, prompt_path: Path, output_path: Path, brief_file: Path
         prompt=str(prompt_path),
         output=str(output_path),
         brief_file=str(brief_file),
+        repo_root=str(REPO_ROOT),
     )
     print(f"      $ {cmd}")
     try:

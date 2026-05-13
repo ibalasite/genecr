@@ -1,0 +1,12 @@
+{
+  "index.html": {
+    "url": "index.html",
+    "title": "genecr 文件中心",
+    "excerpt": "genecr — iGaming 功能需求文件自動生成器\nGame Design Creation + Requirements\n讓一份需求文件，同時服務企畫、工程、美術、QA。\n把一個 iGaming 功能需求，自動轉成讓整個開發團隊都能直接使用的完整文件套件：\n企畫基礎版、進階技術版、資源清單＋"
+  },
+  "prd.html": {
+    "url": "prd.html",
+    "title": "產品需求文件 (PRD)",
+    "excerpt": "GeneCR — 完整產品需求文件（PRD）\n版本：v1.1 ｜ 日期：2026-05-13\n作者：Evans（sayyogames.com）\n\n一、產品願景\nGeneCR 的目標是讓 iGaming 公司的企畫人員，能透過一行指令，產出讓 整個開發團隊都能直接使用 的需求文件套件。\n使用對象：\n企"
+  }
+}

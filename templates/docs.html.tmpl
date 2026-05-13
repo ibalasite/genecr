@@ -299,7 +299,12 @@
     padding: 8px 16px; border: none; border-radius: 4px;
     font-weight: 600; cursor: pointer; font-size: 13px;
   }
-  .btn-try { background: var(--accent); color: #fff; }
+  .btn-try, .btn-curl {
+    padding: 10px 20px; border-radius: 4px;
+    font-weight: 600; font-size: 14px; cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-try { background: var(--accent); color: #fff; border: none; }
   .btn-try:hover { background: var(--link-hover); }
   .btn-curl { background: var(--code-bg); color: var(--text); border: 1px solid var(--border-strong); }
   .btn-curl:hover { background: var(--border); }
@@ -399,7 +404,7 @@
       {% endif %}
     </div>
     <div class="sidebar__panel" id="sidebar-toc">
-      <!-- populated dynamically -->
+      <div id="toc-list"></div>
     </div>
   </aside>
 
@@ -412,42 +417,11 @@
 
     {% if api_explorer %}
     <div class="panel" id="panel-api">
-      <h1>🔧 API 試打面板</h1>
-      <p style="color: var(--text-muted)">點左側清單選一支 API 試打；所有回應為前端 mock，斷網可用。</p>
-      {% for a in api_explorer %}
-      <div class="api-card{% if not loop.first %} hidden{% endif %}" id="{{ a.id }}">
-        <div class="api-head">
-          <span class="method {{ a.method }}">{{ a.method }}</span>
-          <span class="api-path">{{ a.path }}</span>
-        </div>
-        <p style="color: var(--text-muted); font-size: 13px; margin: 4px 0 12px;">{{ a.desc }}</p>
-
-        {% if a.params %}
-        {% for p in a.params %}
-          <label>{{ p.name }}{% if p.required %} <span style="color:#dc2626">*</span>{% endif %}
-            <span style="color: var(--text-muted); font-weight: 400">({{ p.type }})</span></label>
-          <input type="text" data-api="{{ a.id }}" data-param="{{ p.name }}" value="{{ p.default | default('') }}">
-        {% endfor %}
-        {% endif %}
-
-        {% if a.body %}
-        <label>Request Body
-          <select data-api="{{ a.id }}" data-preset>
-            {% for preset in a.body.presets %}
-            <option value="{{ loop.index0 }}">{{ preset.label }}</option>
-            {% endfor %}
-          </select>
-        </label>
-        <textarea data-api="{{ a.id }}" data-body>{{ a.body.presets[0].value }}</textarea>
-        {% endif %}
-
-        <div class="btns">
-          <button class="btn-try" onclick="tryApi('{{ a.id }}')">▶ Try It</button>
-          <button class="btn-curl" onclick="copyCurl('{{ a.id }}')">📋 Copy as cURL</button>
-        </div>
-        <div class="response" id="resp-{{ a.id }}">（尚未呼叫）</div>
+      <div id="api-detail">
+        <p style="color: var(--text-muted); padding: 32px; text-align: center;">
+          ← 點左側 endpoint 開始試打。所有回應為前端 mock，斷網可用。
+        </p>
       </div>
-      {% endfor %}
     </div>
     {% endif %}
 
@@ -534,47 +508,40 @@ document.querySelectorAll('.sidebar__tab').forEach(tab => {
 });
 
 // ─── TOC builder: scan current panel ───
-// Special case: API panel → list endpoints (click = show only that endpoint)
 function buildToc() {
-  const tocEl = document.getElementById('sidebar-toc');
+  const listEl = document.getElementById('toc-list');
   const active = document.querySelector('.panel.active');
-  if (!active) { tocEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無</div>'; return; }
+  if (!active) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無</div>'; return; }
 
-  // API panel: list endpoints
+  // API panel: list endpoints from API_CONFIG
   if (active.id === 'panel-api') {
-    const cards = active.querySelectorAll('.api-card');
-    if (!cards.length) { tocEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無 API</div>'; return; }
-    let html = '';
-    cards.forEach((card, i) => {
-      const method = card.querySelector('.method')?.textContent || '';
-      const path = card.querySelector('.api-path')?.textContent || '';
-      const id = card.id;
-      const isActive = !card.classList.contains('hidden');
-      html += `<a class="toc__link toc__link--api${isActive ? ' active' : ''}" data-api-id="${id}">
-        <span style="display:inline-block;min-width:42px;font-size:10px;font-weight:700;color:#fff;background:${methodColor(method)};padding:2px 6px;border-radius:3px;margin-right:6px">${method}</span>${path}</a>`;
-    });
-    tocEl.innerHTML = html;
-    tocEl.querySelectorAll('a').forEach(a => {
-      a.addEventListener('click', e => {
-        e.preventDefault();
-        const tgtId = a.dataset.apiId;
-        active.querySelectorAll('.api-card').forEach(c => c.classList.toggle('hidden', c.id !== tgtId));
-        tocEl.querySelectorAll('a').forEach(x => x.classList.toggle('active', x === a));
-      });
+    const eps = API_CONFIG;
+    if (!eps.length) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無符合 endpoint</div>'; return; }
+    listEl.innerHTML = eps.map(e =>
+      `<a class="toc__link toc__link--api" data-api-id="${e.id}" style="padding:8px 12px;display:block">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <span style="display:inline-block;min-width:48px;font-size:10px;font-weight:700;color:#fff;background:${methodColor(e.method)};padding:2px 6px;border-radius:3px;text-align:center">${e.method}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.path}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);padding-left:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.desc || ''}</div>
+      </a>`
+    ).join('');
+    listEl.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', ev => { ev.preventDefault(); renderApi(a.dataset.apiId); });
     });
     return;
   }
 
   // Default: scan h1-h4
-  const heads = active.querySelectorAll('h1, h2, h3, h4');
-  if (!heads.length) { tocEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">本頁無標題</div>'; return; }
+  const heads = Array.from(active.querySelectorAll('h1, h2, h3, h4'));
+  if (!heads.length) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無標題</div>'; return; }
   let html = '';
   heads.forEach((h, i) => {
     if (!h.id) h.id = 'h-' + i + '-' + (h.textContent || '').replace(/\s+/g, '-').slice(0, 30);
     html += `<a class="toc__link toc__link--${h.tagName.toLowerCase()}" href="#${h.id}">${h.textContent}</a>`;
   });
-  tocEl.innerHTML = html;
-  tocEl.querySelectorAll('a').forEach(a => {
+  listEl.innerHTML = html;
+  listEl.querySelectorAll('a').forEach(a => {
     a.addEventListener('click', e => {
       e.preventDefault();
       const tgt = document.getElementById(a.getAttribute('href').slice(1));
@@ -586,6 +553,163 @@ function buildToc() {
 function methodColor(m) {
   return { GET:'#16a34a', POST:'#2563eb', PUT:'#ea580c', PATCH:'#7c3aed', DELETE:'#dc2626' }[m] || '#64748b';
 }
+
+
+// ─── API Explorer: render single endpoint ───
+function findApi(id) { return API_CONFIG.find(e => e.id === id); }
+
+// Detect path params from path like /api/v1/foo/{id}/bar — return param names
+function detectPathParams(path) { return [...path.matchAll(/\{([^}]+)\}/g)].map(m => m[1]); }
+
+function renderApi(id) {
+  const ep = findApi(id); if (!ep) return;
+  document.querySelectorAll('.toc__link--api').forEach(x => x.classList.toggle('active', x.dataset.apiId === id));
+  location.hash = id;
+
+  // Merge declared params with auto-detected path params
+  const declaredPath = (ep.params || []).filter(p => p.in === 'path').map(p => p.name);
+  const autoPath = detectPathParams(ep.path).filter(n => !declaredPath.includes(n))
+                     .map(n => ({name: n, in: 'path', type: 'string', required: true}));
+  const allPathParams = [...(ep.params || []).filter(p => p.in === 'path'), ...autoPath];
+  const queryParams = (ep.params || []).filter(p => p.in === 'query');
+
+  const presets = ep.body && ep.body.presets ? ep.body.presets : null;
+
+  const html = `
+    <h1 style="margin-bottom:6px"><span class="method ${ep.method}" style="margin-right:8px">${ep.method}</span>${ep.summary || ep.desc || ep.id}</h1>
+    <div class="api-path" style="font-size:14px;margin-bottom:18px;color:var(--text-muted)">${ep.path}</div>
+    <p style="color:var(--text-muted);margin:0 0 20px">${ep.desc || ''}</p>
+
+    ${allPathParams.length ? `
+    <div class="api-card">
+      <h3 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Path Parameters</h3>
+      ${allPathParams.map(p => `
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:600">${p.name}${p.required?' <span style="color:#dc2626">*</span>':''}<div style="font-size:11px;color:var(--text-muted);font-weight:400">${p.type || 'string'}</div></label>
+          <input id="path-${p.name}" type="text" value="${p.default||''}" placeholder="${p.description||''}" style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px">
+        </div>
+      `).join('')}
+    </div>` : ''}
+
+    ${queryParams.length ? `
+    <div class="api-card">
+      <h3 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Query Parameters</h3>
+      ${queryParams.map(p => `
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:600">${p.name}${p.required?' <span style="color:#dc2626">*</span>':''}<div style="font-size:11px;color:var(--text-muted);font-weight:400">${p.type || 'string'}</div></label>
+          <input id="query-${p.name}" type="text" value="${p.default||''}" placeholder="${p.description||''}" style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px">
+        </div>
+      `).join('')}
+    </div>` : ''}
+
+    ${presets ? `
+    <div class="api-card">
+      <h3 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Request Body</h3>
+      <label style="font-size:12px;color:var(--text-muted);font-weight:600">Preset</label>
+      <select id="body-preset" style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:inherit;font-size:13px;margin-top:4px">
+        ${presets.map((p,i) => `<option value="${i}">${p.label}</option>`).join('')}
+      </select>
+      <label style="font-size:12px;color:var(--text-muted);font-weight:600;margin-top:10px">JSON</label>
+      <textarea id="body-input" style="width:100%;min-height:140px;padding:10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:4px">${presets[0].value}</textarea>
+    </div>` : ''}
+
+    <div class="btns" style="display:flex;gap:8px;margin:18px 0">
+      <button class="btn-try" onclick="tryApi()">▶ Try It</button>
+      <button class="btn-curl" onclick="copyCurl()">📋 Copy as cURL</button>
+    </div>
+
+    <div id="api-resp-section" style="display:none">
+      <h3 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">Response</h3>
+      <div id="api-resp-status" style="margin-bottom:8px"></div>
+      <div class="response" id="api-resp-body"></div>
+    </div>
+
+    <div id="api-curl-section" style="display:none;margin-top:18px">
+      <h3 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em">cURL <span style="font-size:11px;text-transform:none;color:#16a34a">✓ 已複製</span></h3>
+      <pre id="api-curl-out" style="white-space:pre-wrap;word-break:break-all"></pre>
+    </div>
+  `;
+  document.getElementById('api-detail').innerHTML = html;
+  document.getElementById('api-detail').dataset.currentId = id;
+
+  const presetSel = document.getElementById('body-preset');
+  if (presetSel) {
+    presetSel.addEventListener('change', () => {
+      const idx = Number(presetSel.value);
+      document.getElementById('body-input').value = presets[idx].value;
+    });
+  }
+}
+
+function _currentApi() {
+  const id = document.getElementById('api-detail').dataset.currentId;
+  return findApi(id);
+}
+
+function _collectInputs(ep) {
+  const path = {}, query = {};
+  for (const p of (ep.params||[])) {
+    const el = document.getElementById(`${p.in}-${p.name}`);
+    if (el) (p.in === 'path' ? path : query)[p.name] = el.value;
+  }
+  // Auto-detected path params
+  for (const n of detectPathParams(ep.path)) {
+    if (!(n in path)) {
+      const el = document.getElementById(`path-${n}`);
+      if (el) path[n] = el.value;
+    }
+  }
+  let body = null;
+  const ta = document.getElementById('body-input');
+  if (ta) { try { body = JSON.parse(ta.value); } catch { body = ta.value; } }
+  return { path, query, body };
+}
+
+function _resolveUrl(ep, path, query) {
+  let url = ep.path;
+  Object.entries(path).forEach(([k, v]) => url = url.replace(`{${k}}`, encodeURIComponent(v)));
+  const qs = Object.entries(query).filter(([_, v]) => v !== '' && v != null)
+                .map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  if (qs) url += '?' + qs;
+  return url;
+}
+
+function tryApi() {
+  const ep = _currentApi(); if (!ep) return;
+  const sec = document.getElementById('api-resp-section');
+  const statusEl = document.getElementById('api-resp-status');
+  const bodyEl = document.getElementById('api-resp-body');
+  sec.style.display = 'block';
+  statusEl.textContent = '⏳ Loading...';
+  bodyEl.textContent = '';
+  setTimeout(() => {
+    const responses = RESPONSE_MAP[ep.id] || {};
+    const resp = responses['200'] || responses[Object.keys(responses)[0]] || { status: 200, body: {} };
+    const code = resp.status || 200;
+    const cls = 'status-' + String(code)[0] + 'xx';
+    bodyEl.className = 'response ' + cls;
+    statusEl.innerHTML = `<span style="display:inline-block;padding:3px 10px;background:${methodColor(ep.method)};color:#fff;border-radius:4px;font-weight:700;font-size:12px;margin-right:8px">HTTP ${code}</span><span style="color:var(--text-muted);font-size:12px">~200ms</span>`;
+    bodyEl.textContent = typeof resp.body === 'string' ? resp.body : JSON.stringify(resp.body, null, 2);
+  }, 200);
+}
+
+function copyCurl() {
+  const ep = _currentApi(); if (!ep) return;
+  const { path, query, body } = _collectInputs(ep);
+  const url = _resolveUrl(ep, path, query);
+  let cmd = `curl -X ${ep.method} 'https://api.example.com${url}'`;
+  if (body) cmd += ` \\\n  -H 'Content-Type: application/json' \\\n  -d '${typeof body === 'string' ? body : JSON.stringify(body)}'`;
+
+  // Show inline in main content (not alert) + copy to clipboard
+  const sec = document.getElementById('api-curl-section');
+  const out = document.getElementById('api-curl-out');
+  if (sec && out) {
+    sec.style.display = 'block';
+    out.textContent = cmd;
+  }
+  try { navigator.clipboard.writeText(cmd); } catch {}
+}
+
 
 // ─── Section navigation (sidebar 文件 panel) ───
 function activateTab(panelName) {
@@ -605,10 +729,11 @@ document.querySelectorAll('.sidebar__link').forEach(link => {
     panel.classList.add('active');
     await renderMermaidIn(panel);
     location.hash = link.dataset.target;
-    // For API panel, auto-switch sidebar to TOC tab to show endpoint list
+    // For API panel, auto-switch sidebar to TOC + render first endpoint
     if (link.dataset.target === 'panel-api') {
       activateTab('toc');
       buildToc();
+      if (API_CONFIG.length) renderApi(API_CONFIG[0].id);
     } else if (document.querySelector('.sidebar__tab[data-panel="toc"]').classList.contains('active')) {
       buildToc();
     }
@@ -672,44 +797,6 @@ document.getElementById('lightbox').addEventListener('wheel', e => {
   });
 })();
 
-// API Try-It
-function getApiInputs(id) {
-  const cfg = API_CONFIG.find(a => a.id === id);
-  const params = {};
-  document.querySelectorAll(`input[data-api="${id}"]`).forEach(el => params[el.dataset.param] = el.value);
-  const body = document.querySelector(`textarea[data-api="${id}"]`);
-  return { cfg, params, body: body ? body.value : null };
-}
-function tryApi(id) {
-  const responses = RESPONSE_MAP[id] || {};
-  const resp = responses['200'] || responses[Object.keys(responses)[0]] || { status: 200, body: '{}' };
-  const respEl = document.getElementById(`resp-${id}`);
-  respEl.textContent = '⏳ Loading...';
-  respEl.className = 'response';
-  setTimeout(() => {
-    respEl.className = 'response status-' + String(resp.status)[0] + 'xx';
-    respEl.textContent = `HTTP ${resp.status}\n\n${typeof resp.body === 'string' ? resp.body : JSON.stringify(resp.body, null, 2)}`;
-  }, 200);
-}
-function copyCurl(id) {
-  const { cfg, params, body } = getApiInputs(id);
-  let path = cfg.path;
-  Object.entries(params).forEach(([k, v]) => path = path.replace(`{${k}}`, v));
-  const qs = (cfg.params || []).filter(p => p.in === 'query' && params[p.name]).map(p => `${p.name}=${encodeURIComponent(params[p.name])}`).join('&');
-  if (qs) path += '?' + qs;
-  let cmd = `curl -X ${cfg.method} 'https://api.example.com${path}'`;
-  if (body) cmd += ` -H 'Content-Type: application/json' -d '${body}'`;
-  navigator.clipboard.writeText(cmd);
-  alert('cURL 已複製');
-}
-document.querySelectorAll('select[data-preset]').forEach(sel => {
-  sel.addEventListener('change', () => {
-    const id = sel.dataset.api;
-    const cfg = API_CONFIG.find(a => a.id === id);
-    const ta = document.querySelector(`textarea[data-api="${id}"]`);
-    ta.value = cfg.body.presets[Number(sel.value)].value;
-  });
-});
 
 // Init
 transformMermaid();

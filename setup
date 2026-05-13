@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# genecr setup — install / uninstall / upgrade
+# Usage:
+#   ./setup             # install (default)
+#   ./setup install     # clone repo (if missing) + deploy subskills
+#   ./setup uninstall   # remove deployed skills + runtime
+#   ./setup upgrade     # git pull + redeploy
+#
+# Cross-platform: Windows (Git Bash), macOS, Linux.
+
+set -e
+
+REPO_URL="https://github.com/ibalasite/genecr.git"   # TODO: 改成實際 repo URL
+RUNTIME_DIR="$HOME/.claude/skills/genecr"
+CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
+
+CMD="${1:-install}"
+
+log() { echo "$@"; }
+
+_deploy_skills() {
+  log "[deploy] $RUNTIME_DIR/skills/* → $CLAUDE_SKILLS_DIR/"
+  mkdir -p "$CLAUDE_SKILLS_DIR"
+  if [[ ! -d "$RUNTIME_DIR/skills" ]]; then
+    log "  ⚠️  $RUNTIME_DIR/skills 不存在，跳過"
+    return
+  fi
+  for skill_dir in "$RUNTIME_DIR/skills"/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    name="$(basename "$skill_dir")"
+    rm -rf "$CLAUDE_SKILLS_DIR/$name"
+    cp -r "$skill_dir" "$CLAUDE_SKILLS_DIR/$name"
+    log "  · $name"
+  done
+}
+
+do_install() {
+  command -v git >/dev/null 2>&1 || { echo "❌ git required"; exit 1; }
+
+  if [[ -d "$RUNTIME_DIR/.git" ]]; then
+    log "[install] $RUNTIME_DIR 已存在，執行 upgrade..."
+    do_upgrade
+    return
+  fi
+
+  log "[install] git clone $REPO_URL → $RUNTIME_DIR"
+  mkdir -p "$(dirname "$RUNTIME_DIR")"
+  git clone "$REPO_URL" "$RUNTIME_DIR"
+
+  _deploy_skills
+
+  log ""
+  log "[install] 完成。重啟 Claude Code 讓 skills 生效。"
+  log "  · 升級：$RUNTIME_DIR/setup upgrade"
+  log "  · 解除安裝：$RUNTIME_DIR/setup uninstall"
+}
+
+do_upgrade() {
+  if [[ ! -d "$RUNTIME_DIR/.git" ]]; then
+    log "[upgrade] 找不到 $RUNTIME_DIR，請先執行 install。"
+    exit 1
+  fi
+  log "[upgrade] git pull..."
+  git -C "$RUNTIME_DIR" pull --ff-only
+
+  # Re-exec freshly pulled setup so new logic takes effect
+  exec "$RUNTIME_DIR/setup" _post_upgrade
+}
+
+_post_upgrade() {
+  _deploy_skills
+  log "[upgrade] 完成。"
+}
+
+do_uninstall() {
+  log "[uninstall] 移除 deployed skills..."
+  if [[ -d "$RUNTIME_DIR/skills" ]]; then
+    for skill_dir in "$RUNTIME_DIR/skills"/*/; do
+      [[ -d "$skill_dir" ]] || continue
+      name="$(basename "$skill_dir")"
+      if [[ -d "$CLAUDE_SKILLS_DIR/$name" ]]; then
+        rm -rf "$CLAUDE_SKILLS_DIR/$name"
+        log "  · 刪除 ~/.claude/skills/$name"
+      fi
+    done
+  fi
+  log "[uninstall] 刪除 $RUNTIME_DIR..."
+  rm -rf "$RUNTIME_DIR"
+  log "[uninstall] 完成。"
+}
+
+case "$CMD" in
+  install)       do_install ;;
+  upgrade)       do_upgrade ;;
+  uninstall)     do_uninstall ;;
+  _post_upgrade) _post_upgrade ;;
+  *)
+    echo "用法：./setup [install|uninstall|upgrade]"
+    echo "  install   — git clone + 部署 subskills（預設）"
+    echo "  uninstall — 移除 deployed skills + runtime"
+    echo "  upgrade   — git pull + 重新部署"
+    exit 1
+    ;;
+esac

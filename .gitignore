@@ -1,0 +1,21 @@
+# User-generated output — produced by genecr in the user's CWD, must never be in the repo
+output/
+
+# Project-level Claude Code config (not part of genecr distribution)
+.claude/
+
+# Local-only files
+.source-dir
+*.pdf
+!references/*.pdf
+preview.html
+pdd *.md
+skills-lock.json
+docs/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/

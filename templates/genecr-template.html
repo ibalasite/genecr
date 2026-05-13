@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeneCR — {{功能名稱}} 文件套件</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN TOKENS — ui-ux-pro-max · OLED Dark Luxury iGaming
+   Style: Minimalism & Swiss · Palette: E-commerce Luxury
+   Fonts: Righteous (display) + Poppins (body)
+   ============================================================ */
+:root {
+  /* Backgrounds */
+  --bg-base:    #08080f;
+  --bg-surface: #111118;
+  --bg-card:    #16161f;
+  --bg-elevated:#1c1c28;
+  --bg-hover:   #22222f;
+
+  /* Brand */
+  --gold-600: #a16207;
+  --gold-500: #ca8a04;
+  --gold-400: #eab308;
+  --gold-300: #fde047;
+  --orange:   #ff6b35;
+  --orange-d: #cc4f1f;
+
+  /* Semantic */
+  --blue:   #4fc3f7;
+  --green:  #4ade80;
+  --red:    #f87171;
+  --purple: #c084fc;
+  --yellow: #fbbf24;
+
+  /* Text */
+  --text-primary:   #f8f8ff;
+  --text-secondary: #a0a0b8;
+  --text-muted:     #5c5c78;
+  --text-gold:      var(--gold-400);
+
+  /* Borders */
+  --border:       #2a2a3a;
+  --border-gold:  rgba(202,138,4,.35);
+
+  /* Typography */
+  --font-display: 'Righteous', sans-serif;
+  --font-body:    'Poppins', sans-serif;
+
+  /* Transitions */
+  --t-fast: 150ms ease;
+  --t-base: 220ms ease;
+  --t-slow: 300ms ease;
+
+  /* Layout */
+  --sidebar-w: 220px;
+  --topbar-h:  56px;
+  --radius-sm: 6px;
+  --radius:    10px;
+  --radius-lg: 16px;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100dvh;
+}
+a { color: var(--gold-400); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre {
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  font-size: .875rem;
+}
+img { max-width: 100%; }
+
+/* ── Skip Link (a11y) ── */
+.skip-link {
+  position: absolute; top: -40px; left: 8px;
+  background: var(--gold-500); color: #000;
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  font-weight: 600; z-index: 9999;
+  transition: top var(--t-fast);
+}
+.skip-link:focus { top: 8px; }
+
+/* ── Topbar ── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--topbar-h);
+  background: rgba(8,8,15,.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 16px;
+  z-index: 100;
+}
+.topbar-logo {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--gold-400);
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+.topbar-logo span { color: var(--text-secondary); font-size: .75rem; font-family: var(--font-body); margin-left: 6px; }
+
+/* Tab Navigation */
+.tab-nav {
+  display: flex; gap: 2px; flex: 1;
+  overflow-x: auto; scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 14px; height: 36px;
+  background: transparent; border: none; cursor: pointer;
+  font-family: var(--font-body); font-size: .8rem; font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: color var(--t-fast), background var(--t-fast);
+}
+.tab-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
+.tab-btn.active {
+  color: var(--gold-400);
+  background: rgba(202,138,4,.12);
+  box-shadow: inset 0 -2px 0 var(--gold-500);
+}
+.tab-btn .tab-icon { font-size: 1rem; }
+
+/* Language Toggle */
+.lang-toggle {
+  display: flex; gap: 2px;
+  background: var(--bg-card); border-radius: var(--radius-sm);
+  padding: 2px;
+}
+.lang-btn {
+  padding: 4px 10px; border: none; cursor: pointer;
+  background: transparent; border-radius: 4px;
+  font-size: .75rem; font-weight: 600; font-family: var(--font-body);
+  color: var(--text-muted);
+  transition: all var(--t-fast);
+}
+.lang-btn.active { background: var(--gold-500); color: #000; }
+
+/* Print Button */
+.print-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border: 1px solid var(--border);
+  background: transparent; cursor: pointer; border-radius: var(--radius-sm);
+  font-size: .75rem; color: var(--text-secondary); font-family: var(--font-body);
+  transition: all var(--t-fast);
+  white-space: nowrap;
+}
+.print-btn:hover { border-color: var(--gold-500); color: var(--gold-400); }
+
+/* ── Layout ── */
+.layout {
+  display: flex;
+  margin-top: var(--topbar-h);
+  min-height: calc(100dvh - var(--topbar-h));
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-w);
+  position: fixed; top: var(--topbar-h); left: 0;
+  bottom: 0; overflow-y: auto; overflow-x: hidden;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  padding: 16px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.sidebar-section { margin-bottom: 8px; }
+.sidebar-label {
+  font-size: .65rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-muted);
+  padding: 8px 16px 4px;
+}
+.sidebar-link {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 16px;
+  font-size: .8rem; color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--t-fast);
+  border-left: 2px solid transparent;
+}
+.sidebar-link:hover { color: var(--text-primary); background: var(--bg-hover); }
+.sidebar-link.active { color: var(--gold-400); border-left-color: var(--gold-500); background: rgba(202,138,4,.07); }
+
+/* Main Content */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1; padding: 32px 36px;
+  max-width: 960px;
+}
+
+/* ── Panels ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Page Header ── */
+.page-header { margin-bottom: 32px; }
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  color: var(--gold-400);
+  margin-bottom: 4px;
+}
+.page-header .meta {
+  font-size: .8rem; color: var(--text-muted);
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+.meta-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 2px 8px; border-radius: 20px;
+  font-size: .7rem;
+}
+
+/* ── Section Headings ── */
+.section { margin-bottom: 36px; }
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px; height: 18px;
+  background: var(--gold-500);
+  border-radius: 2px;
+}
+.subsection-title {
+  font-size: .9rem; font-weight: 600;
+  color: var(--text-primary);
+  margin: 20px 0 10px;
+}
+
+/* ── KPI Cards ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: border-color var(--t-base), transform var(--t-base);
+}
+.kpi-card:hover { border-color: var(--border-gold); transform: translateY(-1px); }
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--gold-400);
+  line-height: 1;
+}
+.kpi-label {
+  font-size: .72rem; color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* ── Info Cards ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card:hover { border-color: rgba(202,138,4,.25); }
+
+/* ── Accordion ── */
+.accordion { margin-bottom: 8px; }
+.accordion-header {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  font-size: .875rem; font-weight: 500;
+  list-style: none;
+  user-select: none;
+}
+.accordion-header:hover { border-color: var(--border-gold); color: var(--gold-400); }
+.accordion-header[open], details[open] > .accordion-header {
+  border-color: var(--border-gold);
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  color: var(--gold-400);
+}
+.accordion-chevron { transition: transform var(--t-fast); font-size: .75rem; color: var(--text-muted); }
+details[open] .accordion-chevron { transform: rotate(180deg); }
+.accordion-body {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-gold);
+  border-top: none;
+  border-bottom-left-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+  padding: 16px;
+  font-size: .85rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* ── Checklist ── */
+.checklist { list-style: none; }
+.checklist li {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 0;
+  font-size: .85rem; color: var(--text-secondary);
+  border-bottom: 1px solid var(--bg-elevated);
+}
+.checklist li:last-child { border: none; }
+.check-box {
+  width: 16px; height: 16px; border: 1.5px solid var(--border);
+  border-radius: 3px; flex-shrink: 0; margin-top: 2px;
+  display: flex; align-items: center; justify-content: center;
+}
+.check-box.done { background: var(--green); border-color: var(--green); color: #000; }
+.check-box.done::after { content: '✓'; font-size: .6rem; font-weight: 700; }
+
+/* ── API Blocks ── */
+.api-block { margin-bottom: 12px; }
+.api-method {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: .82rem; font-family: monospace;
+  width: 100%;
+  transition: border-color var(--t-fast);
+}
+.api-method:hover { border-color: var(--border-gold); }
+.method-badge {
+  font-size: .65rem; font-weight: 700; letter-spacing: .06em;
+  padding: 2px 7px; border-radius: 4px;
+  min-width: 44px; text-align: center;
+}
+.api-method.get  .method-badge { background: rgba(79,195,247,.15); color: var(--blue); }
+.api-method.post .method-badge { background: rgba(74,222,128,.15); color: var(--green); }
+.api-method.put  .method-badge { background: rgba(251,191,36,.15);  color: var(--yellow); }
+.api-method.delete .method-badge { background: rgba(248,113,113,.15); color: var(--red); }
+.api-path { color: var(--text-primary); flex: 1; }
+.api-desc { color: var(--text-muted); font-size: .75rem; margin-left: auto; }
+
+/* ── BDD Blocks ── */
+.bdd-block {
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.bdd-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  font-size: .78rem; font-weight: 600;
+  cursor: pointer;
+}
+.bdd-block.bdd-normal .bdd-header  { background: rgba(74,222,128,.08);  color: var(--green); }
+.bdd-block.bdd-edge   .bdd-header  { background: rgba(251,191,36,.08);   color: var(--yellow); }
+.bdd-block.bdd-error  .bdd-header  { background: rgba(248,113,113,.08);  color: var(--red); }
+.bdd-label {
+  font-size: .65rem; font-weight: 700; letter-spacing: .08em;
+  padding: 2px 6px; border-radius: 3px;
+}
+.bdd-block.bdd-normal .bdd-label { background: rgba(74,222,128,.2); }
+.bdd-block.bdd-edge   .bdd-label { background: rgba(251,191,36,.2); }
+.bdd-block.bdd-error  .bdd-label { background: rgba(248,113,113,.2); }
+.bdd-body {
+  background: var(--bg-surface);
+  padding: 14px;
+  font-family: monospace; font-size: .8rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+.bdd-keyword { color: var(--gold-400); font-weight: 600; }
+.bdd-value   { color: var(--blue); }
+
+/* ── SCRUM Story Cards ── */
+.story-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 12px;
+  transition: border-color var(--t-base);
+}
+.story-card:hover { border-color: var(--border-gold); }
+.story-top {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 12px;
+  margin-bottom: 12px;
+}
+.story-id {
+  font-size: .7rem; font-weight: 700;
+  color: var(--text-muted); letter-spacing: .08em;
+}
+.story-title {
+  font-size: .95rem; font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+.sp-badge {
+  flex-shrink: 0;
+  background: rgba(202,138,4,.15);
+  border: 1px solid var(--border-gold);
+  color: var(--gold-400);
+  font-size: .7rem; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px;
+  white-space: nowrap;
+}
+.story-meta {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-top: 12px;
+}
+.story-tag {
+  font-size: .68rem; padding: 2px 8px;
+  border-radius: 20px; border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.story-tag.server { border-color: rgba(74,222,128,.3); color: var(--green); }
+.story-tag.client { border-color: rgba(79,195,247,.3); color: var(--blue); }
+.story-tag.art    { border-color: rgba(192,132,252,.3); color: var(--purple); }
+.story-tag.qa     { border-color: rgba(251,191,36,.3);  color: var(--yellow); }
+.ac-list { margin-top: 12px; }
+.ac-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: .82rem; color: var(--text-secondary);
+  padding: 4px 0;
+}
+.ac-num {
+  min-width: 22px; font-size: .7rem;
+  color: var(--text-muted); font-weight: 600;
+}
+
+/* ── Resource Cards ── */
+.resource-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.resource-top {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 12px;
+  margin-bottom: 8px;
+}
+.resource-id {
+  font-size: .68rem; font-weight: 700;
+  color: var(--text-muted); letter-spacing: .08em;
+}
+.resource-name {
+  font-size: .9rem; font-weight: 600;
+  color: var(--text-primary);
+}
+.resource-type {
+  font-size: .65rem; padding: 2px 8px;
+  border-radius: 20px; font-weight: 600;
+}
+.resource-type.img   { background: rgba(79,195,247,.15);  color: var(--blue); }
+.resource-type.anim  { background: rgba(192,132,252,.15); color: var(--purple); }
+.resource-type.sfx   { background: rgba(74,222,128,.15);  color: var(--green); }
+.resource-type.fx    { background: rgba(251,191,36,.15);   color: var(--yellow); }
+.resource-spec {
+  font-size: .78rem; color: var(--text-muted);
+  margin: 6px 0;
+}
+.prompt-block {
+  position: relative;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 40px 10px 12px;
+  font-size: .75rem; color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 8px;
+  font-style: italic;
+}
+.copy-btn {
+  position: absolute; top: 6px; right: 6px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 4px; cursor: pointer;
+  padding: 3px 7px; font-size: .65rem; color: var(--text-muted);
+  transition: all var(--t-fast);
+  font-family: var(--font-body);
+}
+.copy-btn:hover { border-color: var(--gold-500); color: var(--gold-400); }
+.copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+/* ── Sprint Timeline ── */
+.sprint-timeline { display: flex; flex-direction: column; gap: 12px; }
+.sprint-row {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex; align-items: center; gap: 16px;
+  transition: border-color var(--t-fast);
+}
+.sprint-row:hover { border-color: var(--border-gold); }
+.sprint-num {
+  font-family: var(--font-display);
+  font-size: 1.2rem; color: var(--gold-400);
+  min-width: 32px;
+}
+.sprint-info { flex: 1; }
+.sprint-title { font-size: .9rem; font-weight: 600; color: var(--text-primary); }
+.sprint-desc  { font-size: .78rem; color: var(--text-muted); margin-top: 2px; }
+.sprint-sp {
+  font-size: .8rem; font-weight: 700;
+  color: var(--gold-400);
+  background: rgba(202,138,4,.1);
+  padding: 4px 10px; border-radius: var(--radius-sm);
+}
+.sprint-weeks {
+  font-size: .75rem; color: var(--text-muted);
+  text-align: right;
+}
+
+/* ── Comparison Table ── */
+.comp-table {
+  width: 100%; border-collapse: collapse;
+  font-size: .82rem;
+  margin-bottom: 24px;
+}
+.comp-table th {
+  background: var(--bg-elevated);
+  color: var(--gold-400);
+  padding: 10px 14px; text-align: left;
+  font-weight: 600; font-size: .75rem;
+  letter-spacing: .04em;
+  border-bottom: 1px solid var(--border-gold);
+}
+.comp-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+.comp-table tr:hover td { background: var(--bg-hover); }
+.cell-yes { color: var(--green); }
+.cell-no  { color: var(--red); }
+.cell-partial { color: var(--yellow); }
+
+/* ── User Journey ── */
+.journey { display: flex; flex-direction: column; gap: 0; }
+.journey-step {
+  display: flex; gap: 16px;
+  padding: 16px 0;
+  border-left: 2px solid var(--border);
+  padding-left: 20px;
+  margin-left: 12px;
+  position: relative;
+}
+.journey-step::before {
+  content: '';
+  position: absolute; left: -7px; top: 22px;
+  width: 12px; height: 12px;
+  background: var(--bg-base); border: 2px solid var(--border);
+  border-radius: 50%;
+}
+.journey-step.active::before { background: var(--gold-500); border-color: var(--gold-500); }
+.journey-step:last-child { border-left-color: transparent; }
+.step-num {
+  font-family: var(--font-display);
+  font-size: .7rem; color: var(--text-muted);
+  min-width: 24px; padding-top: 2px;
+}
+.step-content { flex: 1; }
+.step-title { font-size: .9rem; font-weight: 600; color: var(--text-primary); }
+.step-desc  { font-size: .82rem; color: var(--text-secondary); margin-top: 3px; }
+.step-emotion {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .7rem; color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ── Tags / Pill Badges ── */
+.tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.tag {
+  font-size: .68rem; padding: 2px 8px;
+  border-radius: 20px; font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* ── Callout ── */
+.callout {
+  display: flex; gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold-500);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: .83rem; color: var(--text-secondary);
+  margin: 12px 0;
+}
+.callout.warn  { border-left-color: var(--yellow); }
+.callout.error { border-left-color: var(--red); }
+.callout.info  { border-left-color: var(--blue); }
+
+/* ── Code Block ── */
+.code-block {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  overflow-x: auto;
+  font-size: .8rem; line-height: 1.7;
+  color: var(--text-secondary);
+  margin: 8px 0;
+}
+.code-block .c-kw   { color: var(--purple); }
+.code-block .c-str  { color: var(--green); }
+.code-block .c-num  { color: var(--orange); }
+.code-block .c-cmt  { color: var(--text-muted); font-style: italic; }
+.code-block .c-fn   { color: var(--blue); }
+
+/* ── Arch Diagram ── */
+.arch-diagram {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  font-family: monospace; font-size: .75rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  white-space: pre;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .sidebar { width: 180px; }
+  .main { margin-left: 180px; padding: 24px 20px; }
+}
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 20px 16px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .topbar-logo span { display: none; }
+}
+
+/* ── Print ── */
+@media print {
+  .topbar, .sidebar, .tab-nav, .lang-toggle, .print-btn, .copy-btn { display: none !important; }
+  .main { margin: 0; padding: 20px; max-width: none; }
+  .panel { display: block !important; }
+  .panel::before { content: attr(data-title); font-size: 1.4rem; font-weight: 700; display: block; margin: 24px 0 12px; page-break-before: always; }
+}
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* ── Bilingual ── */
+[data-lang="zh"] .lang-en { display: none; }
+[data-lang="en"] .lang-zh { display: none; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
+</head>
+<body data-lang="zh">
+<a href="#main-content" class="skip-link lang-zh">跳至主要內容</a>
+<a href="#main-content" class="skip-link lang-en">Skip to main content</a>
+
+<!-- ── Topbar ── -->
+<header class="topbar" role="banner">
+  <div class="topbar-logo">
+    ⚡ GeneCR
+    <span class="lang-zh">每日簽到系統</span>
+    <span class="lang-en">Daily Check-in</span>
+  </div>
+  <nav class="tab-nav" role="tablist" aria-label="文件分頁">
+    <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-spec" onclick="switchTab('spec',this)">
+      <span class="tab-icon">📋</span>
+      <span class="lang-zh">企畫版</span><span class="lang-en">Spec</span>
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-tech" onclick="switchTab('tech',this)">
+      <span class="tab-icon">⚙️</span>
+      <span class="lang-zh">技術版</span><span class="lang-en">Tech</span>
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-assets" onclick="switchTab('assets',this)">
+      <span class="tab-icon">🎨</span>
+      <span class="lang-zh">資源清單</span><span class="lang-en">Assets</span>
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-bdd" onclick="switchTab('bdd',this)">
+      <span class="tab-icon">🧪</span>BDD
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-scrum" onclick="switchTab('scrum',this)">
+      <span class="tab-icon">📌</span>SCRUM
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-sprint" onclick="switchTab('sprint',this)">
+      <span class="tab-icon">🏃</span>
+      <span class="lang-zh">時程</span><span class="lang-en">Timeline</span>
+    </button>
+  </nav>
+  <div class="lang-toggle" role="group" aria-label="語言切換">
+    <button class="lang-btn active" onclick="setLang('zh')" aria-label="繁體中文">繁中</button>
+    <button class="lang-btn" onclick="setLang('en')" aria-label="English">EN</button>
+  </div>
+  <button class="print-btn" onclick="window.print()" aria-label="列印">🖨 <span class="lang-zh">列印</span><span class="lang-en">Print</span></button>
+</header>
+
+<div class="layout">
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar" role="navigation" aria-label="快速導覽">
+    <div class="sidebar-section">
+      <div class="sidebar-label lang-zh">企畫版</div>
+      <div class="sidebar-label lang-en">Spec</div>
+      <a class="sidebar-link" onclick="jumpTo('spec','s-overview')">
+        <span class="lang-zh">功能概述</span><span class="lang-en">Overview</span>
+      </a>
+      <a class="sidebar-link" onclick="jumpTo('spec','s-competitor')">
+        <span class="lang-zh">競業分析</span><span class="lang-en">Competitors</span>
+      </a>
+      <a class="sidebar-link" onclick="jumpTo('spec','s-journey')">
+        <span class="lang-zh">用戶旅程</span><span class="lang-en">User Journey</span>
+      </a>
+      <a class="sidebar-link" onclick="jumpTo('spec','s-features')">
+        <span class="lang-zh">功能列表</span><span class="lang-en">Features</span>
+      </a>
+      <a class="sidebar-link" onclick="jumpTo('spec','s-rewards')">
+        <span class="lang-zh">獎勵機制</span><span class="lang-en">Rewards</span>
+      </a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label lang-zh">技術版</div>
+      <div class="sidebar-label lang-en">Tech</div>
+      <a class="sidebar-link" onclick="jumpTo('tech','t-arch')">
+        <span class="lang-zh">系統架構</span><span class="lang-en">Architecture</span>
+      </a>
+      <a class="sidebar-link" onclick="jumpTo('tech','t-api')">API</a>
+      <a class="sidebar-link" onclick="jumpTo('tech','t-db')">
+        <span class="lang-zh">資料庫</span><span class="lang-en">Database</span>
+      </a>
+      <a class="sidebar-link" onclick="jumpTo('tech','t-logic')">
+        <span class="lang-zh">業務邏輯</span><span class="lang-en">Business Logic</span>
+      </a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label lang-zh">其他</div>
+      <div class="sidebar-label lang-en">More</div>
+      <a class="sidebar-link" onclick="switchTab('assets',document.querySelector('[onclick*=assets]'))">
+        <span class="lang-zh">資源清單</span><span class="lang-en">Assets</span>
+      </a>
+      <a class="sidebar-link" onclick="switchTab('bdd',document.querySelector('[onclick*=bdd]'))">BDD</a>
+      <a class="sidebar-link" onclick="switchTab('scrum',document.querySelector('[onclick*=scrum]'))">SCRUM</a>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main" id="main-content" role="main">
+
+    <!-- ======================================
+         TAB 1: 企畫版
+    ======================================= -->
+    <div id="panel-spec" class="panel active" role="tabpanel" data-title="Spec">
+      <div class="page-header">
+        <h1 class="lang-zh">📋 企畫需求規格書</h1>
+        <h1 class="lang-en">📋 Product Requirement Spec</h1>
+        <div class="meta">
+          <span class="meta-badge">v1.0</span>
+          <span class="meta-badge lang-zh">📅 {{日期}}</span>
+          <span class="meta-badge lang-en">📅 {{Date}}</span>
+          <span class="meta-badge lang-zh">🏷 Epic: {{功能名稱}}</span>
+          <span class="meta-badge lang-en">🏷 Epic: {{FeatureName}}</span>
+        </div>
+      </div>
+
+      <!-- 功能概述 -->
+      <section class="section" id="s-overview">
+        <h2 class="section-title lang-zh">功能概述</h2>
+        <h2 class="section-title lang-en">Overview</h2>
+        <div class="card">
+          <p class="lang-zh" style="color:var(--text-secondary);font-size:.88rem;line-height:1.8">
+            {{功能描述：用 2–3 句話說明這個功能是什麼、為什麼要做、對玩家的價值。}}
+          </p>
+          <p class="lang-en" style="color:var(--text-secondary);font-size:.88rem;line-height:1.8">
+            {{Feature description in English.}}
+          </p>
+          <div class="kpi-grid" style="margin-top:16px">
+            <div class="kpi-card">
+              <div class="kpi-value">{{12}}</div>
+              <div class="kpi-label lang-zh">故事卡</div>
+              <div class="kpi-label lang-en">Story Cards</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-value">{{68}}</div>
+              <div class="kpi-label">Story Points</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-value">{{6W}}</div>
+              <div class="kpi-label lang-zh">預計上線</div>
+              <div class="kpi-label lang-en">ETA</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-value">{{3}}</div>
+              <div class="kpi-label">Sprints</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 競業分析 -->
+      <section class="section" id="s-competitor">
+        <h2 class="section-title lang-zh">競業分析摘要</h2>
+        <h2 class="section-title lang-en">Competitive Analysis</h2>
+        <table class="comp-table" aria-label="競業比較表">
+          <thead>
+            <tr>
+              <th class="lang-zh">平台</th><th class="lang-en">Platform</th>
+              <th class="lang-zh">市場</th><th class="lang-en">Market</th>
+              <th class="lang-zh">特色</th><th class="lang-en">Feature</th>
+              <th class="lang-zh">我方</th><th class="lang-en">Us</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{競業A}}</td>
+              <td class="lang-zh">亞洲</td><td class="lang-en">Asia</td>
+              <td>{{特色描述}}</td>
+              <td class="cell-yes">✓</td>
+            </tr>
+            <tr>
+              <td>{{競業B}}</td>
+              <td class="lang-zh">北美</td><td class="lang-en">North America</td>
+              <td>{{特色描述}}</td>
+              <td class="cell-partial">△</td>
+            </tr>
+            <tr>
+              <td>{{競業C}}</td>
+              <td class="lang-zh">東南亞</td><td class="lang-en">SEA</td>
+              <td>{{特色描述}}</td>
+              <td class="cell-no">✗</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout info">
+          <span>💡</span>
+          <span class="lang-zh">以上分析來自競業調查，詳細來源 URL 請參閱規格書附錄。</span>
+          <span class="lang-en">Source URLs for competitive research are in the appendix.</span>
+        </div>
+      </section>
+
+      <!-- 用戶旅程 -->
+      <section class="section" id="s-journey">
+        <h2 class="section-title lang-zh">用戶旅程</h2>
+        <h2 class="section-title lang-en">User Journey</h2>
+        <div class="journey">
+          <div class="journey-step active">
+            <div class="step-num">01</div>
+            <div class="step-content">
+              <div class="step-title lang-zh">{{步驟標題}}</div>
+              <div class="step-title lang-en">{{Step Title}}</div>
+              <div class="step-desc lang-zh">{{步驟描述：玩家做了什麼、看到了什麼}}</div>
+              <div class="step-desc lang-en">{{Step description}}</div>
+              <div class="step-emotion">😊 <span class="lang-zh">情緒：期待</span><span class="lang-en">Emotion: Anticipation</span></div>
+            </div>
+          </div>
+          <div class="journey-step">
+            <div class="step-num">02</div>
+            <div class="step-content">
+              <div class="step-title lang-zh">{{步驟標題}}</div>
+              <div class="step-title lang-en">{{Step Title}}</div>
+              <div class="step-desc lang-zh">{{步驟描述}}</div>
+              <div class="step-desc lang-en">{{Step description}}</div>
+              <div class="step-emotion">🎉 <span class="lang-zh">情緒：興奮</span><span class="lang-en">Emotion: Excitement</span></div>
+            </div>
+          </div>
+          <div class="journey-step">
+            <div class="step-num">03</div>
+            <div class="step-content">
+              <div class="step-title lang-zh">{{步驟標題}}</div>
+              <div class="step-title lang-en">{{Step Title}}</div>
+              <div class="step-desc lang-zh">{{步驟描述}}</div>
+              <div class="step-desc lang-en">{{Step description}}</div>
+              <div class="step-emotion">🏆 <span class="lang-zh">情緒：成就感</span><span class="lang-en">Emotion: Achievement</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 功能列表 -->
+      <section class="section" id="s-features">
+        <h2 class="section-title lang-zh">核心功能列表</h2>
+        <h2 class="section-title lang-en">Feature List</h2>
+
+        <h3 class="subsection-title lang-zh">✅ MVP（必做）</h3>
+        <h3 class="subsection-title lang-en">✅ MVP (Required)</h3>
+        <ul class="checklist">
+          <li><span class="check-box"></span><span class="lang-zh">{{MVP 功能 1}}</span><span class="lang-en">{{MVP Feature 1}}</span></li>
+          <li><span class="check-box"></span><span class="lang-zh">{{MVP 功能 2}}</span><span class="lang-en">{{MVP Feature 2}}</span></li>
+          <li><span class="check-box"></span><span class="lang-zh">{{MVP 功能 3}}</span><span class="lang-en">{{MVP Feature 3}}</span></li>
+        </ul>
+
+        <h3 class="subsection-title" style="margin-top:20px">
+          <span class="lang-zh">⭐ Nice to Have</span>
+          <span class="lang-en">⭐ Nice to Have</span>
+        </h3>
+        <ul class="checklist">
+          <li><span class="check-box"></span><span>{{Nice-to-have 1}}</span></li>
+          <li><span class="check-box"></span><span>{{Nice-to-have 2}}</span></li>
+        </ul>
+      </section>
+
+      <!-- 獎勵機制 -->
+      <section class="section" id="s-rewards">
+        <h2 class="section-title lang-zh">獎勵與激勵機制</h2>
+        <h2 class="section-title lang-en">Reward & Incentive Design</h2>
+        <div class="card">
+          <p class="lang-zh" style="color:var(--text-secondary);font-size:.85rem;line-height:1.8">
+            {{獎勵機制說明：積分計算、獎品結構、發放時機、防作弊措施。}}
+          </p>
+          <p class="lang-en" style="color:var(--text-secondary);font-size:.85rem;line-height:1.8">
+            {{Reward mechanism description in English.}}
+          </p>
+          <div class="callout warn" style="margin-top:12px">
+            <span>⚠️</span>
+            <span class="lang-zh">防作弊考量：{{列出主要防作弊機制}}</span>
+            <span class="lang-en">Anti-cheat: {{List main anti-cheat mechanisms}}</span>
+          </div>
+        </div>
+      </section>
+    </div><!-- /panel-spec -->
+
+    <!-- ======================================
+         TAB 2: 技術版
+    ======================================= -->
+    <div id="panel-tech" class="panel" role="tabpanel" data-title="Tech Spec">
+      <div class="page-header">
+        <h1 class="lang-zh">⚙️ 技術規格書</h1>
+        <h1 class="lang-en">⚙️ Technical Specification</h1>
+        <div class="meta">
+          <span class="meta-badge">Node.js + MongoDB + Redis</span>
+          <span class="meta-badge">Cocos Creator</span>
+        </div>
+      </div>
+
+      <!-- 系統架構 -->
+      <section class="section" id="t-arch">
+        <h2 class="section-title lang-zh">系統架構概覽</h2>
+        <h2 class="section-title lang-en">System Architecture</h2>
+        <div class="arch-diagram" aria-label="系統架構圖">
+┌─────────────────────────────────────────────────────┐
+│                    Client Layer                      │
+│  ┌───────────────────┐   ┌──────────────────────┐   │
+│  │  Cocos Creator    │   │   Web Admin Panel    │   │
+│  │  (Mobile/Desktop) │   │   (React / Vue)      │   │
+│  └────────┬──────────┘   └──────────┬───────────┘   │
+└───────────┼──────────────────────────┼───────────────┘
+            │  REST / WebSocket        │  REST
+┌───────────┼──────────────────────────┼───────────────┐
+│           ▼       API Gateway        ▼               │
+│   ┌───────────────────────────────────────────┐      │
+│   │          Node.js / Express Server          │      │
+│   │  ┌─────────┐ ┌──────────┐ ┌────────────┐  │      │
+│   │  │ Auth MW │ │ Rate Lmt │ │  Business  │  │      │
+│   │  └─────────┘ └──────────┘ │   Logic    │  │      │
+│   │                           └────────────┘  │      │
+│   └─────────────────┬─────────────────────────┘      │
+│                     │                                 │
+│   ┌─────────────────┼─────────────────────────┐      │
+│   │                 ▼                          │      │
+│   │  ┌────────────────────┐  ┌──────────────┐ │      │
+│   │  │    MongoDB         │  │    Redis      │ │      │
+│   │  │ (Primary Storage)  │  │  (Cache/Lock) │ │      │
+│   │  └────────────────────┘  └──────────────┘ │      │
+│   └─────────────────────────────────────────┘  │      │
+└─────────────────────────────────────────────────┘
+        </div>
+      </section>
+
+      <!-- API -->
+      <section class="section" id="t-api">
+        <h2 class="section-title">API Endpoints</h2>
+        <div class="api-block">
+          <div class="api-method post">
+            <span class="method-badge">POST</span>
+            <span class="api-path">/api/v1/{{feature}}/action</span>
+            <span class="api-desc lang-zh">核心操作</span>
+            <span class="api-desc lang-en">Core action</span>
+          </div>
+        </div>
+        <div class="api-block">
+          <div class="api-method get">
+            <span class="method-badge">GET</span>
+            <span class="api-path">/api/v1/{{feature}}/status</span>
+            <span class="api-desc lang-zh">狀態查詢</span>
+            <span class="api-desc lang-en">Status query</span>
+          </div>
+        </div>
+        <div class="api-block">
+          <div class="api-method get">
+            <span class="method-badge">GET</span>
+            <span class="api-path">/api/v1/{{feature}}/config</span>
+            <span class="api-desc lang-zh">設定讀取</span>
+            <span class="api-desc lang-en">Config read</span>
+          </div>
+        </div>
+        <div class="api-block">
+          <div class="api-method put">
+            <span class="method-badge">PUT</span>
+            <span class="api-path">/api/v1/admin/{{feature}}/config</span>
+            <span class="api-desc lang-zh">後台設定更新</span>
+            <span class="api-desc lang-en">Admin config update</span>
+          </div>
+        </div>
+
+        <details class="accordion" style="margin-top:16px">
+          <summary class="accordion-header">
+            <span class="lang-zh">📦 Request / Response 範例</span>
+            <span class="lang-en">📦 Request / Response Example</span>
+            <span class="accordion-chevron">▼</span>
+          </summary>
+          <div class="accordion-body">
+            <div class="code-block"><span class="c-cmt">// POST /api/v1/{{feature}}/action — Response</span>
+{
+  <span class="c-str">"success"</span>: <span class="c-kw">true</span>,
+  <span class="c-str">"reward"</span>: { <span class="c-str">"type"</span>: <span class="c-str">"POINTS"</span>, <span class="c-str">"amount"</span>: <span class="c-num">100</span> },
+  <span class="c-str">"streak"</span>: <span class="c-num">7</span>,
+  <span class="c-str">"dayIndex"</span>: <span class="c-num">7</span>,
+  <span class="c-str">"nextReward"</span>: { <span class="c-str">"type"</span>: <span class="c-str">"FREE_SPINS"</span>, <span class="c-str">"amount"</span>: <span class="c-num">3</span> }
+}</div>
+          </div>
+        </details>
+      </section>
+
+      <!-- DB Schema -->
+      <section class="section" id="t-db">
+        <h2 class="section-title lang-zh">資料庫 Schema</h2>
+        <h2 class="section-title lang-en">Database Schema</h2>
+        <details class="accordion">
+          <summary class="accordion-header">
+            <span class="lang-zh">📄 MongoDB Collections</span>
+            <span class="lang-en">📄 MongoDB Collections</span>
+            <span class="accordion-chevron">▼</span>
+          </summary>
+          <div class="accordion-body">
+            <div class="code-block"><span class="c-cmt">// {{feature}}_logs collection</span>
+{
+  _id: ObjectId,
+  <span class="c-str">userId</span>: String,   <span class="c-cmt">// indexed</span>
+  <span class="c-str">date</span>: String,    <span class="c-cmt">// "YYYY-MM-DD" UTC+8</span>
+  <span class="c-str">reward</span>: Object,
+  <span class="c-str">createdAt</span>: Date
+}
+<span class="c-cmt">// Unique Index: { userId: 1, date: 1 }</span></div>
+          </div>
+        </details>
+        <details class="accordion">
+          <summary class="accordion-header">
+            <span class="lang-zh">⚡ Redis 快取策略</span>
+            <span class="lang-en">⚡ Redis Cache Strategy</span>
+            <span class="accordion-chevron">▼</span>
+          </summary>
+          <div class="accordion-body">
+            <ul class="checklist">
+              <li><span class="check-box done"></span><span class="lang-zh">分散式鎖：<code>SET {{feature}}:lock:{userId} NX EX 10</code></span><span class="lang-en">Distributed lock: <code>SET {{feature}}:lock:{userId} NX EX 10</code></span></li>
+              <li><span class="check-box done"></span><span class="lang-zh">狀態快取 TTL: 86400s（每日重置）</span><span class="lang-en">Status cache TTL: 86400s (daily reset)</span></li>
+              <li><span class="check-box done"></span><span class="lang-zh">設定快取 TTL: 300s</span><span class="lang-en">Config cache TTL: 300s</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+
+      <!-- 業務邏輯 -->
+      <section class="section" id="t-logic">
+        <h2 class="section-title lang-zh">核心業務邏輯</h2>
+        <h2 class="section-title lang-en">Core Business Logic</h2>
+        <div class="callout">
+          <span>📝</span>
+          <span class="lang-zh">以下為偽代碼說明，實作時請依實際語言語法調整。</span>
+          <span class="lang-en">Pseudocode below. Adjust syntax for actual implementation language.</span>
+        </div>
+        <div class="code-block"><span class="c-fn">async function</span> <span class="c-fn">processAction</span>(userId) {
+  <span class="c-cmt">// 1. Acquire distributed lock</span>
+  <span class="c-kw">const</span> lock = <span class="c-kw">await</span> redis.<span class="c-fn">set</span>(`lock:${userId}`, <span class="c-str">"1"</span>, <span class="c-str">"NX"</span>, <span class="c-str">"EX"</span>, <span class="c-num">10</span>);
+  <span class="c-kw">if</span> (!lock) <span class="c-kw">throw</span> <span class="c-fn">Error</span>(<span class="c-str">"LOCK_FAILED"</span>);
+
+  <span class="c-cmt">// 2. Check duplicate</span>
+  <span class="c-kw">const</span> today = <span class="c-fn">getTodayUTC8</span>();
+  <span class="c-kw">const</span> existing = <span class="c-kw">await</span> db.<span class="c-fn">findOne</span>({ userId, date: today });
+  <span class="c-kw">if</span> (existing) <span class="c-kw">throw</span> <span class="c-fn">Error</span>(<span class="c-str">"ALREADY_DONE_TODAY"</span>);
+
+  <span class="c-cmt">// 3. MongoDB transaction</span>
+  <span class="c-kw">const</span> session = <span class="c-kw">await</span> db.<span class="c-fn">startSession</span>();
+  <span class="c-kw">await</span> session.<span class="c-fn">withTransaction</span>(<span class="c-kw">async</span> () => {
+    <span class="c-kw">await</span> logs.<span class="c-fn">insertOne</span>({ userId, date: today, reward });
+    <span class="c-kw">await</span> rewardEngine.<span class="c-fn">grant</span>(userId, reward);
+  });
+}</div>
+      </section>
+    </div><!-- /panel-tech -->
+
+    <!-- ======================================
+         TAB 3: 資源清單
+    ======================================= -->
+    <div id="panel-assets" class="panel" role="tabpanel" data-title="Assets">
+      <div class="page-header">
+        <h1 class="lang-zh">🎨 資源清單與 AI Prompt</h1>
+        <h1 class="lang-en">🎨 Asset List &amp; AI Prompts</h1>
+        <div class="meta">
+          <span class="meta-badge lang-zh">{{N}} 個資源</span>
+          <span class="meta-badge lang-en">{{N}} Assets</span>
+        </div>
+      </div>
+
+      <div class="resource-card">
+        <div class="resource-top">
+          <div>
+            <div class="resource-id">IMG-001</div>
+            <div class="resource-name lang-zh">{{資源名稱}}</div>
+            <div class="resource-name lang-en">{{Asset Name}}</div>
+          </div>
+          <span class="resource-type img">Image</span>
+        </div>
+        <div class="resource-spec lang-zh">尺寸：1080×1920px · PNG · 透明背景</div>
+        <div class="resource-spec lang-en">Size: 1080×1920px · PNG · Transparent</div>
+        <div class="prompt-block" id="prompt-001">
+          {{英文 AI 生成 Prompt：描述風格、色調、構圖、光影細節，包含 negative prompt}}
+          <button class="copy-btn" onclick="copyPrompt('prompt-001',this)" aria-label="複製 Prompt">Copy</button>
+        </div>
+      </div>
+
+      <div class="resource-card">
+        <div class="resource-top">
+          <div>
+            <div class="resource-id">ANI-001</div>
+            <div class="resource-name lang-zh">{{動畫名稱}}</div>
+            <div class="resource-name lang-en">{{Animation Name}}</div>
+          </div>
+          <span class="resource-type anim">Animation</span>
+        </div>
+        <div class="resource-spec lang-zh">格式：Spine · 60fps · 循環：否</div>
+        <div class="resource-spec lang-en">Format: Spine · 60fps · Loop: No</div>
+        <div class="prompt-block" id="prompt-ani-001">
+          {{動畫 AI Prompt：描述動作、時機、粒子特效細節}}
+          <button class="copy-btn" onclick="copyPrompt('prompt-ani-001',this)" aria-label="複製 Prompt">Copy</button>
+        </div>
+      </div>
+
+      <div class="resource-card">
+        <div class="resource-top">
+          <div>
+            <div class="resource-id">SFX-001</div>
+            <div class="resource-name lang-zh">{{音效名稱}}</div>
+            <div class="resource-name lang-en">{{SFX Name}}</div>
+          </div>
+          <span class="resource-type sfx">SFX</span>
+        </div>
+        <div class="resource-spec lang-zh">時長：約 1.5 秒 · WAV/OGG · 循環：否</div>
+        <div class="resource-spec lang-en">Duration: ~1.5s · WAV/OGG · Loop: No</div>
+        <div class="prompt-block" id="prompt-sfx-001">
+          {{音效 Prompt：情境、樂器、節奏、情緒描述}}
+          <button class="copy-btn" onclick="copyPrompt('prompt-sfx-001',this)" aria-label="複製 Prompt">Copy</button>
+        </div>
+      </div>
+    </div><!-- /panel-assets -->
+
+    <!-- ======================================
+         TAB 4: BDD
+    ======================================= -->
+    <div id="panel-bdd" class="panel" role="tabpanel" data-title="BDD">
+      <div class="page-header">
+        <h1>🧪 BDD 測試案例</h1>
+        <div class="meta">
+          <span class="meta-badge lang-zh">正常 {{N}} + 邊界 {{N}} + 異常 {{N}}</span>
+          <span class="meta-badge lang-en">Normal {{N}} + Edge {{N}} + Error {{N}}</span>
+        </div>
+      </div>
+
+      <section class="section">
+        <h2 class="section-title lang-zh">正常流程</h2>
+        <h2 class="section-title lang-en">Normal Flow</h2>
+
+        <div class="bdd-block bdd-normal">
+          <div class="bdd-header" onclick="toggleBdd(this)">
+            <span class="bdd-label">NORMAL</span>
+            <span class="lang-zh">{{正常情境標題}}</span>
+            <span class="lang-en">{{Normal Scenario Title}}</span>
+            <span style="margin-left:auto;font-size:.75rem;color:var(--text-muted)">▼</span>
+          </div>
+          <div class="bdd-body" style="display:none"><span class="bdd-keyword">Scenario:</span> <span>{{情境名稱}}</span>
+  <span class="bdd-keyword">Given</span> <span class="bdd-value">{{前置條件}}</span>
+  <span class="bdd-keyword">When</span>  <span class="bdd-value">{{玩家動作}}</span>
+  <span class="bdd-keyword">Then</span>  <span class="bdd-value">{{預期結果}}</span>
+  <span class="bdd-keyword">And</span>   <span class="bdd-value">{{附加驗證}}</span></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title lang-zh">邊界值測試</h2>
+        <h2 class="section-title lang-en">Edge Cases</h2>
+
+        <div class="bdd-block bdd-edge">
+          <div class="bdd-header" onclick="toggleBdd(this)">
+            <span class="bdd-label">EDGE</span>
+            <span class="lang-zh">{{邊界情境標題}}</span>
+            <span class="lang-en">{{Edge Scenario Title}}</span>
+            <span style="margin-left:auto;font-size:.75rem;color:var(--text-muted)">▼</span>
+          </div>
+          <div class="bdd-body" style="display:none"><span class="bdd-keyword">Scenario:</span> <span>{{邊界情境名稱}}</span>
+  <span class="bdd-keyword">Given</span> <span class="bdd-value">{{邊界條件}}</span>
+  <span class="bdd-keyword">When</span>  <span class="bdd-value">{{觸發動作}}</span>
+  <span class="bdd-keyword">Then</span>  <span class="bdd-value">{{邊界處理結果}}</span></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title lang-zh">異常與錯誤處理</h2>
+        <h2 class="section-title lang-en">Error Handling</h2>
+
+        <div class="bdd-block bdd-error">
+          <div class="bdd-header" onclick="toggleBdd(this)">
+            <span class="bdd-label">ERROR</span>
+            <span class="lang-zh">{{異常情境標題}}</span>
+            <span class="lang-en">{{Error Scenario Title}}</span>
+            <span style="margin-left:auto;font-size:.75rem;color:var(--text-muted)">▼</span>
+          </div>
+          <div class="bdd-body" style="display:none"><span class="bdd-keyword">Scenario:</span> <span>{{異常情境名稱}}</span>
+  <span class="bdd-keyword">Given</span> <span class="bdd-value">{{異常前置狀態}}</span>
+  <span class="bdd-keyword">When</span>  <span class="bdd-value">{{觸發動作}}</span>
+  <span class="bdd-keyword">Then</span>  <span class="bdd-value">{{錯誤訊息或降級處理}}</span></div>
+        </div>
+      </section>
+    </div><!-- /panel-bdd -->
+
+    <!-- ======================================
+         TAB 5: SCRUM
+    ======================================= -->
+    <div id="panel-scrum" class="panel" role="tabpanel" data-title="SCRUM">
+      <div class="page-header">
+        <h1 class="lang-zh">📌 SCRUM 故事卡</h1>
+        <h1 class="lang-en">📌 SCRUM Story Cards</h1>
+        <div class="meta">
+          <span class="meta-badge lang-zh">{{N}} 張故事卡 · 總 {{N}} SP</span>
+          <span class="meta-badge lang-en">{{N}} Stories · {{N}} SP Total</span>
+        </div>
+      </div>
+
+      <section class="section">
+        <h2 class="section-title lang-zh">🏗️ 基礎建設</h2>
+        <h2 class="section-title lang-en">🏗️ Infrastructure</h2>
+
+        <div class="story-card">
+          <div class="story-top">
+            <div>
+              <div class="story-id">#{{FEAT}}-01</div>
+              <div class="story-title lang-zh">{{故事標題}}</div>
+              <div class="story-title lang-en">{{Story Title}}</div>
+            </div>
+            <div class="sp-badge">{{8}} SP</div>
+          </div>
+          <div style="font-size:.82rem;color:var(--text-secondary)">
+            <span class="lang-zh"><strong style="color:var(--text-primary)">作為</strong> {{角色}}，<strong style="color:var(--text-primary)">我想要</strong> {{功能}}<strong style="color:var(--text-primary)">，以便</strong> {{目的}}</span>
+            <span class="lang-en"><strong style="color:var(--text-primary)">As a</strong> {{role}}, <strong style="color:var(--text-primary)">I want</strong> {{feature}} <strong style="color:var(--text-primary)">so that</strong> {{purpose}}</span>
+          </div>
+          <div class="ac-list">
+            <div class="ac-item"><span class="ac-num">AC1</span><span class="lang-zh">{{驗收標準 1}}</span><span class="lang-en">{{Acceptance Criteria 1}}</span></div>
+            <div class="ac-item"><span class="ac-num">AC2</span><span class="lang-zh">{{驗收標準 2}}</span><span class="lang-en">{{Acceptance Criteria 2}}</span></div>
+            <div class="ac-item"><span class="ac-num">AC3</span><span class="lang-zh">{{驗收標準 3}}</span><span class="lang-en">{{Acceptance Criteria 3}}</span></div>
+          </div>
+          <div class="story-meta">
+            <span class="story-tag server">Server (Node.js)</span>
+            <span class="story-tag lang-zh">依賴：無</span>
+            <span class="story-tag lang-en">Depends: None</span>
+          </div>
+        </div>
+
+        <div class="story-card">
+          <div class="story-top">
+            <div>
+              <div class="story-id">#{{FEAT}}-02</div>
+              <div class="story-title lang-zh">{{故事標題 2}}</div>
+              <div class="story-title lang-en">{{Story Title 2}}</div>
+            </div>
+            <div class="sp-badge">{{5}} SP</div>
+          </div>
+          <div style="font-size:.82rem;color:var(--text-secondary)">
+            <span class="lang-zh"><strong style="color:var(--text-primary)">作為</strong> {{角色}}，<strong style="color:var(--text-primary)">我想要</strong> {{功能}}，<strong style="color:var(--text-primary)">以便</strong> {{目的}}</span>
+            <span class="lang-en"><strong style="color:var(--text-primary)">As a</strong> {{role}}, <strong style="color:var(--text-primary)">I want</strong> {{feature}} <strong style="color:var(--text-primary)">so that</strong> {{purpose}}</span>
+          </div>
+          <div class="ac-list">
+            <div class="ac-item"><span class="ac-num">AC1</span><span>{{驗收標準}}</span></div>
+            <div class="ac-item"><span class="ac-num">AC2</span><span>{{驗收標準}}</span></div>
+          </div>
+          <div class="story-meta">
+            <span class="story-tag client">Client (Cocos)</span>
+            <span class="story-tag server">Server (Node.js)</span>
+            <span class="story-tag lang-zh">依賴：#{{FEAT}}-01</span>
+            <span class="story-tag lang-en">Depends: #{{FEAT}}-01</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title lang-zh">🎨 美術與動畫</h2>
+        <h2 class="section-title lang-en">🎨 Art &amp; Animation</h2>
+        <div class="callout info">
+          <span>ℹ️</span>
+          <span class="lang-zh">將 #{{FEAT}}-0X ~ #{{FEAT}}-0X 的美術故事卡放置於此。</span>
+          <span class="lang-en">Place art/animation story cards for #{{FEAT}}-0X ~ #{{FEAT}}-0X here.</span>
+        </div>
+      </section>
+    </div><!-- /panel-scrum -->
+
+    <!-- ======================================
+         TAB 6: 時程
+    ======================================= -->
+    <div id="panel-sprint" class="panel" role="tabpanel" data-title="Timeline">
+      <div class="page-header">
+        <h1 class="lang-zh">🏃 Sprint 時程規劃</h1>
+        <h1 class="lang-en">🏃 Sprint Timeline</h1>
+        <div class="meta">
+          <span class="meta-badge lang-zh">3 個 Sprint · 6 週</span>
+          <span class="meta-badge lang-en">3 Sprints · 6 Weeks</span>
+        </div>
+      </div>
+
+      <section class="section">
+        <div class="sprint-timeline">
+          <div class="sprint-row">
+            <div class="sprint-num">S1</div>
+            <div class="sprint-info">
+              <div class="sprint-title lang-zh">Sprint 1 — 後端核心</div>
+              <div class="sprint-title lang-en">Sprint 1 — Backend Core</div>
+              <div class="sprint-desc lang-zh">{{Stories 列表}} · API 可測試</div>
+              <div class="sprint-desc lang-en">{{Stories list}} · API testable</div>
+            </div>
+            <div class="sprint-sp">{{26}} SP</div>
+            <div class="sprint-weeks lang-zh">Week 1–2</div>
+            <div class="sprint-weeks lang-en">Week 1–2</div>
+          </div>
+          <div class="sprint-row">
+            <div class="sprint-num">S2</div>
+            <div class="sprint-info">
+              <div class="sprint-title lang-zh">Sprint 2 — 前端 UI</div>
+              <div class="sprint-title lang-en">Sprint 2 — Frontend UI</div>
+              <div class="sprint-desc lang-zh">{{Stories 列表}} · UI 完成</div>
+              <div class="sprint-desc lang-en">{{Stories list}} · UI complete</div>
+            </div>
+            <div class="sprint-sp">{{21}} SP</div>
+            <div class="sprint-weeks lang-zh">Week 3–4</div>
+            <div class="sprint-weeks lang-en">Week 3–4</div>
+          </div>
+          <div class="sprint-row">
+            <div class="sprint-num">S3</div>
+            <div class="sprint-info">
+              <div class="sprint-title lang-zh">Sprint 3 — QA &amp; 上線</div>
+              <div class="sprint-title lang-en">Sprint 3 — QA &amp; Launch</div>
+              <div class="sprint-desc lang-zh">{{Stories 列表}} · MVP 上線</div>
+              <div class="sprint-desc lang-en">{{Stories list}} · MVP launch</div>
+            </div>
+            <div class="sprint-sp">{{21}} SP</div>
+            <div class="sprint-weeks lang-zh">Week 5–6</div>
+            <div class="sprint-weeks lang-en">Week 5–6</div>
+          </div>
+        </div>
+
+        <div class="callout warn" style="margin-top:24px">
+          <span>⚠️</span>
+          <span class="lang-zh">以上時程為建議值，請企畫依實際團隊速度（Velocity）調整。</span>
+          <span class="lang-en">Timeline is a suggestion. Adjust based on actual team velocity.</span>
+        </div>
+
+        <h3 class="subsection-title" style="margin-top:24px">
+          <span class="lang-zh">📊 Story Points 匯總</span>
+          <span class="lang-en">📊 Story Points Summary</span>
+        </h3>
+        <table class="comp-table" aria-label="SP 匯總">
+          <thead>
+            <tr>
+              <th class="lang-zh">分組</th><th class="lang-en">Group</th>
+              <th class="lang-zh">故事卡</th><th class="lang-en">Stories</th>
+              <th>SP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="lang-zh">🏗️ 基礎建設</td><td class="lang-en">Infrastructure</td>
+              <td>{{DC-01 ~ DC-04}}</td>
+              <td>{{21}}</td>
+            </tr>
+            <tr>
+              <td class="lang-zh">🎮 遊戲邏輯</td><td class="lang-en">Game Logic</td>
+              <td>{{DC-05 ~ DC-07}}</td>
+              <td>{{15}}</td>
+            </tr>
+            <tr>
+              <td class="lang-zh">🎨 美術動畫</td><td class="lang-en">Art &amp; Animation</td>
+              <td>{{DC-08 ~ DC-09}}</td>
+              <td>{{16}}</td>
+            </tr>
+            <tr>
+              <td class="lang-zh">🏆 獎勵系統</td><td class="lang-en">Reward System</td>
+              <td>{{DC-10}}</td>
+              <td>{{5}}</td>
+            </tr>
+            <tr>
+              <td class="lang-zh">🧪 QA 測試</td><td class="lang-en">QA &amp; Testing</td>
+              <td>{{DC-11 ~ DC-12}}</td>
+              <td>{{11}}</td>
+            </tr>
+            <tr style="font-weight:700;color:var(--gold-400)">
+              <td class="lang-zh">總計</td><td class="lang-en">Total</td>
+              <td>{{12 張}}</td>
+              <td>{{68}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div><!-- /panel-sprint -->
+
+  </main>
+</div>
+
+<script>
+// ── Tab switching ──
+function switchTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.remove('active');
+    b.setAttribute('aria-selected','false');
+  });
+  document.getElementById('panel-' + id).classList.add('active');
+  if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected','true'); }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Jump to section within a tab ──
+function jumpTo(tabId, sectionId) {
+  const tabBtn = document.querySelector(`[onclick*="${tabId}"]`);
+  switchTab(tabId, tabBtn);
+  setTimeout(() => {
+    const el = document.getElementById(sectionId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+// ── Language toggle ──
+function setLang(lang) {
+  document.body.setAttribute('data-lang', lang);
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.lang-btn[onclick*="${lang}"]`).classList.add('active');
+  document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+}
+
+// ── BDD accordion toggle ──
+function toggleBdd(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('span:last-child');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+// ── Copy prompt ──
+function copyPrompt(id, btn) {
+  const el = document.getElementById(id);
+  const text = el.childNodes[0].textContent.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── Keyboard navigation for tabs ──
+document.querySelector('.tab-nav').addEventListener('keydown', e => {
+  const btns = [...document.querySelectorAll('.tab-btn')];
+  const idx = btns.indexOf(document.activeElement);
+  if (e.key === 'ArrowRight') btns[(idx + 1) % btns.length].focus();
+  if (e.key === 'ArrowLeft')  btns[(idx - 1 + btns.length) % btns.length].focus();
+});
+</script>
+</body>
+</html>

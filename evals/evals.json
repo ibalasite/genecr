@@ -1,0 +1,20 @@
+{
+  "skill_name": "genecr",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我要建立 iGaming 排行榜機制，週排行榜，玩家下注金額累積積分，前10名可以領獎，有金銀銅等級區分",
+      "expected_output": "產出 7 個檔案：spec-basic.md、spec-advanced.md、assets.md、bdd.md、scrum.md、docs.html、prototype.html，含競業調查結果，BDD 有正常/邊界/異常 scenario，prototype 可互動"
+    },
+    {
+      "id": 2,
+      "prompt": "我們要做一個每日任務系統，玩家完成指定遊戲任務可以獲得點數，點數可以兌換獎勵，有新手任務和進階任務的分類",
+      "expected_output": "產出完整文件套件，包含任務系統的 Cocos Client 架構建議、Node.js API、資源清單含音效 prompt"
+    },
+    {
+      "id": 3,
+      "prompt": "幫我設計熱帶叢林主題的老虎機遊戲功能規格，要有 Free Spin、Multiplier、Wild 功能",
+      "expected_output": "產出完整文件套件，資源清單含詳細的圖片 AI prompt（Midjourney 格式）、動畫規格、音效 prompt"
+    }
+  ]
+}

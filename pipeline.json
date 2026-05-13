@@ -2,7 +2,7 @@
   "feature": {"name": "排行榜", "slug": "leaderboard"},
   "ai": {
     "command": "claude -p --output-format text < {prompt}",
-    "stub_mode": true
+    "stub_mode": false
   },
   "steps": [
     {

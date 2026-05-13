@@ -73,30 +73,6 @@ function Deploy-Skills($runtime, $skillsDst) {
     }
 }
 
-function Run-PkgScripts($runtime, $target) {
-    # After host install/upgrade/uninstall, walk $runtime/tools/<pkg>/ and call
-    # setup.ps1 (preferred on Windows) or setup.sh with the same target.
-    $toolsDir = Join-Path $runtime "tools"
-    if (-not (Test-Path $toolsDir)) { return }
-    Get-ChildItem -Path $toolsDir -Directory | Where-Object { $_.Name -ne "bin" } | ForEach-Object {
-        $pkg = $_.Name
-        $ps1 = Join-Path $_.FullName "setup.ps1"
-        $sh  = Join-Path $_.FullName "setup.sh"
-        if (Test-Path $ps1) {
-            Log "-- pkg:$pkg :: $target --"
-            & $ps1 $target
-        } elseif (Test-Path $sh) {
-            $bash = Get-Command bash -ErrorAction SilentlyContinue
-            if ($bash) {
-                Log "-- pkg:$pkg :: $target (bash) --"
-                & $bash.Source $sh $target
-            } else {
-                Log "[skip] $pkg has setup.sh but no bash on PATH"
-            }
-        }
-    }
-}
-
 function Install-One($host) {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Error "git required"; exit 1 }
     $runtime  = Get-HostDir $host
@@ -110,7 +86,6 @@ function Install-One($host) {
     if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
     git clone $RepoUrl $runtime
     Deploy-Skills $runtime $skillsDst
-    Run-PkgScripts $runtime "install"
     Log ""
     Log "[install:$host] done. Restart $host to activate skills."
 }
@@ -125,14 +100,12 @@ function Upgrade-One($host) {
     Log "[upgrade:$host] git pull..."
     git -C $runtime pull --ff-only
     Deploy-Skills $runtime $skillsDst
-    Run-PkgScripts $runtime "upgrade"
     Log "[upgrade:$host] done."
 }
 
 function Uninstall-One($host) {
     $runtime  = Get-HostDir $host
     $skillsDst = Get-HostSkillsDir $host
-    Run-PkgScripts $runtime "uninstall"
     Log "[uninstall:$host] remove deployed skills..."
     $skillsSrc = Join-Path $runtime "skills"
     if (Test-Path $skillsSrc) {

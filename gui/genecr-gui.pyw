@@ -230,10 +230,16 @@ class GenecrGUI(tk.Tk):
             lbl.pack(anchor="w", padx=10, pady=2)
             self.step_labels[s] = lbl
 
-        # Output log (small)
-        self.log = tk.Text(self, height=4, wrap="word", state="disabled",
-                            background="#f5f5f5", font=("Consolas", 9))
-        self.log.pack(fill="x", padx=10, pady=(0, 6))
+        # Progress bar (replaces visible log)
+        prog_row = ttk.Frame(self)
+        prog_row.pack(fill="x", padx=10, pady=(0, 6))
+        self.progress = ttk.Progressbar(prog_row, mode="determinate", maximum=len(STEPS) * 2)
+        self.progress.pack(side="left", fill="x", expand=True)
+        self.detail_btn = ttk.Button(prog_row, text="詳細…", width=8, command=self._show_log)
+        self.detail_btn.pack(side="left", padx=(6, 0))
+
+        # Internal log buffer (not shown by default)
+        self._log_buffer: list[str] = []
 
         # Results panel
         ttk.Label(self, text="產出（點選開啟）：").pack(anchor="w", **pad)
@@ -277,10 +283,29 @@ class GenecrGUI(tk.Tk):
             self.outdir_var.set(d)
 
     def _log(self, msg: str):
-        self.log.configure(state="normal")
-        self.log.insert("end", msg + "\n")
-        self.log.see("end")
-        self.log.configure(state="disabled")
+        self._log_buffer.append(msg)
+
+    def _show_log(self):
+        win = tk.Toplevel(self)
+        win.title("詳細 log")
+        win.geometry("760x520")
+        txt = tk.Text(win, wrap="none", font=("Consolas", 9))
+        ys = ttk.Scrollbar(win, orient="vertical", command=txt.yview)
+        txt.configure(yscrollcommand=ys.set)
+        ys.pack(side="right", fill="y")
+        txt.pack(fill="both", expand=True)
+        full = "\n".join(self._log_buffer)
+        txt.insert("1.0", full or "(尚無內容)")
+        txt.configure(state="disabled")
+
+        bar = ttk.Frame(win)
+        bar.pack(fill="x")
+        def _copy():
+            self.clipboard_clear()
+            self.clipboard_append(full)
+            messagebox.showinfo("已複製", "log 已複製到剪貼簿。", parent=win)
+        ttk.Button(bar, text="📋 複製全部", command=_copy).pack(side="left", padx=8, pady=6)
+        ttk.Button(bar, text="關閉", command=win.destroy).pack(side="right", padx=8, pady=6)
 
     # ─── Run pipeline ───────────────────────────────────────────
     def _on_run(self):
@@ -303,7 +328,8 @@ class GenecrGUI(tk.Tk):
             self.step_labels[s].configure(text=f"⬜  {STEP_LABELS[s]}")
         for w in self.results.winfo_children():
             w.destroy()
-        self.log.configure(state="normal"); self.log.delete("1.0", "end"); self.log.configure(state="disabled")
+        self._log_buffer.clear()
+        self.progress.configure(value=0)
         self.run_btn.configure(state="disabled", text="生成中…")
 
         pipeline_json = detect_pipeline_json(self.genecr_dir, self.host)
@@ -332,39 +358,56 @@ class GenecrGUI(tk.Tk):
                 text=True, encoding="utf-8", errors="replace",
                 bufsize=1, creationflags=creationflags,
             )
-            run_dir_pat = re.compile(r"Run:\s+(.+)")
-            step_start = re.compile(r"^▶\s+(\S+):")
-            step_done = re.compile(r"^\s+✓\s+(\S+):.*OK")
-            render_done = re.compile(r"\[render\]\s+(\S+)\s+→")
 
             for line in self.proc.stdout:
                 line = line.rstrip()
                 if not line:
                     continue
                 self.after(0, self._log, line)
-                m = step_start.match(line)
-                if m and m.group(1) in self.step_labels:
-                    s = m.group(1)
-                    self.after(0, lambda s=s: self.step_labels[s].configure(text=f"⏳  {STEP_LABELS[s]} 生成中…"))
-                m = render_done.search(line)
-                if m and m.group(1) in self.step_labels:
-                    s = m.group(1)
-                    self.after(0, lambda s=s: self.step_labels[s].configure(text=f"✅  {STEP_LABELS[s]}"))
-                m = run_dir_pat.search(line)
-                if m:
-                    rd = m.group(1).strip()
-                    # pipeline prints relative path; resolve against cwd
-                    self.run_dir = (cwd / rd) if not Path(rd).is_absolute() else Path(rd)
+                evt = parse_pipeline_line(line)
+                if evt:
+                    kind, val = evt
+                    if kind == "start" and val in self.step_labels:
+                        self.after(0, lambda s=val: self.step_labels[s].configure(text=f"⏳  {STEP_LABELS[s]} 生成中…"))
+                        self.after(0, self._bump_progress, 1)
+                    elif kind == "render_done" and val in self.step_labels:
+                        self.after(0, lambda s=val: self.step_labels[s].configure(text=f"✅  {STEP_LABELS[s]}"))
+                        self.after(0, self._bump_progress, 1)
+                    elif kind == "run_dir":
+                        self.run_dir = (cwd / val) if not Path(val).is_absolute() else Path(val)
 
             rc = self.proc.wait()
             if rc == 0:
                 self.after(0, self._on_done, slug)
             else:
                 self.after(0, self._log, f"❌ pipeline exited with code {rc}")
-                self.after(0, lambda: self.run_btn.configure(state="normal", text="🚀 開始生成"))
+                self.after(0, self._on_error, f"產生過程出錯（exit code {rc}）")
         except Exception as e:
             self.after(0, self._log, f"❌ {e}")
-            self.after(0, lambda: self.run_btn.configure(state="normal", text="🚀 開始生成"))
+            self.after(0, self._on_error, str(e))
+
+    def _bump_progress(self, n: int = 1):
+        self.progress.configure(value=min(self.progress["value"] + n, len(STEPS) * 2))
+
+    def _on_error(self, summary: str):
+        self.run_btn.configure(state="normal", text="🚀 開始生成")
+        # Custom error dialog with copy button
+        win = tk.Toplevel(self)
+        win.title("發生錯誤")
+        win.geometry("520x260")
+        ttk.Label(win, text="⚠ " + summary, foreground="#c00",
+                  font=("Microsoft JhengHei", 11)).pack(pady=(20, 6), padx=20, anchor="w")
+        ttk.Label(win, text="可以點下方按鈕看完整訊息或複製給工程師。",
+                  foreground="#555").pack(padx=20, anchor="w")
+        bar = ttk.Frame(win)
+        bar.pack(fill="x", padx=20, pady=20)
+        ttk.Button(bar, text="📋 複製錯誤訊息", command=lambda: (
+            self.clipboard_clear(),
+            self.clipboard_append("\n".join(self._log_buffer)),
+            messagebox.showinfo("已複製", "已複製到剪貼簿。", parent=win)
+        )).pack(side="left")
+        ttk.Button(bar, text="📄 看詳細 log", command=self._show_log).pack(side="left", padx=8)
+        ttk.Button(bar, text="關閉", command=win.destroy).pack(side="right")
 
     def _on_done(self, slug: str):
         self.run_btn.configure(state="normal", text="🚀 開始生成")

@@ -4,7 +4,8 @@
 # Host-neutral: GENECR_DIR is derived from this script's own location, so the
 # same code works whether genecr is installed under:
 #   ~/.claude/skills/genecr   (Claude Code)
-#   ~/.codex/skills/genecr    (Codex)
+#   ~/.codex/skills/genecr    (Codex CLI)
+#   ~/.gemini/skills/genecr   (Gemini CLI)
 #   or any other host's skill dir.
 #
 # Skills MUST source this to discover templates/tools, and MUST NOT hardcode
@@ -17,7 +18,7 @@
 #
 #   # Or auto-discover when GENECR_DIR is not set yet:
 #   if [ -z "$GENECR_DIR" ]; then
-#     for d in "$HOME/.codex/skills/genecr" "$HOME/.claude/skills/genecr"; do
+#     for d in "$HOME/.codex/skills/genecr" "$HOME/.claude/skills/genecr" "$HOME/.gemini/skills/genecr"; do
 #       [ -d "$d" ] && export GENECR_DIR="$d" && break
 #     done
 #   fi
@@ -39,5 +40,6 @@ export GENECR_REFERENCES="$GENECR_DIR/references"
 case "$GENECR_DIR" in
   *"/.codex/"*)  export GENECR_HOST="codex"  ;;
   *"/.claude/"*) export GENECR_HOST="claude" ;;
+  *"/.gemini/"*) export GENECR_HOST="gemini" ;;
   *)             export GENECR_HOST="unknown" ;;
 esac

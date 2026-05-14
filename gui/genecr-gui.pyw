@@ -675,8 +675,10 @@ class GenecrGUI(tk.Tk):
         start_btn.configure(command=lambda: threading.Thread(target=auto_install, daemon=True).start())
 
         refresh_status()
-        # Auto-trigger if anything missing? — keep manual click so user sees what's about to happen
-        # User can click 🔧 once.
+        # Auto-start install if anything missing — user doesn't need to click.
+        if not all(check_prereq(n) for n in prereqs):
+            log("檢測到缺少套件，3 秒後自動開始安裝…（要中止可關閉視窗）")
+            self.after(3000, lambda: threading.Thread(target=auto_install, daemon=True).start())
 
     def _wizard_run_blocking(self, cmd: list[str], log) -> bool:
         """Run cmd synchronously, stream lines to log(), return True on rc=0."""

@@ -410,7 +410,8 @@ class GenecrGUI(tk.Tk):
         pipeline_py = self.genecr_dir / "tools" / "bin" / "pipeline.py"
 
         cmd = [
-            self.python, str(pipeline_py), str(pipeline_json),
+            self.python, "-u",  # unbuffered stdout for live progress
+            str(pipeline_py), str(pipeline_json),
             "--new", "--slug", slug, "--name", name, brief,
         ]
         # Run from outdir so output/ goes there
@@ -423,6 +424,7 @@ class GenecrGUI(tk.Tk):
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
             env["PYTHONUTF8"] = "1"
+            env["PYTHONUNBUFFERED"] = "1"  # critical: push print() lines to pipe immediately
             env["GENECR_HOST"] = self.host  # pipeline.py uses this to pick ai.commands[host]
             creationflags = 0
             if sys.platform == "win32":

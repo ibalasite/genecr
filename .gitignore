@@ -41,3 +41,6 @@ gui/dist/
 gui/build/
 gui/genecr-gui.spec
 gui/__pycache__/
+
+# Inno Setup build artifacts
+installer/dist/

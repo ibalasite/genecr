@@ -92,10 +92,28 @@ function Find-Python {
     return $null
 }
 
+function Find-GitBash {
+    # Prefer Git Bash over WSL's bash (System32\bash.exe is WSL, which can't
+    # access Windows paths like C:\Users\...). Check Git installation first.
+    foreach ($p in @(
+        "$env:ProgramFiles\Git\bin\bash.exe",
+        "${env:ProgramFiles(x86)}\Git\bin\bash.exe",
+        "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe"
+    )) {
+        if ($p -and (Test-Path $p)) { return $p }
+    }
+    # Fall back to PATH lookup, but skip if it's WSL's launcher.
+    $cmd = Get-Command bash -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source -notmatch 'System32\\bash\.exe$') { return $cmd.Source }
+    return $null
+}
+
 function Deploy-Tools($runtime) {
     # gendoc-style: walk $runtime/tools/<pkg>/, deploy each into tools/bin/.
-    #   1. tools/<pkg>/build.sh exists  → run it (BIN_DIR / PACKAGE_DIR injected)
-    #   2. else cp tools/<pkg>/<pkg>.py → tools/bin/<pkg>.py (single-file convention)
+    # Build script preference (Windows-friendly):
+    #   1. tools/<pkg>/build.ps1 → run natively (no bash needed)
+    #   2. tools/<pkg>/build.sh  → run via Git Bash (skip WSL bash)
+    #   3. tools/<pkg>/<pkg>.py  → single-file copy
     $toolsDir = Join-Path $runtime "tools"
     if (-not (Test-Path $toolsDir)) { return }
     $binDir = Join-Path $toolsDir "bin"
@@ -103,22 +121,34 @@ function Deploy-Tools($runtime) {
     Log "[deploy] tools\<pkg>\ -> $binDir"
     Get-ChildItem -Path $toolsDir -Directory | Where-Object { $_.Name -ne "bin" } | ForEach-Object {
         $pkg = $_.Name
-        $build = Join-Path $_.FullName "build.sh"
-        $entry = Join-Path $_.FullName "$pkg.py"
-        if (Test-Path $build) {
-            Log "  - build $pkg (build.sh)"
-            $bash = Get-Command bash -ErrorAction SilentlyContinue
-            if (-not $bash) { Write-Warning "  ! bash not in PATH; skipped $pkg/build.sh"; return }
-            $py = Find-Python
-            if (-not $py) { Write-Warning "  ! Python 3 not found; skipped $pkg/build.sh"; return }
-            $env:BIN_DIR = $binDir
-            $env:PACKAGE_DIR = $_.FullName
-            $env:PY = $py
-            & $bash.Source $build
-            Remove-Item Env:BIN_DIR; Remove-Item Env:PACKAGE_DIR; Remove-Item Env:PY
-        } elseif (Test-Path $entry) {
-            Copy-Item -Force $entry (Join-Path $binDir "$pkg.py")
-            Log "  - $pkg\$pkg.py -> bin\$pkg.py"
+        $buildPs1 = Join-Path $_.FullName "build.ps1"
+        $buildSh  = Join-Path $_.FullName "build.sh"
+        $entry    = Join-Path $_.FullName "$pkg.py"
+        $py = Find-Python
+        if (-not $py) { Write-Warning "  ! Python 3 not found; skipped $pkg"; return }
+        $env:BIN_DIR = $binDir
+        $env:PACKAGE_DIR = $_.FullName
+        $env:PY = $py
+        try {
+            if (Test-Path $buildPs1) {
+                Log "  - build $pkg (build.ps1)"
+                & $buildPs1
+            } elseif (Test-Path $buildSh) {
+                Log "  - build $pkg (build.sh via Git Bash)"
+                $bashExe = Find-GitBash
+                if (-not $bashExe) {
+                    Write-Warning "  ! Git Bash not found (need Git for Windows or build.ps1); skipped $pkg"
+                    return
+                }
+                & $bashExe $buildSh
+            } elseif (Test-Path $entry) {
+                Copy-Item -Force $entry (Join-Path $binDir "$pkg.py")
+                Log "  - $pkg\$pkg.py -> bin\$pkg.py"
+            }
+        } finally {
+            Remove-Item Env:BIN_DIR -ErrorAction SilentlyContinue
+            Remove-Item Env:PACKAGE_DIR -ErrorAction SilentlyContinue
+            Remove-Item Env:PY -ErrorAction SilentlyContinue
         }
     }
 }

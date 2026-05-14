@@ -24,6 +24,9 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
+GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
+GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
+APP_VERSION = "0.1.0"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -192,6 +195,57 @@ PREREQ_LABELS = {
 }
 
 
+# ─── Update check helpers ───────────────────────────────────────
+def runtime_has_updates(genecr_dir: Path) -> bool:
+    """Return True if runtime is behind origin (after `git fetch`)."""
+    if not genecr_dir or not (genecr_dir / ".git").exists():
+        return False
+    try:
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+        subprocess.run(["git", "-C", str(genecr_dir), "fetch", "--quiet"],
+                       capture_output=True, timeout=15, creationflags=creationflags)
+        r = subprocess.run(["git", "-C", str(genecr_dir), "rev-list", "HEAD..@{u}", "--count"],
+                           capture_output=True, text=True, timeout=10, creationflags=creationflags)
+        return int((r.stdout or "0").strip() or "0") > 0
+    except Exception:
+        return False
+
+
+def upgrade_runtime(genecr_dir: Path, log) -> bool:
+    """Run setup upgrade for the runtime; return True on success."""
+    if sys.platform == "win32" and (genecr_dir / "setup.ps1").exists():
+        cmd = ["powershell", "-NoProfile", "-File", str(genecr_dir / "setup.ps1"), "upgrade"]
+    else:
+        cmd = ["bash", str(genecr_dir / "setup"), "upgrade"]
+    try:
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                 text=True, encoding="utf-8", errors="replace",
+                                 creationflags=creationflags)
+        for line in proc.stdout:
+            log(line.rstrip())
+        return proc.wait() == 0
+    except Exception as e:
+        log(f"❌ {e}")
+        return False
+
+
+def latest_gui_version() -> str | None:
+    """Fetch latest release tag (e.g. 'v0.2.0' → '0.2.0') from GitHub API."""
+    try:
+        import urllib.request
+        with urllib.request.urlopen(GENECR_RELEASES_API, timeout=8) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        tag = data.get("tag_name", "")
+        return tag.lstrip("v") or None
+    except Exception:
+        return None
+
+
+def _vtuple(v: str) -> tuple:
+    return tuple(int(x) for x in re.findall(r"\d+", v))
+
+
 class GenecrGUI(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -209,6 +263,10 @@ class GenecrGUI(tk.Tk):
 
         if not self.genecr_dir:
             self.after(200, self._open_install_wizard)
+        else:
+            # Hide main window, show splash, check + apply updates, then re-show.
+            self.withdraw()
+            self.after(50, self._startup_update_check)
 
     # ─── UI layout ──────────────────────────────────────────────
     def _build_ui(self):
@@ -719,6 +777,76 @@ class GenecrGUI(tk.Tk):
         except Exception:
             messagebox.showinfo("請手動重開", "安裝完成。請關閉並重新開啟視窗。", parent=self)
             self.destroy()
+
+    # ─── Startup update check ──────────────────────────────────
+    def _startup_update_check(self):
+        splash = tk.Toplevel(self)
+        splash.title("genecr")
+        splash.geometry("420x180")
+        splash.transient(self)
+        splash.overrideredirect(True)
+        # center
+        splash.update_idletasks()
+        x = (splash.winfo_screenwidth() - 420) // 2
+        y = (splash.winfo_screenheight() - 180) // 2
+        splash.geometry(f"+{x}+{y}")
+        splash.configure(background="#1e293b")
+
+        ttk.Label(splash, text="genecr", foreground="#fff", background="#1e293b",
+                  font=("Microsoft JhengHei", 16, "bold")).pack(pady=(20, 4))
+        status_var = tk.StringVar(value="檢查更新中…")
+        ttk.Label(splash, textvariable=status_var, foreground="#cbd5e1", background="#1e293b",
+                  font=("Microsoft JhengHei", 10)).pack(pady=4)
+        bar = ttk.Progressbar(splash, mode="indeterminate", length=320)
+        bar.pack(pady=10)
+        bar.start(10)
+
+        def set_status(s): self.after(0, status_var.set, s)
+
+        def worker():
+            new_gui_msg = None
+
+            # 1. Check runtime updates
+            set_status("檢查 runtime 版本…")
+            if runtime_has_updates(self.genecr_dir):
+                set_status("正在更新 runtime（請稍候）…")
+                ok = upgrade_runtime(self.genecr_dir, lambda l: None)
+                if ok:
+                    set_status("runtime 已更新 ✓")
+                else:
+                    set_status("runtime 更新失敗，仍可使用舊版")
+
+            # 2. Check GUI version
+            set_status("檢查 GUI 版本…")
+            latest = latest_gui_version()
+            if latest and _vtuple(latest) > _vtuple(APP_VERSION):
+                new_gui_msg = (latest, APP_VERSION)
+
+            # Done — show main window
+            def finish():
+                bar.stop()
+                splash.destroy()
+                self.deiconify()
+                if new_gui_msg:
+                    self._notify_new_gui(*new_gui_msg)
+            self.after(0, finish)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _notify_new_gui(self, latest: str, current: str):
+        win = tk.Toplevel(self)
+        win.title("有新版 GUI 可用")
+        win.geometry("440x200")
+        ttk.Label(win, text=f"🎉 新版 v{latest} 已發布",
+                   font=("Microsoft JhengHei", 12, "bold")).pack(pady=(20, 6))
+        ttk.Label(win, text=f"目前安裝：v{current}", foreground="#666").pack()
+        ttk.Label(win, text="請從下方按鈕下載最新 installer 並重新安裝（runtime 已自動更新）。",
+                   wraplength=400, foreground="#555").pack(pady=8, padx=20)
+        bar = ttk.Frame(win)
+        bar.pack(pady=10)
+        ttk.Button(bar, text="🌐 開啟下載頁",
+                    command=lambda: webbrowser.open(GENECR_RELEASES_PAGE)).pack(side="left", padx=4)
+        ttk.Button(bar, text="稍後再說", command=win.destroy).pack(side="left", padx=4)
 
 
 if __name__ == "__main__":

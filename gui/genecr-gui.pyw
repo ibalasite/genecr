@@ -116,15 +116,17 @@ class GenecrGUI(tk.Tk):
         self._brief_placeholder = True
         self.brief.bind("<FocusIn>", self._clear_placeholder)
 
-        # slug + name
+        # slug + name (with auto-extract button)
         row = ttk.Frame(self)
         row.pack(fill="x", **pad)
         ttk.Label(row, text="英文 slug：").pack(side="left")
         self.slug_var = tk.StringVar(value="my-feature")
-        ttk.Entry(row, textvariable=self.slug_var, width=24).pack(side="left", padx=(0, 12))
+        ttk.Entry(row, textvariable=self.slug_var, width=22).pack(side="left", padx=(0, 12))
         ttk.Label(row, text="中文名稱：").pack(side="left")
         self.name_var = tk.StringVar(value="我的功能")
-        ttk.Entry(row, textvariable=self.name_var, width=18).pack(side="left")
+        ttk.Entry(row, textvariable=self.name_var, width=14).pack(side="left", padx=(0, 8))
+        self.extract_btn = ttk.Button(row, text="🪄 從描述自動萃取", command=self._on_extract)
+        self.extract_btn.pack(side="left")
 
         # output dir
         row2 = ttk.Frame(self)
@@ -162,6 +164,66 @@ class GenecrGUI(tk.Tk):
         if self._brief_placeholder:
             self.brief.delete("1.0", "end")
             self._brief_placeholder = False
+
+    # ─── Auto-extract slug + name via Gemini ────────────────────
+    def _on_extract(self):
+        brief = self.brief.get("1.0", "end").strip()
+        if not brief or self._brief_placeholder:
+            messagebox.showwarning("缺少 brief", "請先輸入功能描述。")
+            return
+        self.extract_btn.configure(state="disabled", text="🪄 萃取中…")
+        threading.Thread(target=self._extract_worker, args=(brief,), daemon=True).start()
+
+    def _extract_worker(self, brief: str):
+        # Pick CLI based on host
+        cli_cmd = {
+            "gemini": ["gemini", "--skip-trust", "-p", " ", "--output-format", "text"],
+            "claude": ["claude", "-p", "--output-format", "text"],
+            "codex":  ["codex", "exec", "--skip-git-repo-check"],
+        }.get(self.host)
+        if not cli_cmd:
+            self.after(0, lambda: self._extract_done(None, "未知 host，無法呼叫 CLI"))
+            return
+
+        prompt = (
+            "從下面的功能需求描述中萃取兩個值，**只輸出 JSON**（無 markdown fence、無註解）：\n"
+            "- slug: 英文小寫 kebab-case，反映核心功能，≤ 20 字元\n"
+            "- name: 中文 2-6 字短名\n\n"
+            "範例輸出：{\"slug\":\"daily-checkin\",\"name\":\"每日簽到\"}\n\n"
+            "功能需求描述：\n"
+            f"{brief}\n"
+        )
+        try:
+            r = subprocess.run(
+                cli_cmd, input=prompt, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=60,
+            )
+            out = (r.stdout or "").strip()
+            # Strip code fences if any
+            out = re.sub(r"^```(?:json)?\s*|\s*```$", "", out, flags=re.MULTILINE).strip()
+            data = json.loads(out)
+            self.after(0, lambda: self._extract_done(data, None))
+        except subprocess.TimeoutExpired:
+            self.after(0, lambda: self._extract_done(None, "CLI 超時（>60s）"))
+        except json.JSONDecodeError as e:
+            self.after(0, lambda: self._extract_done(None, f"AI 回傳非 JSON：{e}"))
+        except FileNotFoundError:
+            self.after(0, lambda: self._extract_done(None, f"找不到 {cli_cmd[0]} CLI，請確認已安裝"))
+        except Exception as e:
+            self.after(0, lambda: self._extract_done(None, str(e)))
+
+    def _extract_done(self, data, err):
+        self.extract_btn.configure(state="normal", text="🪄 從描述自動萃取")
+        if err:
+            messagebox.showerror("萃取失敗", err)
+            return
+        slug = (data.get("slug") or "").strip()
+        name = (data.get("name") or "").strip()
+        if slug:
+            self.slug_var.set(slug)
+        if name:
+            self.name_var.set(name)
+        self._log(f"✓ 已萃取：slug={slug}  name={name}")
 
     def _pick_outdir(self):
         d = filedialog.askdirectory(initialdir=self.outdir_var.get())

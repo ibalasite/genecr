@@ -35,3 +35,9 @@ __pycache__/
 .DS_Store
 Thumbs.db
 *.swp
+
+# PyInstaller build artifacts
+gui/dist/
+gui/build/
+gui/genecr-gui.spec
+gui/__pycache__/

@@ -36,14 +36,9 @@ allowed-tools:
 GENECR_DIR="$HOME/.claude/skills/genecr"   # ← 若從 .codex / .gemini 載入請改
 
 source "$GENECR_DIR/bin/genecr-env.sh"
-
-# 依 host 選 pipeline.json：gemini → pipeline-gemini.json；其他 → pipeline.json
-case "$GENECR_HOST" in
-  gemini) PIPELINE_FILE="pipeline-gemini.json" ;;
-  *)      PIPELINE_FILE="pipeline.json" ;;
-esac
-PIPELINE_JSON="./$PIPELINE_FILE"
-[ -f "$PIPELINE_JSON" ] || PIPELINE_JSON="$GENECR_DIR/$PIPELINE_FILE"
+# pipeline.py 自己看 $GENECR_HOST 從 ai.commands 挑對應指令，單一 pipeline.json 即可
+PIPELINE_JSON="./pipeline.json"
+[ -f "$PIPELINE_JSON" ] || PIPELINE_JSON="$GENECR_DIR/pipeline.json"
 
 # 由你（AI）依步驟 2 萃取後填入
 SLUG="bingo"          # ← 從 brief 萃取的英文 slug

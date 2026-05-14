@@ -192,8 +192,20 @@ def _substitute(raw: str, brief_file: Path, output_path: Path, type_: str, extra
     return out
 
 
+def _resolve_command(ai_cfg: dict) -> str:
+    """Pick command per host: ai.commands[$GENECR_HOST] if defined, else ai.command."""
+    import os
+    host = os.environ.get("GENECR_HOST", "")
+    cmds = ai_cfg.get("commands") or {}
+    if host and host in cmds:
+        return cmds[host]
+    if "command" in ai_cfg:
+        return ai_cfg["command"]
+    raise KeyError(f"No AI command for host '{host}' (no ai.commands[{host}] and no ai.command)")
+
+
 def _run_ai(ai_cfg: dict, prompt_path: Path, output_path: Path, brief_file: Path) -> bool:
-    cmd = ai_cfg["command"].format(
+    cmd = _resolve_command(ai_cfg).format(
         prompt=str(prompt_path),
         output=str(output_path),
         brief_file=str(brief_file),

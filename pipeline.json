@@ -1,5 +1,10 @@
 {
   "ai": {
+    "commands": {
+      "claude": "claude -p --output-format text < {prompt} > {output}",
+      "codex":  "codex exec --skip-git-repo-check --color never -o {output} < {prompt}",
+      "gemini": "gemini --skip-trust -p \" \" --output-format text < {prompt} > {output}"
+    },
     "command": "claude -p --output-format text < {prompt} > {output}",
     "stub_mode": false
   },

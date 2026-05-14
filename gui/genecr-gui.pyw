@@ -67,13 +67,6 @@ def detect_genecr_dir() -> Path | None:
     return host_to_dir(hosts[0]) if hosts else None
 
 
-def detect_pipeline_json(genecr_dir: Path, host: str) -> Path:
-    """Pick host-specific pipeline.json if present."""
-    if host == "gemini" and (genecr_dir / "pipeline-gemini.json").exists():
-        return genecr_dir / "pipeline-gemini.json"
-    return genecr_dir / "pipeline.json"
-
-
 def detect_host(genecr_dir: Path) -> str:
     s = str(genecr_dir).replace("\\", "/")
     for h in ("gemini", "claude", "codex"):
@@ -413,7 +406,7 @@ class GenecrGUI(tk.Tk):
         self.run_btn.configure(state="disabled", text="生成中…")
         self.cancel_btn.configure(state="normal")
 
-        pipeline_json = detect_pipeline_json(self.genecr_dir, self.host)
+        pipeline_json = self.genecr_dir / "pipeline.json"
         pipeline_py = self.genecr_dir / "tools" / "bin" / "pipeline.py"
 
         cmd = [
@@ -430,6 +423,7 @@ class GenecrGUI(tk.Tk):
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
             env["PYTHONUTF8"] = "1"
+            env["GENECR_HOST"] = self.host  # pipeline.py uses this to pick ai.commands[host]
             creationflags = 0
             if sys.platform == "win32":
                 creationflags = subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]

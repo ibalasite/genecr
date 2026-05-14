@@ -61,6 +61,19 @@ def detect_host(genecr_dir: Path) -> str:
     return "unknown"
 
 
+def default_outdir() -> Path:
+    """Pick a sensible default output dir (OneDrive Desktop / Desktop / Documents / home)."""
+    home = Path.home()
+    for cand in (home / "OneDrive" / "桌面",
+                 home / "OneDrive" / "Desktop",
+                 home / "Desktop",
+                 home / "Documents",
+                 home):
+        if cand.exists():
+            return cand
+    return home
+
+
 def find_python() -> str:
     """Find a real Python 3 (skip Microsoft Store stub)."""
     for cand in ("python3", "python"):
@@ -133,7 +146,7 @@ class GenecrGUI(tk.Tk):
         row2 = ttk.Frame(self)
         row2.pack(fill="x", **pad)
         ttk.Label(row2, text="輸出位置：").pack(side="left")
-        self.outdir_var = tk.StringVar(value=str(Path.home() / "Desktop"))
+        self.outdir_var = tk.StringVar(value=str(default_outdir()))
         ttk.Entry(row2, textvariable=self.outdir_var).pack(side="left", fill="x", expand=True, padx=(0, 6))
         ttk.Button(row2, text="瀏覽…", command=self._pick_outdir).pack(side="left")
 

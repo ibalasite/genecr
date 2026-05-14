@@ -59,8 +59,8 @@ function Resolve-Targets($t) {
     elseif ([string]::IsNullOrEmpty($t)) {
         $detected = Detect-HostFromSelf
         if ($detected) { return @($detected) }
-        Log "[warn] cannot autodetect host; defaulting to claude"
-        return @("claude")
+        Log "[warn] cannot autodetect host; defaulting to gemini"
+        return @("gemini")
     }
     else { Write-Error "unknown target: $t (use claude|codex|gemini|all)"; exit 1 }
 }

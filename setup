@@ -66,8 +66,8 @@ _resolve_targets() {
     if [[ -n "$detected" ]]; then
       echo "$detected"
     else
-      log "[warn] cannot autodetect host from $(_detect_host_from_self || true); defaulting to claude"
-      echo "claude"
+      log "[warn] cannot autodetect host from $(_detect_host_from_self || true); defaulting to gemini"
+      echo "gemini"
     fi
   else
     echo "❌ unknown target: $1 (use claude|codex|gemini|all)" >&2

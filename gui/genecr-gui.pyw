@@ -197,16 +197,20 @@ class GenecrGUI(tk.Tk):
     def _build_ui(self):
         pad = {"padx": 10, "pady": 6}
 
-        # Top status bar — host picker (only installed hosts shown)
+        # Top status bar — host picker (Combobox only when 2+ installed)
         top = ttk.Frame(self)
         top.pack(fill="x", **pad)
         ttk.Label(top, text="host：").pack(side="left")
         installed = list_installed_hosts()
-        self.host_var = tk.StringVar(value=self.host if self.host in installed else (installed[0] if installed else "unknown"))
-        self.host_combo = ttk.Combobox(top, textvariable=self.host_var, width=10,
-                                        values=installed, state="readonly")
-        self.host_combo.pack(side="left")
-        self.host_combo.bind("<<ComboboxSelected>>", self._on_host_change)
+        default_host = self.host if self.host in installed else (installed[0] if installed else "unknown")
+        self.host_var = tk.StringVar(value=default_host)
+        if len(installed) >= 2:
+            self.host_combo = ttk.Combobox(top, textvariable=self.host_var, width=10,
+                                            values=installed, state="readonly")
+            self.host_combo.pack(side="left")
+            self.host_combo.bind("<<ComboboxSelected>>", self._on_host_change)
+        else:
+            ttk.Label(top, text=default_host, font=("", 10, "bold")).pack(side="left")
         self.path_label = ttk.Label(top, text="", foreground="#666")
         self.path_label.pack(side="left", padx=(10, 0))
         self._refresh_path_label()

@@ -300,6 +300,12 @@ class GenecrGUI(tk.Tk):
         # Internal log buffer (mirrors log_text contents)
         self._log_buffer: list[str] = []
 
+        # Spinner state for running step
+        self._spin_step: str | None = None
+        self._spin_idx: int = 0
+        self._spin_frames = ["⏳", "⌛"]
+        self.after(400, self._spin_tick)
+
         # Results panel
         ttk.Label(self, text="產出（點選開啟）：").pack(anchor="w", **pad)
         self.results = ttk.Frame(self)
@@ -394,6 +400,7 @@ class GenecrGUI(tk.Tk):
             return
 
         # Reset progress UI
+        self._spin_step = None
         for s in STEPS:
             self.step_labels[s].configure(text=f"⬜  {STEP_LABELS[s]}")
         for w in self.results.winfo_children():
@@ -445,10 +452,10 @@ class GenecrGUI(tk.Tk):
                 if evt:
                     kind, val = evt
                     if kind == "start" and val in self.step_labels:
-                        self.after(0, lambda s=val: self.step_labels[s].configure(text=f"⏳  {STEP_LABELS[s]} 生成中…"))
+                        self.after(0, self._set_step_running, val)
                         self.after(0, self._bump_progress, 1)
                     elif kind == "render_done" and val in self.step_labels:
-                        self.after(0, lambda s=val: self.step_labels[s].configure(text=f"✅  {STEP_LABELS[s]}"))
+                        self.after(0, self._set_step_done, val)
                         self.after(0, self._bump_progress, 1)
                     elif kind == "run_dir":
                         self.run_dir = (cwd / val) if not Path(val).is_absolute() else Path(val)
@@ -465,6 +472,23 @@ class GenecrGUI(tk.Tk):
 
     def _bump_progress(self, n: int = 1):
         self.progress.configure(value=min(self.progress["value"] + n, len(STEPS) * 2))
+
+    def _set_step_running(self, step: str):
+        self._spin_step = step
+
+    def _set_step_done(self, step: str):
+        if self._spin_step == step:
+            self._spin_step = None
+        self.step_labels[step].configure(text=f"✅  {STEP_LABELS[step]}")
+
+    def _spin_tick(self):
+        if self._spin_step and self._spin_step in self.step_labels:
+            self._spin_idx = (self._spin_idx + 1) % len(self._spin_frames)
+            frame = self._spin_frames[self._spin_idx]
+            self.step_labels[self._spin_step].configure(
+                text=f"{frame}  {STEP_LABELS[self._spin_step]} 生成中…"
+            )
+        self.after(400, self._spin_tick)
 
     def _on_cancel(self):
         if not self.proc:

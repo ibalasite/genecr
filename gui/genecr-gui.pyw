@@ -23,6 +23,8 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
+
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
 STEP_LABELS = {
@@ -171,6 +173,32 @@ def parse_pipeline_line(line: str) -> tuple[str, str] | None:
     return None
 
 
+# ─── Prerequisite detection (for first-run install wizard) ──────
+def check_prereq(name: str) -> bool:
+    """Check if a prerequisite is available."""
+    if name == "node":   return shutil.which("node") is not None
+    if name == "git":    return shutil.which("git")  is not None
+    if name == "python": return True  # we're running on python
+    if name == "winget": return shutil.which("winget") is not None
+    if name == "gemini": return shutil.which("gemini") is not None
+    if name == "genecr": return (Path.home() / ".gemini" / "skills" / "genecr" / "pipeline.json").exists()
+    return False
+
+
+PREREQ_INSTALL = {
+    "node":   ["winget", "install", "-e", "--id", "OpenJS.NodeJS.LTS", "--accept-package-agreements", "--accept-source-agreements"],
+    "git":    ["winget", "install", "-e", "--id", "Git.Git",          "--accept-package-agreements", "--accept-source-agreements"],
+    "gemini": ["npm",    "install", "-g", "@google/gemini-cli"],
+}
+
+PREREQ_LABELS = {
+    "node":   "Node.js (npm 用)",
+    "git":    "Git",
+    "gemini": "Gemini CLI",
+    "genecr": "genecr (本工具核心)",
+}
+
+
 class GenecrGUI(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -187,11 +215,7 @@ class GenecrGUI(tk.Tk):
         self._build_ui()
 
         if not self.genecr_dir:
-            messagebox.showerror(
-                "未找到 genecr",
-                "找不到 genecr 安裝。\n\n請先依手冊安裝：\n  https://github.com/ibalasite/genecr\n\n"
-                "預期位置：\n  ~/.gemini/skills/genecr (Gemini)\n  ~/.claude/skills/genecr (Claude)\n  ~/.codex/skills/genecr  (Codex)"
-            )
+            self.after(200, self._open_install_wizard)
 
     # ─── UI layout ──────────────────────────────────────────────
     def _build_ui(self):
@@ -513,6 +537,164 @@ class GenecrGUI(tk.Tk):
             subprocess.run(["explorer", "/select,", str(path)], check=False)
         except Exception as e:
             messagebox.showerror("無法開啟資料夾", str(e))
+
+    # ─── First-run install wizard ───────────────────────────────
+    def _open_install_wizard(self):
+        win = tk.Toplevel(self)
+        win.title("首次安裝精靈")
+        win.geometry("560x460")
+        win.transient(self)
+        win.grab_set()
+
+        ttk.Label(win, text="歡迎使用 genecr！", font=("Microsoft JhengHei", 13, "bold")).pack(pady=(16, 4))
+        ttk.Label(win, text="檢查您的電腦缺少哪些東西，按一鍵安裝即可。",
+                  foreground="#555").pack()
+
+        list_frame = ttk.Frame(win)
+        list_frame.pack(fill="both", expand=True, padx=20, pady=14)
+
+        prereqs = ["node", "git", "gemini", "genecr"]
+        status_labels: dict[str, ttk.Label] = {}
+        action_btns: dict[str, ttk.Button] = {}
+
+        def refresh():
+            for name in prereqs:
+                ok = check_prereq(name)
+                icon = "✅" if ok else "❌"
+                status_labels[name].configure(text=f"{icon}  {PREREQ_LABELS[name]}")
+                action_btns[name].configure(
+                    text="已安裝" if ok else "安裝",
+                    state="disabled" if ok else "normal"
+                )
+            # Login row & finish button
+            login_btn.configure(state="normal" if check_prereq("gemini") else "disabled")
+            all_ok = all(check_prereq(n) for n in prereqs)
+            finish_btn.configure(state="normal" if all_ok else "disabled")
+
+        def install_one(name):
+            cmd = PREREQ_INSTALL.get(name)
+            if name == "genecr":
+                # git clone + setup install gemini
+                self._wizard_install_genecr(win, refresh)
+                return
+            if not cmd:
+                return
+            if cmd[0] == "winget" and not check_prereq("winget"):
+                messagebox.showerror("找不到 winget",
+                    "您的 Windows 沒有 winget（需要 Windows 10 1809+ 或手動裝 App Installer）。\n"
+                    "請手動到官網下載安裝。", parent=win)
+                return
+            log_dialog = self._wizard_run(win, f"安裝 {PREREQ_LABELS[name]}…", cmd, refresh)
+
+        for name in prereqs:
+            row = ttk.Frame(list_frame)
+            row.pack(fill="x", pady=4)
+            lbl = ttk.Label(row, text=f"⏳  {PREREQ_LABELS[name]}",
+                             font=("Microsoft JhengHei", 11), width=30, anchor="w")
+            lbl.pack(side="left")
+            btn = ttk.Button(row, text="安裝", width=10, command=lambda n=name: install_one(n))
+            btn.pack(side="right")
+            status_labels[name] = lbl
+            action_btns[name] = btn
+
+        # Login row (separate, after gemini is installed)
+        sep = ttk.Separator(win, orient="horizontal")
+        sep.pack(fill="x", padx=20, pady=6)
+        login_row = ttk.Frame(win)
+        login_row.pack(fill="x", padx=20, pady=4)
+        ttk.Label(login_row, text="🔑  Google 登入（首次需要在瀏覽器同意）",
+                   font=("Microsoft JhengHei", 11)).pack(side="left")
+        login_btn = ttk.Button(login_row, text="登入 Gemini",
+                                command=lambda: self._wizard_login_gemini(win))
+        login_btn.pack(side="right")
+
+        # Finish row
+        finish_row = ttk.Frame(win)
+        finish_row.pack(fill="x", padx=20, pady=14)
+        ttk.Button(finish_row, text="🔄 重新檢測", command=refresh).pack(side="left")
+        finish_btn = ttk.Button(finish_row, text="完成（重啟視窗）", state="disabled",
+                                 command=lambda: (win.destroy(), self._restart()))
+        finish_btn.pack(side="right")
+
+        refresh()
+
+    def _wizard_run(self, parent, title: str, cmd: list[str], on_done):
+        """Run a command in a popup with live output, then refresh."""
+        win = tk.Toplevel(parent)
+        win.title(title)
+        win.geometry("640x380")
+        txt = tk.Text(win, font=("Consolas", 9))
+        txt.pack(fill="both", expand=True)
+        txt.insert("end", f"$ {' '.join(cmd)}\n\n")
+        close_btn = ttk.Button(win, text="關閉", state="disabled", command=win.destroy)
+        close_btn.pack(pady=4)
+
+        def worker():
+            try:
+                # Resolve cmd[0] via shutil.which (handle .cmd on Windows)
+                resolved = shutil.which(cmd[0]) or cmd[0]
+                full = [resolved] + cmd[1:]
+                proc = subprocess.Popen(
+                    full, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    text=True, encoding="utf-8", errors="replace",
+                )
+                for line in proc.stdout:
+                    self.after(0, lambda l=line: (txt.insert("end", l), txt.see("end")))
+                rc = proc.wait()
+                self.after(0, lambda: txt.insert("end", f"\n[exit {rc}]\n"))
+            except Exception as e:
+                self.after(0, lambda: txt.insert("end", f"\n❌ {e}\n"))
+            finally:
+                self.after(0, lambda: close_btn.configure(state="normal"))
+                self.after(0, on_done)
+
+        threading.Thread(target=worker, daemon=True).start()
+        return win
+
+    def _wizard_install_genecr(self, parent, on_done):
+        target = Path.home() / ".gemini" / "skills" / "genecr"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            # Already cloned but maybe not deployed; just run setup
+            cmd = ["bash", str(target / "setup"), "install", "gemini"]
+            if sys.platform == "win32" and (target / "setup.ps1").exists():
+                cmd = ["powershell", "-NoProfile", "-File", str(target / "setup.ps1"), "install", "gemini"]
+        else:
+            # Clone, then setup
+            cmd = ["git", "clone", GENECR_REPO_URL, str(target)]
+            self._wizard_run(parent, "下載 genecr…", cmd, lambda: self._wizard_setup_genecr(parent, on_done))
+            return
+        self._wizard_run(parent, "部署 genecr…", cmd, on_done)
+
+    def _wizard_setup_genecr(self, parent, on_done):
+        target = Path.home() / ".gemini" / "skills" / "genecr"
+        if sys.platform == "win32" and (target / "setup.ps1").exists():
+            cmd = ["powershell", "-NoProfile", "-File", str(target / "setup.ps1"), "install", "gemini"]
+        else:
+            cmd = ["bash", str(target / "setup"), "install", "gemini"]
+        self._wizard_run(parent, "部署 genecr…", cmd, on_done)
+
+    def _wizard_login_gemini(self, parent):
+        # Open Gemini interactively in a new console window for OAuth login.
+        try:
+            if sys.platform == "win32":
+                # 'start' detaches into a new visible cmd window
+                subprocess.Popen(["cmd", "/c", "start", "cmd", "/k", "gemini"], shell=False)
+            else:
+                subprocess.Popen(["x-terminal-emulator", "-e", "gemini"])
+            messagebox.showinfo("Gemini 登入",
+                "已開啟新終端機。請在那邊完成 Google 登入後，回來按「🔄 重新檢測」。",
+                parent=parent)
+        except Exception as e:
+            messagebox.showerror("無法開啟", str(e), parent=parent)
+
+    def _restart(self):
+        """Restart this app so the wizard's installs take effect."""
+        try:
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        except Exception:
+            messagebox.showinfo("請手動重開", "安裝完成。請關閉並重新開啟視窗。", parent=self)
+            self.destroy()
 
 
 if __name__ == "__main__":

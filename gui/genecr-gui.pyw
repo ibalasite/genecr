@@ -86,6 +86,72 @@ def find_python() -> str:
     return sys.executable  # fall back to current interpreter
 
 
+# ─── Pure helpers (no UI; testable headless) ────────────────────
+CLI_MAP = {
+    "gemini": (["gemini"], ["--skip-trust", "-p", " ", "--output-format", "text"]),
+    "claude": (["claude"], ["-p", "--output-format", "text"]),
+    "codex":  (["codex"],  ["exec", "--skip-git-repo-check"]),
+}
+
+EXTRACT_PROMPT = (
+    "從下面的功能需求描述中萃取兩個值，**只輸出 JSON**（無 markdown fence、無註解）：\n"
+    "- slug: 英文小寫 kebab-case，反映核心功能，≤ 20 字元\n"
+    "- name: 中文 2-6 字短名\n\n"
+    "範例輸出：{\"slug\":\"daily-checkin\",\"name\":\"每日簽到\"}\n\n"
+    "功能需求描述：\n"
+    "{brief}\n"
+)
+
+
+def extract_slug_name(brief: str, host: str, timeout: int = 60) -> tuple[dict | None, str | None]:
+    """Call host CLI to extract {slug, name} from brief. Returns (data, error)."""
+    if host not in CLI_MAP:
+        return None, f"未知 host: {host}"
+    bin_name = CLI_MAP[host][0][0]
+    bin_path = shutil.which(bin_name)
+    if not bin_path:
+        return None, f"找不到 {bin_name} CLI"
+    cli_cmd = [bin_path] + CLI_MAP[host][1]
+    prompt = EXTRACT_PROMPT.replace("{brief}", brief)
+    creationflags = 0
+    if sys.platform == "win32":
+        creationflags = subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]
+    try:
+        r = subprocess.run(
+            cli_cmd, input=prompt, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=timeout,
+            creationflags=creationflags,
+        )
+        out = (r.stdout or "").strip()
+        out = re.sub(r"^```(?:json)?\s*|\s*```$", "", out, flags=re.MULTILINE).strip()
+        return json.loads(out), None
+    except subprocess.TimeoutExpired:
+        return None, f"CLI 超時（>{timeout}s）"
+    except json.JSONDecodeError as e:
+        return None, f"AI 回傳非 JSON：{e}"
+    except Exception as e:
+        return None, str(e)
+
+
+def parse_pipeline_line(line: str) -> tuple[str, str] | None:
+    """Parse one pipeline.py stdout line. Returns (event, step) or None.
+    event ∈ {'start', 'done', 'render_done', 'run_dir'}.
+    """
+    m = re.match(r"^▶\s+(\S+):", line)
+    if m:
+        return ("start", m.group(1))
+    m = re.match(r"^\s+✓\s+(\S+):.*OK", line)
+    if m:
+        return ("done", m.group(1))
+    m = re.search(r"\[render\]\s+(\S+)\s+→", line)
+    if m:
+        return ("render_done", m.group(1))
+    m = re.search(r"Run:\s+(.+)", line)
+    if m:
+        return ("run_dir", m.group(1).strip())
+    return None
+
+
 class GenecrGUI(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -189,55 +255,8 @@ class GenecrGUI(tk.Tk):
         threading.Thread(target=self._extract_worker, args=(brief,), daemon=True).start()
 
     def _extract_worker(self, brief: str):
-        # Pick CLI based on host. shutil.which resolves .cmd / .exe / .ps1 wrappers
-        # on Windows (npm-installed clis are typically gemini.cmd).
-        cli_map = {
-            "gemini": (["gemini"], ["--skip-trust", "-p", " ", "--output-format", "text"]),
-            "claude": (["claude"], ["-p", "--output-format", "text"]),
-            "codex":  (["codex"],  ["exec", "--skip-git-repo-check"]),
-        }
-        if self.host not in cli_map:
-            self.after(0, lambda: self._extract_done(None, "未知 host，無法呼叫 CLI"))
-            return
-        bin_name = cli_map[self.host][0][0]
-        bin_path = shutil.which(bin_name)
-        if not bin_path:
-            self.after(0, lambda: self._extract_done(None,
-                f"找不到 {bin_name} CLI。請確認已 `npm install -g @google/gemini-cli` 並重啟此視窗。"))
-            return
-        cli_cmd = [bin_path] + cli_map[self.host][1]
-
-        prompt = (
-            "從下面的功能需求描述中萃取兩個值，**只輸出 JSON**（無 markdown fence、無註解）：\n"
-            "- slug: 英文小寫 kebab-case，反映核心功能，≤ 20 字元\n"
-            "- name: 中文 2-6 字短名\n\n"
-            "範例輸出：{\"slug\":\"daily-checkin\",\"name\":\"每日簽到\"}\n\n"
-            "功能需求描述：\n"
-            f"{brief}\n"
-        )
-        try:
-            # On Windows, .cmd wrappers spawn cmd.exe which can flash; suppress.
-            creationflags = 0
-            if sys.platform == "win32":
-                creationflags = subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]
-            r = subprocess.run(
-                cli_cmd, input=prompt, capture_output=True, text=True,
-                encoding="utf-8", errors="replace", timeout=60,
-                creationflags=creationflags,
-            )
-            out = (r.stdout or "").strip()
-            # Strip code fences if any
-            out = re.sub(r"^```(?:json)?\s*|\s*```$", "", out, flags=re.MULTILINE).strip()
-            data = json.loads(out)
-            self.after(0, lambda: self._extract_done(data, None))
-        except subprocess.TimeoutExpired:
-            self.after(0, lambda: self._extract_done(None, "CLI 超時（>60s）"))
-        except json.JSONDecodeError as e:
-            self.after(0, lambda: self._extract_done(None, f"AI 回傳非 JSON：{e}"))
-        except FileNotFoundError:
-            self.after(0, lambda: self._extract_done(None, f"找不到 {cli_cmd[0]} CLI，請確認已安裝"))
-        except Exception as e:
-            self.after(0, lambda: self._extract_done(None, str(e)))
+        data, err = extract_slug_name(brief, self.host)
+        self.after(0, lambda: self._extract_done(data, err))
 
     def _extract_done(self, data, err):
         self.extract_btn.configure(state="normal", text="🪄 從描述自動萃取")

@@ -3,7 +3,8 @@
 # Host-neutral: $env:GENECR_DIR is derived from this script's own location, so
 # the same code works whether genecr is installed under:
 #   $env:USERPROFILE\.claude\skills\genecr   (Claude Code)
-#   $env:USERPROFILE\.codex\skills\genecr    (Codex)
+#   $env:USERPROFILE\.codex\skills\genecr    (Codex CLI)
+#   $env:USERPROFILE\.gemini\skills\genecr   (Gemini CLI)
 #   or any other host's skill dir.
 #
 # Skills MUST dot-source this to discover templates/tools, and MUST NOT
@@ -24,4 +25,5 @@ $env:GENECR_REFERENCES = Join-Path $env:GENECR_DIR "references"
 # Host detection (optional)
 if     ($env:GENECR_DIR -match '\\\.codex\\')  { $env:GENECR_HOST = 'codex' }
 elseif ($env:GENECR_DIR -match '\\\.claude\\') { $env:GENECR_HOST = 'claude' }
+elseif ($env:GENECR_DIR -match '\\\.gemini\\') { $env:GENECR_HOST = 'gemini' }
 else                                            { $env:GENECR_HOST = 'unknown' }

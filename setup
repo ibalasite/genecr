@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# genecr setup — install / uninstall / upgrade, multi-host (Claude / Codex)
+# genecr setup — install / uninstall / upgrade, multi-host (Claude / Codex / Gemini)
 #
 # Usage:
 #   ./setup                         # install for auto-detected host (current location)
 #   ./setup install                 # same as above
 #   ./setup install claude          # clone to ~/.claude/skills/genecr + deploy subskills there
 #   ./setup install codex           # clone to ~/.codex/skills/genecr  + deploy subskills there
-#   ./setup install all             # install for BOTH hosts (two clones)
+#   ./setup install gemini          # clone to ~/.gemini/skills/genecr + deploy subskills there
+#   ./setup install all             # install for ALL hosts (claude + codex + gemini)
 #   ./setup upgrade                 # git pull + redeploy (current host)
-#   ./setup upgrade all             # upgrade BOTH hosts
-#   ./setup uninstall [claude|codex|all]
+#   ./setup upgrade all             # upgrade ALL hosts
+#   ./setup uninstall [claude|codex|gemini|all]
 #
 # Cross-platform: Windows (Git Bash), macOS, Linux.
 
@@ -28,6 +29,7 @@ _host_dir() {
   case "$1" in
     claude) echo "$HOME/.claude/skills/genecr" ;;
     codex)  echo "$HOME/.codex/skills/genecr"  ;;
+    gemini) echo "$HOME/.gemini/skills/genecr" ;;
     *)      return 1 ;;
   esac
 }
@@ -35,6 +37,7 @@ _host_skills_dir() {
   case "$1" in
     claude) echo "$HOME/.claude/skills" ;;
     codex)  echo "$HOME/.codex/skills"  ;;
+    gemini) echo "$HOME/.gemini/skills" ;;
     *)      return 1 ;;
   esac
 }
@@ -46,6 +49,7 @@ _detect_host_from_self() {
   case "$self_path" in
     *"/.codex/"*)  echo "codex"  ;;
     *"/.claude/"*) echo "claude" ;;
+    *"/.gemini/"*) echo "gemini" ;;
     *) echo "" ;;
   esac
 }
@@ -53,8 +57,8 @@ _detect_host_from_self() {
 # Expand "all" → list of hosts; expand single host → that host; empty → autodetect
 _resolve_targets() {
   if [[ "$1" == "all" ]]; then
-    echo "claude codex"
-  elif [[ "$1" == "claude" || "$1" == "codex" ]]; then
+    echo "claude codex gemini"
+  elif [[ "$1" == "claude" || "$1" == "codex" || "$1" == "gemini" ]]; then
     echo "$1"
   elif [[ -z "$1" ]]; then
     local detected
@@ -66,7 +70,7 @@ _resolve_targets() {
       echo "claude"
     fi
   else
-    echo "❌ unknown target: $1 (use claude|codex|all)" >&2
+    echo "❌ unknown target: $1 (use claude|codex|gemini|all)" >&2
     exit 1
   fi
 }
@@ -219,7 +223,7 @@ case "$CMD" in
   _post_upgrade)
     _post_upgrade "$TARGET"
     ;;
-  claude|codex|all)
+  claude|codex|gemini|all)
     # Convenience: ./setup claude  ≡  ./setup install claude
     for h in $(_resolve_targets "$CMD"); do _install_one "$h"; done
     ;;
@@ -233,12 +237,14 @@ Commands:
   uninstall [target]  移除 deployed skills + runtime
   claude              快捷：install claude
   codex               快捷：install codex
+  gemini              快捷：install gemini
   all                 快捷：install all
 
 Targets:
   claude              安裝到 ~/.claude/skills/genecr
   codex               安裝到 ~/.codex/skills/genecr
-  all                 兩個都裝
+  gemini              安裝到 ~/.gemini/skills/genecr
+  all                 三個 host 都裝
   (省略)              依本 setup 腳本所在位置自動判斷
 EOF
     exit 1

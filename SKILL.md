@@ -14,8 +14,9 @@ allowed-tools:
 ## 1. 決定 host
 
 看上方「Base directory for this skill」：
-- 含 `.claude` → `GENECR_DIR=$HOME/.claude/skills/genecr`
-- 含 `.codex`  → `GENECR_DIR=$HOME/.codex/skills/genecr`
+- 含 `.claude` → `GENECR_DIR=$HOME/.claude/skills/genecr`，預設用 `pipeline.json`
+- 含 `.codex`  → `GENECR_DIR=$HOME/.codex/skills/genecr`，改用 `pipeline-codex.json`（若存在；否則編輯 `pipeline.json` 的 `ai.command`）
+- 含 `.gemini` → `GENECR_DIR=$HOME/.gemini/skills/genecr`，改用 `pipeline-gemini.json`
 
 ## 2. 從 brief 萃取 feature 資訊（你的職責，AI）
 
@@ -32,12 +33,17 @@ allowed-tools:
 ## 3. 執行 pipeline
 
 ```bash
-GENECR_DIR="$HOME/.claude/skills/genecr"   # ← 若從 .codex 載入請改
+GENECR_DIR="$HOME/.claude/skills/genecr"   # ← 若從 .codex / .gemini 載入請改
 
 source "$GENECR_DIR/bin/genecr-env.sh"
 
-PIPELINE_JSON="./pipeline.json"
-[ -f "$PIPELINE_JSON" ] || PIPELINE_JSON="$GENECR_DIR/pipeline.json"
+# 依 host 選 pipeline.json：gemini → pipeline-gemini.json；其他 → pipeline.json
+case "$GENECR_HOST" in
+  gemini) PIPELINE_FILE="pipeline-gemini.json" ;;
+  *)      PIPELINE_FILE="pipeline.json" ;;
+esac
+PIPELINE_JSON="./$PIPELINE_FILE"
+[ -f "$PIPELINE_JSON" ] || PIPELINE_JSON="$GENECR_DIR/$PIPELINE_FILE"
 
 # 由你（AI）依步驟 2 萃取後填入
 SLUG="bingo"          # ← 從 brief 萃取的英文 slug

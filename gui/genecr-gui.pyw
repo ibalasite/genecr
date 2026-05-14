@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import json
+import shutil
 import threading
 import subprocess
 import webbrowser
@@ -175,15 +176,23 @@ class GenecrGUI(tk.Tk):
         threading.Thread(target=self._extract_worker, args=(brief,), daemon=True).start()
 
     def _extract_worker(self, brief: str):
-        # Pick CLI based on host
-        cli_cmd = {
-            "gemini": ["gemini", "--skip-trust", "-p", " ", "--output-format", "text"],
-            "claude": ["claude", "-p", "--output-format", "text"],
-            "codex":  ["codex", "exec", "--skip-git-repo-check"],
-        }.get(self.host)
-        if not cli_cmd:
+        # Pick CLI based on host. shutil.which resolves .cmd / .exe / .ps1 wrappers
+        # on Windows (npm-installed clis are typically gemini.cmd).
+        cli_map = {
+            "gemini": (["gemini"], ["--skip-trust", "-p", " ", "--output-format", "text"]),
+            "claude": (["claude"], ["-p", "--output-format", "text"]),
+            "codex":  (["codex"],  ["exec", "--skip-git-repo-check"]),
+        }
+        if self.host not in cli_map:
             self.after(0, lambda: self._extract_done(None, "未知 host，無法呼叫 CLI"))
             return
+        bin_name = cli_map[self.host][0][0]
+        bin_path = shutil.which(bin_name)
+        if not bin_path:
+            self.after(0, lambda: self._extract_done(None,
+                f"找不到 {bin_name} CLI。請確認已 `npm install -g @google/gemini-cli` 並重啟此視窗。"))
+            return
+        cli_cmd = [bin_path] + cli_map[self.host][1]
 
         prompt = (
             "從下面的功能需求描述中萃取兩個值，**只輸出 JSON**（無 markdown fence、無註解）：\n"
@@ -194,9 +203,14 @@ class GenecrGUI(tk.Tk):
             f"{brief}\n"
         )
         try:
+            # On Windows, .cmd wrappers spawn cmd.exe which can flash; suppress.
+            creationflags = 0
+            if sys.platform == "win32":
+                creationflags = subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]
             r = subprocess.run(
                 cli_cmd, input=prompt, capture_output=True, text=True,
                 encoding="utf-8", errors="replace", timeout=60,
+                creationflags=creationflags,
             )
             out = (r.stdout or "").strip()
             # Strip code fences if any

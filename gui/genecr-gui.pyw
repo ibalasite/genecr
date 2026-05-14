@@ -196,8 +196,8 @@ class GenecrGUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(APP_TITLE)
-        self.geometry("760x720")
-        self.minsize(640, 600)
+        self.geometry("780x980")
+        self.minsize(680, 720)
 
         self.genecr_dir = detect_genecr_dir()
         self.host = detect_host(self.genecr_dir) if self.genecr_dir else "unknown"

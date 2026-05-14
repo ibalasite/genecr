@@ -301,11 +301,17 @@ class GenecrGUI(tk.Tk):
         try:
             self.after(0, self._log, f"$ cd {cwd}")
             self.after(0, self._log, "$ " + " ".join(f'"{c}"' if " " in c else c for c in cmd[:6]) + " ...")
+            env = os.environ.copy()
+            env["PYTHONIOENCODING"] = "utf-8"
+            env["PYTHONUTF8"] = "1"
+            creationflags = 0
+            if sys.platform == "win32":
+                creationflags = subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]
             self.proc = subprocess.Popen(
-                cmd, cwd=str(cwd),
+                cmd, cwd=str(cwd), env=env,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, encoding="utf-8", errors="replace",
-                bufsize=1,
+                bufsize=1, creationflags=creationflags,
             )
             run_dir_pat = re.compile(r"Run:\s+(.+)")
             step_start = re.compile(r"^▶\s+(\S+):")

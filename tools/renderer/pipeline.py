@@ -30,6 +30,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+# Force UTF-8 stdout/stderr so unicode markers (▶ ✓ ✅) work on Windows cp950.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, ValueError):
+    pass  # Python < 3.7 or non-tty stream
+
 import render as r
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

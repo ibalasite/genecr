@@ -6,7 +6,7 @@
 把一個 iGaming 功能需求，自動轉成完整文件套件：
 企畫版（含線框圖）、技術版（API + Mermaid）、資源清單＋AI Prompt、BDD、SCRUM、互動原型、整合 docs.html。
 
-**Host-neutral**：同時支援 [Gemini CLI](https://github.com/google-gemini/gemini-cli)（預設）、[Claude Code](https://claude.com/claude-code) 與 [Codex CLI](https://github.com/openai/codex)。
+**Host-neutral**：同時支援 [Claude Code](https://claude.com/claude-code) 與 [Codex CLI](https://github.com/openai/codex)。
 
 ---
 
@@ -86,50 +86,36 @@ output/<feature-slug>/<YYYYMMDD-HHMMSS>/
 
 ## 安裝
 
-> **預設 host = Gemini CLI**（免費額度可用、無需 Claude/Codex 帳號）。
-> 詳細手把手手冊：[`docs/INSTALL-GEMINI.md`](docs/INSTALL-GEMINI.md)
-
-### ⭐ Gemini CLI（推薦，預設）
-
-```bash
-# 先裝 Gemini CLI（如果還沒裝）
-npm install -g @google/gemini-cli
-gemini   # 首次跑會引導 Google 帳號登入，登入後 Ctrl+C 離開
-
-# 裝 genecr
-git clone https://github.com/ibalasite/genecr.git ~/.gemini/skills/genecr
-~/.gemini/skills/genecr/setup install gemini
-```
-
-Windows PowerShell：
-```powershell
-git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.gemini\skills\genecr"
-& "$env:USERPROFILE\.gemini\skills\genecr\setup.ps1" install gemini
-```
-
 ### 🟣 Claude Code
 
 ```bash
 git clone https://github.com/ibalasite/genecr.git ~/.claude/skills/genecr
-~/.claude/skills/genecr/setup install claude
+~/.claude/skills/genecr/setup claude
 ```
 
 ### 🟢 Codex CLI
 
 ```bash
 git clone https://github.com/ibalasite/genecr.git ~/.codex/skills/genecr
-~/.codex/skills/genecr/setup install codex
+~/.codex/skills/genecr/setup codex
 ```
 
-### 🔁 三個都裝
+### 🔁 兩個都裝
 
 ```bash
-~/.gemini/skills/genecr/setup install all
+~/.claude/skills/genecr/setup install all
 ```
 
-`setup` 內部依序：`git clone` → 部署 sub skills → 跑 `tools/renderer/build.{sh,ps1}` 把 .py 拷到 `tools/bin/`。
+### Windows PowerShell
 
-安裝完**重啟對應 host** 讓 skill 生效。
+```powershell
+git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.claude\skills\genecr"
+& "$env:USERPROFILE\.claude\skills\genecr\setup.ps1" claude
+```
+
+`setup` 內部依序：`git clone` → `_deploy_skills`（部署 sub skills）→ `_deploy_tools`（跑 `tools/renderer/build.sh` 把 .py 拷到 `tools/bin/`）。
+
+安裝完**重啟** Claude Code / Codex 讓 skill 生效。
 
 ---
 

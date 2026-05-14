@@ -36,14 +36,33 @@ STEP_LABELS = {
 }
 
 
-def detect_genecr_dir() -> Path | None:
-    """Find genecr install across known host dirs."""
+HOST_DIRS = {
+    "gemini": ".gemini",
+    "claude": ".claude",
+    "codex":  ".codex",
+}
+
+
+def list_installed_hosts() -> list[str]:
+    """Return host names where genecr is installed (in preferred order)."""
     home = Path.home()
-    for host in (".gemini", ".claude", ".codex"):
-        d = home / host / "skills" / "genecr"
-        if (d / "pipeline.json").exists():
-            return d
-    return None
+    return [h for h, d in HOST_DIRS.items()
+            if (home / d / "skills" / "genecr" / "pipeline.json").exists()]
+
+
+def host_to_dir(host: str) -> Path | None:
+    home = Path.home()
+    d = HOST_DIRS.get(host)
+    if not d:
+        return None
+    p = home / d / "skills" / "genecr"
+    return p if (p / "pipeline.json").exists() else None
+
+
+def detect_genecr_dir() -> Path | None:
+    """Find genecr install across known host dirs (first match)."""
+    hosts = list_installed_hosts()
+    return host_to_dir(hosts[0]) if hosts else None
 
 
 def detect_pipeline_json(genecr_dir: Path, host: str) -> Path:
@@ -178,11 +197,19 @@ class GenecrGUI(tk.Tk):
     def _build_ui(self):
         pad = {"padx": 10, "pady": 6}
 
-        # Top status bar
+        # Top status bar — host picker (only installed hosts shown)
         top = ttk.Frame(self)
         top.pack(fill="x", **pad)
-        status_text = f"host: {self.host}  ｜  genecr: {self.genecr_dir or '未安裝'}"
-        ttk.Label(top, text=status_text, foreground="#666").pack(side="left")
+        ttk.Label(top, text="host：").pack(side="left")
+        installed = list_installed_hosts()
+        self.host_var = tk.StringVar(value=self.host if self.host in installed else (installed[0] if installed else "unknown"))
+        self.host_combo = ttk.Combobox(top, textvariable=self.host_var, width=10,
+                                        values=installed, state="readonly")
+        self.host_combo.pack(side="left")
+        self.host_combo.bind("<<ComboboxSelected>>", self._on_host_change)
+        self.path_label = ttk.Label(top, text="", foreground="#666")
+        self.path_label.pack(side="left", padx=(10, 0))
+        self._refresh_path_label()
 
         # Brief input
         ttk.Label(self, text="功能描述（brief）— 越詳細越好：").pack(anchor="w", **pad)
@@ -216,9 +243,13 @@ class GenecrGUI(tk.Tk):
         ttk.Entry(row2, textvariable=self.outdir_var).pack(side="left", fill="x", expand=True, padx=(0, 6))
         ttk.Button(row2, text="瀏覽…", command=self._pick_outdir).pack(side="left")
 
-        # Run button
-        self.run_btn = ttk.Button(self, text="🚀 開始生成", command=self._on_run)
-        self.run_btn.pack(pady=10)
+        # Run / Cancel buttons
+        btn_row = ttk.Frame(self)
+        btn_row.pack(pady=10)
+        self.run_btn = ttk.Button(btn_row, text="🚀 開始生成", command=self._on_run)
+        self.run_btn.pack(side="left", padx=4)
+        self.cancel_btn = ttk.Button(btn_row, text="✋ 取消", command=self._on_cancel, state="disabled")
+        self.cancel_btn.pack(side="left", padx=4)
 
         # Progress
         ttk.Label(self, text="進度：").pack(anchor="w", **pad)
@@ -250,6 +281,15 @@ class GenecrGUI(tk.Tk):
         if self._brief_placeholder:
             self.brief.delete("1.0", "end")
             self._brief_placeholder = False
+
+    def _on_host_change(self, _evt=None):
+        self.host = self.host_var.get()
+        self.genecr_dir = host_to_dir(self.host)
+        self._refresh_path_label()
+
+    def _refresh_path_label(self):
+        gd = self.genecr_dir
+        self.path_label.configure(text=f"｜  {gd}" if gd else "｜  未偵測到 genecr")
 
     # ─── Auto-extract slug + name via Gemini ────────────────────
     def _on_extract(self):
@@ -331,6 +371,7 @@ class GenecrGUI(tk.Tk):
         self._log_buffer.clear()
         self.progress.configure(value=0)
         self.run_btn.configure(state="disabled", text="生成中…")
+        self.cancel_btn.configure(state="normal")
 
         pipeline_json = detect_pipeline_json(self.genecr_dir, self.host)
         pipeline_py = self.genecr_dir / "tools" / "bin" / "pipeline.py"
@@ -389,8 +430,22 @@ class GenecrGUI(tk.Tk):
     def _bump_progress(self, n: int = 1):
         self.progress.configure(value=min(self.progress["value"] + n, len(STEPS) * 2))
 
+    def _on_cancel(self):
+        if not self.proc:
+            return
+        try:
+            # On Windows, terminate kills the whole process tree (mostly)
+            self.proc.terminate()
+            self._log("⚠ 使用者取消")
+        except Exception as e:
+            self._log(f"取消失敗：{e}")
+        finally:
+            self.cancel_btn.configure(state="disabled")
+            self.run_btn.configure(state="normal", text="🚀 開始生成")
+
     def _on_error(self, summary: str):
         self.run_btn.configure(state="normal", text="🚀 開始生成")
+        self.cancel_btn.configure(state="disabled")
         # Custom error dialog with copy button
         win = tk.Toplevel(self)
         win.title("發生錯誤")
@@ -411,6 +466,7 @@ class GenecrGUI(tk.Tk):
 
     def _on_done(self, slug: str):
         self.run_btn.configure(state="normal", text="🚀 開始生成")
+        self.cancel_btn.configure(state="disabled")
         if not self.run_dir or not self.run_dir.exists():
             self._log("⚠ 找不到 run 目錄")
             return

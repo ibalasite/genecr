@@ -21,7 +21,7 @@ def test_helpers():
     gd = g.detect_genecr_dir()
     if gd:
         print(f"  detect_host(gd)     = {g.detect_host(gd)}")
-        print(f"  pipeline_json       = {g.detect_pipeline_json(gd, g.detect_host(gd))}")
+        print(f"  pipeline_json       = {gd / 'pipeline.json'}")
     assert gd is not None and gd.exists(), "genecr install not detected"
     print("  ✅ helpers OK\n")
 

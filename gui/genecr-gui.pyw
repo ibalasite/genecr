@@ -289,15 +289,22 @@ class GenecrGUI(tk.Tk):
             lbl.pack(anchor="w", padx=10, pady=2)
             self.step_labels[s] = lbl
 
-        # Progress bar (replaces visible log)
+        # Progress bar
         prog_row = ttk.Frame(self)
         prog_row.pack(fill="x", padx=10, pady=(0, 6))
         self.progress = ttk.Progressbar(prog_row, mode="determinate", maximum=len(STEPS) * 2)
         self.progress.pack(side="left", fill="x", expand=True)
-        self.detail_btn = ttk.Button(prog_row, text="詳細…", width=8, command=self._show_log)
+        self.detail_btn = ttk.Button(prog_row, text="📋 複製 log", width=10, command=self._copy_log)
         self.detail_btn.pack(side="left", padx=(6, 0))
 
-        # Internal log buffer (not shown by default)
+        # Inline log panel (always visible, like wizard)
+        log_frame = ttk.LabelFrame(self, text="執行進度")
+        log_frame.pack(fill="x", padx=10, pady=(0, 6))
+        self.log_text = tk.Text(log_frame, height=6, font=("Consolas", 9),
+                                 state="disabled", background="#1e1e1e", foreground="#ddd")
+        self.log_text.pack(fill="both", expand=True, padx=4, pady=4)
+
+        # Internal log buffer (mirrors log_text contents)
         self._log_buffer: list[str] = []
 
         # Results panel
@@ -352,10 +359,20 @@ class GenecrGUI(tk.Tk):
 
     def _log(self, msg: str):
         self._log_buffer.append(msg)
+        self.log_text.configure(state="normal")
+        self.log_text.insert("end", msg + "\n")
+        self.log_text.see("end")
+        self.log_text.configure(state="disabled")
+
+    def _copy_log(self):
+        self.clipboard_clear()
+        self.clipboard_append("\n".join(self._log_buffer))
+        messagebox.showinfo("已複製", "log 已複製到剪貼簿。")
 
     def _show_log(self):
+        # Kept for error dialog "看詳細 log" button — show in larger window
         win = tk.Toplevel(self)
-        win.title("詳細 log")
+        win.title("完整 log")
         win.geometry("760x520")
         txt = tk.Text(win, wrap="none", font=("Consolas", 9))
         ys = ttk.Scrollbar(win, orient="vertical", command=txt.yview)
@@ -365,15 +382,7 @@ class GenecrGUI(tk.Tk):
         full = "\n".join(self._log_buffer)
         txt.insert("1.0", full or "(尚無內容)")
         txt.configure(state="disabled")
-
-        bar = ttk.Frame(win)
-        bar.pack(fill="x")
-        def _copy():
-            self.clipboard_clear()
-            self.clipboard_append(full)
-            messagebox.showinfo("已複製", "log 已複製到剪貼簿。", parent=win)
-        ttk.Button(bar, text="📋 複製全部", command=_copy).pack(side="left", padx=8, pady=6)
-        ttk.Button(bar, text="關閉", command=win.destroy).pack(side="right", padx=8, pady=6)
+        ttk.Button(win, text="關閉", command=win.destroy).pack(pady=4)
 
     # ─── Run pipeline ───────────────────────────────────────────
     def _on_run(self):
@@ -397,6 +406,9 @@ class GenecrGUI(tk.Tk):
         for w in self.results.winfo_children():
             w.destroy()
         self._log_buffer.clear()
+        self.log_text.configure(state="normal")
+        self.log_text.delete("1.0", "end")
+        self.log_text.configure(state="disabled")
         self.progress.configure(value=0)
         self.run_btn.configure(state="disabled", text="生成中…")
         self.cancel_btn.configure(state="normal")

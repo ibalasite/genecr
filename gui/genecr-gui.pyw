@@ -27,7 +27,7 @@ GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.1.12"
+APP_VERSION = "0.1.13"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -976,6 +976,45 @@ class GenecrGUI(tk.Tk):
         self.clipboard_clear()
         self.clipboard_append("\n".join(self._log_buffer))
         messagebox.showinfo("已複製", "log 已複製到剪貼簿。")
+
+    def _report_bug(self):
+        """One-click bug report: open GitHub new-issue page with environment
+        info + recent log pre-filled. User just hits GitHub's submit button."""
+        import urllib.parse, platform
+        py_ver = sys.version.split()[0] if sys.version else "?"
+        os_info = f"{platform.system()} {platform.release()} ({platform.version()})"
+        log_text = "\n".join(self._log_buffer[-100:]) if self._log_buffer else "(無 log)"
+        if len(log_text) > 4000:
+            log_text = "...(已截斷，僅顯示最後 4000 字)\n" + log_text[-4000:]
+        body = (
+            f"## 環境資訊\n"
+            f"- **GUI 版本**: v{APP_VERSION}\n"
+            f"- **作業系統**: {os_info}\n"
+            f"- **Host (AI)**: {self.host}\n"
+            f"- **Python**: {py_ver}\n"
+            f"- **genecr 路徑**: {self.genecr_dir or '未偵測到'}\n\n"
+            f"## 問題描述\n"
+            f"<!-- 一句話講清楚發生什麼事（請填寫） -->\n\n\n"
+            f"## 重現步驟\n1.\n2.\n3.\n\n"
+            f"## 完整 Log（自動帶入）\n"
+            f"```\n{log_text}\n```\n"
+        )
+        params = urllib.parse.urlencode({
+            "title": "[Bug] ",
+            "body": body,
+            "labels": "bug",
+        })
+        url = f"{GENECR_NEW_ISSUE_URL}?{params}"
+        try:
+            webbrowser.open(url)
+            messagebox.showinfo(
+                "已開啟回報頁面",
+                "瀏覽器已開啟 GitHub Issue 頁面，環境與 log 都已自動帶入。\n\n"
+                "請補上「問題描述」「重現步驟」後按 GitHub 上的綠色「Submit new issue」即可送出。\n\n"
+                "（首次需 GitHub 帳號登入，可用 Google / Microsoft 帳號 SSO。）"
+            )
+        except Exception as e:
+            messagebox.showerror("無法開啟瀏覽器", str(e))
 
     def _show_log(self):
         # Kept for error dialog "看詳細 log" button — show in larger window

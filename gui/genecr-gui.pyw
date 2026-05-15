@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.1"
+APP_VERSION = "0.1.2"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -205,14 +205,16 @@ PREREQ_LABELS = {
 
 
 # ─── Login verification ─────────────────────────────────────────
-def verify_host_login(host: str, timeout: int = 30) -> tuple[bool, str]:
-    """Ping the host CLI with a tiny prompt. Return (logged_in, detail)."""
+# Status codes: "ok" / "not_logged_in" / "quota" / "network" / "unknown"
+def verify_host_login(host: str, timeout: int = 30) -> tuple[str, str]:
+    """Ping host CLI; return (status, detail) where status is one of:
+       'ok', 'not_logged_in', 'quota', 'network', 'unknown'."""
     if host not in CLI_MAP:
-        return False, f"未知 host: {host}"
+        return "unknown", f"未知 host: {host}"
     bin_name = CLI_MAP[host][0][0]
     bin_path = shutil.which(bin_name)
     if not bin_path:
-        return False, f"找不到 {bin_name} CLI"
+        return "unknown", f"找不到 {bin_name} CLI"
     cmd = [bin_path] + CLI_MAP[host][1]
     creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
     try:
@@ -222,14 +224,22 @@ def verify_host_login(host: str, timeout: int = 30) -> tuple[bool, str]:
             timeout=timeout, creationflags=creationflags,
         )
         out = (r.stdout or "").strip()
-        if out:
-            return True, out[:80]
         stderr = (r.stderr or "").strip()
-        return False, stderr[:200] or "空回應，可能未登入或網路問題"
+        combined = (out + " " + stderr).lower()
+        if out and "limit reached" not in combined and "quota" not in combined:
+            return "ok", out[:80]
+        # classify failure
+        if any(k in combined for k in ("limit reached", "quota", "exceeded", "exhaust")):
+            return "quota", "API 配額用完（每日免費額度已耗盡，等隔天 0:00 PT 重置或升級付費版）"
+        if any(k in combined for k in ("auth", "login", "credential", "unauthor", "sign in")):
+            return "not_logged_in", stderr[:300] or "尚未登入"
+        if any(k in combined for k in ("network", "timeout", "unreachable", "dns", "connect")):
+            return "network", stderr[:300] or "網路連線異常"
+        return "unknown", (stderr or "空回應，原因不明")[:300]
     except subprocess.TimeoutExpired:
-        return False, f"超時（>{timeout}s）"
+        return "network", f"超時（>{timeout}s）"
     except Exception as e:
-        return False, str(e)
+        return "unknown", str(e)
 
 
 # ─── Update check helpers ───────────────────────────────────────
@@ -419,34 +429,90 @@ class GenecrGUI(tk.Tk):
         self._refresh_path_label()
 
     def _on_login_host(self):
-        """Open login dialog (also reachable from header button)."""
-        self._open_login_dialog("")
+        """Triggered by main UI button — show status dialog (re-verifies)."""
+        # Run verification first, then dispatch
+        st, detail = verify_host_login(self.host)
+        if st == "ok":
+            messagebox.showinfo("登入狀態", f"✅ {self.host} 已登入並可正常呼叫。")
+            return
+        self._open_status_dialog(st, detail)
 
-    def _open_login_dialog(self, detail: str):
-        """Pop a guided login dialog with auto-verification."""
+    def _open_status_dialog(self, status: str, detail: str):
+        """Pop a guided dialog tailored to the actual problem (login / quota / network)."""
         host = self.host
         win = tk.Toplevel(self)
-        win.title(f"需要登入 {host}")
-        win.geometry("520x320")
         win.transient(self)
         try: win.grab_set()
         except Exception: pass
 
-        ttk.Label(win, text=f"⚠ 偵測到 {host} 尚未登入",
-                   foreground="#c00", font=("Microsoft JhengHei", 13, "bold")).pack(pady=(20, 6))
-        ttk.Label(win, text=f"請完成 {host} 的帳號登入後才能呼叫 AI。",
-                   foreground="#555").pack()
+        # ── Per-status content ─────────────────────────
+        if status == "not_logged_in":
+            title  = f"需要登入 {host}"
+            icon   = "🔑"
+            header = f"偵測到 {host} 尚未登入"
+            steps_text = (
+                f"請依下列步驟完成登入：\n\n"
+                f"1️⃣  按下方「開啟終端」會跳出新的命令列視窗\n"
+                f"2️⃣  在那個視窗中輸入：  /auth  （斜線+auth），按 Enter\n"
+                f"3️⃣  Gemini 會自動開啟瀏覽器，點選你的 Google 帳號\n"
+                f"4️⃣  瀏覽器顯示「Login Successful」後關閉終端\n"
+                f"5️⃣  回來這裡按「重新驗證」"
+            )
+            show_login_btn = True
+        elif status == "quota":
+            title  = f"{host} 配額已用完"
+            icon   = "⏱"
+            header = "今日免費配額已耗盡"
+            steps_text = (
+                "Gemini 免費版每日有額度上限，已用完。\n\n"
+                "選項：\n"
+                "  • 等隔天 0:00（太平洋時間）配額自動重置\n"
+                "  • 或在終端中輸入  /upgrade  升級付費版（需信用卡）\n"
+                "  • 或暫時切換到 claude / codex（如果有裝）"
+            )
+            show_login_btn = False
+        elif status == "network":
+            title  = f"{host} 網路連線異常"
+            icon   = "🌐"
+            header = "網路連不上"
+            steps_text = (
+                "可能原因：\n"
+                "  • 沒網路 / Wi-Fi 斷線\n"
+                "  • 公司防火牆擋住 Google API\n"
+                "  • VPN 異常\n\n"
+                "請檢查網路後按「重新驗證」。"
+            )
+            show_login_btn = False
+        else:  # unknown
+            title  = f"{host} 狀態異常"
+            icon   = "⚠"
+            header = "偵測到問題，但原因不明"
+            steps_text = "請看下方詳細訊息，或截圖給工程師。"
+            show_login_btn = True  # offer login anyway
+
+        win.title(title)
+        win.geometry("560x440")
+
+        ttk.Label(win, text=f"{icon} {header}",
+                   foreground="#c00", font=("Microsoft JhengHei", 14, "bold")).pack(pady=(20, 4))
+
+        ttk.Label(win, text=steps_text, foreground="#222", justify="left",
+                   font=("Microsoft JhengHei", 10), wraplength=520).pack(padx=20, pady=10, anchor="w")
+
         if detail:
-            ttk.Label(win, text=f"（檢測訊息：{detail[:120]}）",
-                       foreground="#888", wraplength=480, font=("Microsoft JhengHei", 9)
-                       ).pack(pady=4, padx=20)
+            det = ttk.LabelFrame(win, text="詳細訊息（給工程師看）")
+            det.pack(fill="x", padx=20, pady=4)
+            t = tk.Text(det, height=3, font=("Consolas", 8), background="#f5f5f5")
+            t.insert("1.0", detail)
+            t.configure(state="disabled")
+            t.pack(fill="x", padx=4, pady=4)
 
         status_var = tk.StringVar(value="")
         ttk.Label(win, textvariable=status_var, foreground="#1e3a8a",
-                   font=("Microsoft JhengHei", 10)).pack(pady=8)
+                   font=("Microsoft JhengHei", 10)).pack(pady=4)
 
         bar = ttk.Frame(win)
-        bar.pack(pady=10)
+        bar.pack(pady=12)
 
         def open_terminal():
             try:
@@ -454,30 +520,32 @@ class GenecrGUI(tk.Tk):
                     subprocess.Popen(["cmd", "/c", "start", "cmd", "/k", host], shell=False)
                 else:
                     subprocess.Popen(["x-terminal-emulator", "-e", host])
-                status_var.set("已開啟新終端機。完成登入後按下方「驗證」。")
+                status_var.set("已開啟終端。在那邊輸入 /auth 並按 Enter，完成後按下方「重新驗證」。")
             except Exception as e:
                 status_var.set(f"無法開啟終端：{e}")
 
         def verify():
             status_var.set("驗證中…")
             verify_btn.configure(state="disabled")
-            login_btn.configure(state="disabled")
+            if show_login_btn: login_btn.configure(state="disabled")
             def worker():
-                ok, msg = verify_host_login(host, timeout=30)
+                st, msg = verify_host_login(host, timeout=30)
                 def done():
-                    if ok:
-                        status_var.set(f"✅ 登入成功！可以開始使用了。")
+                    if st == "ok":
+                        status_var.set("✅ 通過！可以開始使用了。")
+                        for w in bar.winfo_children(): w.destroy()
                         ttk.Button(bar, text="完成", command=win.destroy).pack(side="left", padx=4)
                     else:
-                        status_var.set(f"❌ 還是沒成功：{msg[:120]}")
+                        status_var.set(f"❌ 仍未通過（{st}）。重開此視窗會顯示新狀態。")
                         verify_btn.configure(state="normal")
-                        login_btn.configure(state="normal")
+                        if show_login_btn: login_btn.configure(state="normal")
                 self.after(0, done)
             threading.Thread(target=worker, daemon=True).start()
 
-        login_btn = ttk.Button(bar, text=f"🔑 開啟終端登入 {host}", command=open_terminal)
-        login_btn.pack(side="left", padx=4)
-        verify_btn = ttk.Button(bar, text="✓ 我登入完了，驗證", command=verify)
+        if show_login_btn:
+            login_btn = ttk.Button(bar, text=f"🔑 開啟終端登入 {host}", command=open_terminal)
+            login_btn.pack(side="left", padx=4)
+        verify_btn = ttk.Button(bar, text="🔄 重新驗證", command=verify)
         verify_btn.pack(side="left", padx=4)
         ttk.Button(bar, text="稍後", command=win.destroy).pack(side="left", padx=4)
 
@@ -920,9 +988,10 @@ class GenecrGUI(tk.Tk):
                 else:
                     set_status("runtime 更新失敗，仍可使用舊版")
 
-            # 2. Verify host login (so user doesn't hit silent failures later)
-            set_status(f"驗證 {self.host} 登入狀態…")
-            login_ok, login_detail = verify_host_login(self.host)
+            # 2. Verify host status (login / quota / network)
+            set_status(f"驗證 {self.host} 狀態…")
+            login_ok_status, login_detail = verify_host_login(self.host)
+            login_ok = (login_ok_status == "ok")
 
             # 3. Check GUI version
             set_status("檢查 GUI 版本…")
@@ -936,7 +1005,7 @@ class GenecrGUI(tk.Tk):
                 splash.destroy()
                 self.deiconify()
                 if not login_ok:
-                    self._open_login_dialog(login_detail)
+                    self._open_status_dialog(login_ok_status, login_detail)
                 if new_gui_msg:
                     self._notify_new_gui(*new_gui_msg)
             self.after(0, finish)

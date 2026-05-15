@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.9"
+APP_VERSION = "0.1.10"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -203,27 +203,40 @@ def check_prereq(name: str) -> bool:
     return False
 
 
-# Direct download URLs (avoid winget which can fail without Microsoft account login).
-PREREQ_DOWNLOAD = {
-    "python": (
-        "https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe",
-        ["/quiet", "InstallAllUsers=0", "PrependPath=1", "Include_test=0"],
-    ),
-    "node": (
-        "https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi",
-        ["/quiet", "/norestart", "ADDLOCAL=ALL"],
-    ),
-    "git": (
-        "https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.1/Git-2.47.1-64-bit.exe",
-        ["/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS"],
-    ),
-}
-
-PREREQ_INSTALL = {
-    # winget left as fallback for non-direct-download cases (CLIs via npm)
-    "gemini": ["npm",    "install", "-g", "@google/gemini-cli"],
-    "claude": ["npm",    "install", "-g", "@anthropic-ai/claude-code"],
-    "codex":  ["npm",    "install", "-g", "@openai/codex"],
+# Multi-method install chain — try each in order, fall through on failure.
+# Each method is a tuple:
+#   ("winget",   [winget cmd args])           — try winget first (fastest if it works)
+#   ("download", url, [silent install args])  — fall back to direct official download
+#   ("npm",      [npm cmd args])              — npm install (no fallback for npm tools)
+PREREQ_METHODS = {
+    "python": [
+        ("winget",   ["winget", "install", "-e", "--id", "Python.Python.3.13",
+                       "--accept-package-agreements", "--accept-source-agreements"]),
+        ("download", "https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe",
+                     ["/quiet", "InstallAllUsers=0", "PrependPath=1", "Include_test=0"]),
+    ],
+    "node": [
+        ("winget",   ["winget", "install", "-e", "--id", "OpenJS.NodeJS.LTS",
+                       "--accept-package-agreements", "--accept-source-agreements"]),
+        ("download", "https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi",
+                     ["/quiet", "/norestart", "ADDLOCAL=ALL"]),
+    ],
+    "git": [
+        ("winget",   ["winget", "install", "-e", "--id", "Git.Git",
+                       "--accept-package-agreements", "--accept-source-agreements"]),
+        ("download", "https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.1/Git-2.47.1-64-bit.exe",
+                     ["/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-",
+                      "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS"]),
+    ],
+    "gemini": [
+        ("npm", ["npm", "install", "-g", "@google/gemini-cli"]),
+    ],
+    "claude": [
+        ("npm", ["npm", "install", "-g", "@anthropic-ai/claude-code"]),
+    ],
+    "codex": [
+        ("npm", ["npm", "install", "-g", "@openai/codex"]),
+    ],
 }
 
 PREREQ_LABELS = {
@@ -1152,11 +1165,7 @@ class GenecrGUI(tk.Tk):
         finish_btn.pack(side="right")
 
         def run_step(name) -> bool:
-            # 1) Direct-download installers (Python / Node / Git) — bypass winget
-            if name in PREREQ_DOWNLOAD:
-                url, args = PREREQ_DOWNLOAD[name]
-                return self._wizard_download_install(url, args, log)
-            # 2) genecr — git clone + Python deploy
+            # genecr is special — git clone + Python deploy
             if name == "genecr":
                 target = Path.home() / ".gemini" / "skills" / "genecr"
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -1164,11 +1173,33 @@ class GenecrGUI(tk.Tk):
                     if not self._wizard_run_blocking(["git", "clone", GENECR_REPO_URL, str(target)], log):
                         return False
                 return deploy_genecr_python_native("gemini", log)
-            # 3) npm-based CLIs (Gemini / Claude / Codex)
-            cmd = PREREQ_INSTALL.get(name)
-            if cmd is None:
-                return True
-            return self._wizard_run_blocking(cmd, log)
+
+            # Try each method in PREREQ_METHODS in order
+            methods = PREREQ_METHODS.get(name, [])
+            for i, method in enumerate(methods, 1):
+                kind = method[0]
+                log(f"\n--- 嘗試方法 {i}/{len(methods)}：{kind} ---")
+                ok = False
+                if kind == "winget":
+                    cmd = method[1]
+                    if not check_prereq("winget"):
+                        log("✗ winget 不存在，跳過此方法")
+                        continue
+                    ok = self._wizard_run_blocking(cmd, log)
+                elif kind == "download":
+                    url = method[1]; args = method[2]
+                    ok = self._wizard_download_install(url, args, log)
+                elif kind == "npm":
+                    cmd = method[1]
+                    ok = self._wizard_run_blocking(cmd, log)
+
+                if ok and check_prereq(name):
+                    log(f"✓ 方法 {i}（{kind}）成功")
+                    return True
+                log(f"✗ 方法 {i}（{kind}）失敗，嘗試下一個方法…")
+
+            log(f"❌ 所有方法都失敗")
+            return False
 
         def auto_install():
             start_btn.configure(state="disabled", text="安裝中…")

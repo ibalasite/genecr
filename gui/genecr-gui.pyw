@@ -26,7 +26,8 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.11"
+GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
+APP_VERSION = "0.1.12"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -557,6 +558,8 @@ class GenecrGUI(tk.Tk):
         self.progress.pack(side="left", fill="x", expand=True)
         self.detail_btn = ttk.Button(prog_row, text="📋 複製 log", width=10, command=self._copy_log)
         self.detail_btn.pack(side="left", padx=(6, 0))
+        self.report_btn = ttk.Button(prog_row, text="🐛 回報問題", width=12, command=self._report_bug)
+        self.report_btn.pack(side="left", padx=(4, 0))
 
         # Inline log panel (always visible, like wizard)
         log_frame = ttk.LabelFrame(self, text="執行進度")

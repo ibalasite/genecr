@@ -12,7 +12,7 @@
 ;   or:   .\installer\build-installer.ps1
 
 #define AppName       "genecr"
-#define AppVersion    "0.1.11"
+#define AppVersion    "0.1.12"
 #define AppPublisher  "ibalasite"
 #define AppURL        "https://github.com/ibalasite/genecr"
 #define ExeName       "genecr-gui.exe"

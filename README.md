@@ -8,6 +8,10 @@
 
 **Host-neutral**：同時支援 [Claude Code](https://claude.com/claude-code) 與 [Codex CLI](https://github.com/openai/codex)。
 
+> 🐛 **找到問題？** 開個 issue：[github.com/ibalasite/genecr/issues](https://github.com/ibalasite/genecr/issues/new?template=bug_report.md)
+> 💡 **想要新功能？** 開個建議：[Feature request](https://github.com/ibalasite/genecr/issues/new?template=feature_request.md)
+> （GUI 內也有「🐛 回報問題」按鈕，會自動帶入環境與 log）
+
 ---
 
 ## 📦 範例輸出

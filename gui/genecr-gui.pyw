@@ -27,7 +27,7 @@ GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.1.13"
+APP_VERSION = "0.1.14"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -918,6 +918,11 @@ class GenecrGUI(tk.Tk):
             login_btn.pack(side="left", padx=4)
         verify_btn = ttk.Button(bar, text="🔄 重新驗證", command=verify)
         verify_btn.pack(side="left", padx=4)
+        # 🐛 回報這個錯 — passes status + detail to issue body so we don't lose
+        # context when user closes the dialog before clicking main 🐛 button.
+        ttk.Button(bar, text="🐛 回報這個錯",
+                    command=lambda: self._report_bug(extra_context=f"[{status}] {detail}")
+                    ).pack(side="left", padx=4)
         ttk.Button(bar, text="稍後", command=win.destroy).pack(side="left", padx=4)
 
     def _refresh_path_label(self):
@@ -940,6 +945,11 @@ class GenecrGUI(tk.Tk):
     def _extract_done(self, data, err):
         self.extract_btn.configure(state="normal", text="🪄 從描述自動萃取")
         if err:
+            # Mirror the err into _log_buffer so that even if user clicks the
+            # main 🐛 button later (after closing this dialog), the log will
+            # contain this extract error. Without this, the main 🐛 reports
+            # an empty body for extract failures.
+            self._log(f"❌ 萃取失敗：{err}")
             # Classify cause from err's content (which includes CLI stderr).
             # Don't make any extra AI calls — those would burn user tokens.
             kind = classify_call_failure(err)
@@ -977,15 +987,28 @@ class GenecrGUI(tk.Tk):
         self.clipboard_append("\n".join(self._log_buffer))
         messagebox.showinfo("已複製", "log 已複製到剪貼簿。")
 
-    def _report_bug(self):
+    def _report_bug(self, extra_context: str = ""):
         """One-click bug report: open GitHub new-issue page with environment
-        info + recent log pre-filled. User just hits GitHub's submit button."""
+        info + recent log pre-filled. User just hits GitHub's submit button.
+
+        extra_context: optional dialog-specific error text. When the user
+        clicks 🐛 from inside an error sub-dialog, the dialog passes its
+        current err / detail text here so it appears as a dedicated section
+        in the issue body (separate from the running log)."""
         import urllib.parse, platform
         py_ver = sys.version.split()[0] if sys.version else "?"
         os_info = f"{platform.system()} {platform.release()} ({platform.version()})"
         log_text = "\n".join(self._log_buffer[-100:]) if self._log_buffer else "(無 log)"
         if len(log_text) > 4000:
             log_text = "...(已截斷，僅顯示最後 4000 字)\n" + log_text[-4000:]
+        # Optional: this-error section (only when caller provides extra_context)
+        ctx_section = ""
+        if extra_context:
+            ctx_trimmed = extra_context if len(extra_context) <= 2000 else extra_context[:2000] + "\n...(已截斷)"
+            ctx_section = (
+                f"## 此次錯誤訊息（從錯誤對話框直接帶入）\n"
+                f"```\n{ctx_trimmed}\n```\n\n"
+            )
         body = (
             f"## 環境資訊\n"
             f"- **GUI 版本**: v{APP_VERSION}\n"
@@ -993,6 +1016,7 @@ class GenecrGUI(tk.Tk):
             f"- **Host (AI)**: {self.host}\n"
             f"- **Python**: {py_ver}\n"
             f"- **genecr 路徑**: {self.genecr_dir or '未偵測到'}\n\n"
+            + ctx_section +
             f"## 問題描述\n"
             f"<!-- 一句話講清楚發生什麼事（請填寫） -->\n\n\n"
             f"## 重現步驟\n1.\n2.\n3.\n\n"
@@ -1170,6 +1194,10 @@ class GenecrGUI(tk.Tk):
             messagebox.showinfo("已複製", "已複製到剪貼簿。", parent=win)
         )).pack(side="left")
         ttk.Button(bar, text="📄 看詳細 log", command=self._show_log).pack(side="left", padx=8)
+        # 🐛 直接從錯誤對話框回報，summary 跟 log 一起送
+        ttk.Button(bar, text="🐛 回報這個錯",
+                    command=lambda: self._report_bug(extra_context=f"執行失敗摘要：{summary}")
+                    ).pack(side="left", padx=8)
         ttk.Button(bar, text="關閉", command=win.destroy).pack(side="right")
 
     def _on_done(self, slug: str):

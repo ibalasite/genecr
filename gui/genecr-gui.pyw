@@ -204,6 +204,34 @@ PREREQ_LABELS = {
 }
 
 
+# ─── Login verification ─────────────────────────────────────────
+def verify_host_login(host: str, timeout: int = 30) -> tuple[bool, str]:
+    """Ping the host CLI with a tiny prompt. Return (logged_in, detail)."""
+    if host not in CLI_MAP:
+        return False, f"未知 host: {host}"
+    bin_name = CLI_MAP[host][0][0]
+    bin_path = shutil.which(bin_name)
+    if not bin_path:
+        return False, f"找不到 {bin_name} CLI"
+    cmd = [bin_path] + CLI_MAP[host][1]
+    creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+    try:
+        r = subprocess.run(
+            cmd, input="reply with the single word: ok",
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=timeout, creationflags=creationflags,
+        )
+        out = (r.stdout or "").strip()
+        if out:
+            return True, out[:80]
+        stderr = (r.stderr or "").strip()
+        return False, stderr[:200] or "空回應，可能未登入或網路問題"
+    except subprocess.TimeoutExpired:
+        return False, f"超時（>{timeout}s）"
+    except Exception as e:
+        return False, str(e)
+
+
 # ─── Update check helpers ───────────────────────────────────────
 def runtime_has_updates(genecr_dir: Path) -> bool:
     """Return True if runtime is behind origin (after `git fetch`)."""
@@ -391,20 +419,67 @@ class GenecrGUI(tk.Tk):
         self._refresh_path_label()
 
     def _on_login_host(self):
-        """Open the host CLI in a new console window for OAuth login."""
-        bin_name = self.host
-        try:
-            if sys.platform == "win32":
-                subprocess.Popen(["cmd", "/c", "start", "cmd", "/k", bin_name], shell=False)
-            else:
-                subprocess.Popen(["x-terminal-emulator", "-e", bin_name])
-            messagebox.showinfo(
-                f"登入 {bin_name}",
-                f"已開啟新終端機跑 `{bin_name}`。\n"
-                f"請在那邊完成帳號登入（瀏覽器會自動開啟），完成後關閉終端，回來重試。"
-            )
-        except Exception as e:
-            messagebox.showerror("無法開啟", str(e))
+        """Open login dialog (also reachable from header button)."""
+        self._open_login_dialog("")
+
+    def _open_login_dialog(self, detail: str):
+        """Pop a guided login dialog with auto-verification."""
+        host = self.host
+        win = tk.Toplevel(self)
+        win.title(f"需要登入 {host}")
+        win.geometry("520x320")
+        win.transient(self)
+        try: win.grab_set()
+        except Exception: pass
+
+        ttk.Label(win, text=f"⚠ 偵測到 {host} 尚未登入",
+                   foreground="#c00", font=("Microsoft JhengHei", 13, "bold")).pack(pady=(20, 6))
+        ttk.Label(win, text=f"請完成 {host} 的帳號登入後才能呼叫 AI。",
+                   foreground="#555").pack()
+        if detail:
+            ttk.Label(win, text=f"（檢測訊息：{detail[:120]}）",
+                       foreground="#888", wraplength=480, font=("Microsoft JhengHei", 9)
+                       ).pack(pady=4, padx=20)
+
+        status_var = tk.StringVar(value="")
+        ttk.Label(win, textvariable=status_var, foreground="#1e3a8a",
+                   font=("Microsoft JhengHei", 10)).pack(pady=8)
+
+        bar = ttk.Frame(win)
+        bar.pack(pady=10)
+
+        def open_terminal():
+            try:
+                if sys.platform == "win32":
+                    subprocess.Popen(["cmd", "/c", "start", "cmd", "/k", host], shell=False)
+                else:
+                    subprocess.Popen(["x-terminal-emulator", "-e", host])
+                status_var.set("已開啟新終端機。完成登入後按下方「驗證」。")
+            except Exception as e:
+                status_var.set(f"無法開啟終端：{e}")
+
+        def verify():
+            status_var.set("驗證中…")
+            verify_btn.configure(state="disabled")
+            login_btn.configure(state="disabled")
+            def worker():
+                ok, msg = verify_host_login(host, timeout=30)
+                def done():
+                    if ok:
+                        status_var.set(f"✅ 登入成功！可以開始使用了。")
+                        ttk.Button(bar, text="完成", command=win.destroy).pack(side="left", padx=4)
+                    else:
+                        status_var.set(f"❌ 還是沒成功：{msg[:120]}")
+                        verify_btn.configure(state="normal")
+                        login_btn.configure(state="normal")
+                self.after(0, done)
+            threading.Thread(target=worker, daemon=True).start()
+
+        login_btn = ttk.Button(bar, text=f"🔑 開啟終端登入 {host}", command=open_terminal)
+        login_btn.pack(side="left", padx=4)
+        verify_btn = ttk.Button(bar, text="✓ 我登入完了，驗證", command=verify)
+        verify_btn.pack(side="left", padx=4)
+        ttk.Button(bar, text="稍後", command=win.destroy).pack(side="left", padx=4)
 
     def _refresh_path_label(self):
         gd = self.genecr_dir
@@ -832,6 +907,8 @@ class GenecrGUI(tk.Tk):
 
         def worker():
             new_gui_msg = None
+            login_ok = True
+            login_detail = ""
 
             # 1. Check runtime updates
             set_status("檢查 runtime 版本…")
@@ -843,7 +920,11 @@ class GenecrGUI(tk.Tk):
                 else:
                     set_status("runtime 更新失敗，仍可使用舊版")
 
-            # 2. Check GUI version
+            # 2. Verify host login (so user doesn't hit silent failures later)
+            set_status(f"驗證 {self.host} 登入狀態…")
+            login_ok, login_detail = verify_host_login(self.host)
+
+            # 3. Check GUI version
             set_status("檢查 GUI 版本…")
             latest = latest_gui_version()
             if latest and _vtuple(latest) > _vtuple(APP_VERSION):
@@ -854,6 +935,8 @@ class GenecrGUI(tk.Tk):
                 bar.stop()
                 splash.destroy()
                 self.deiconify()
+                if not login_ok:
+                    self._open_login_dialog(login_detail)
                 if new_gui_msg:
                     self._notify_new_gui(*new_gui_msg)
             self.after(0, finish)

@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.2"
+APP_VERSION = "0.1.3"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -437,6 +437,58 @@ class GenecrGUI(tk.Tk):
             return
         self._open_status_dialog(st, detail)
 
+    def _start_auto_login(self, parent_dialog, status_var):
+        """Drive the login flow programmatically:
+           spawn gemini, pipe /auth, poll verify_host_login until success."""
+        host = self.host
+        bin_path = shutil.which(host)
+        if not bin_path:
+            status_var.set(f"❌ 找不到 {host} CLI")
+            return None
+
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+        try:
+            proc = subprocess.Popen(
+                [bin_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace",
+                creationflags=creationflags,
+            )
+            # Send /auth command — this triggers OAuth flow which opens user's browser
+            try:
+                proc.stdin.write("/auth\n")
+                proc.stdin.flush()
+            except Exception:
+                pass
+            status_var.set("🌐 已開啟 Google 登入網頁，請在瀏覽器完成登入…")
+        except Exception as e:
+            status_var.set(f"❌ 啟動失敗：{e}")
+            return None
+
+        # Poll verification every 3 seconds, max 3 minutes
+        attempts = {"n": 0}
+        max_attempts = 60  # 60 × 3s = 180s
+
+        def poll():
+            attempts["n"] += 1
+            st, _ = verify_host_login(host, timeout=15)
+            if st == "ok":
+                try: proc.terminate()
+                except Exception: pass
+                status_var.set("✅ 登入成功！可以開始使用了。")
+                self.after(1500, parent_dialog.destroy)
+                return
+            if attempts["n"] >= max_attempts:
+                try: proc.terminate()
+                except Exception: pass
+                status_var.set("⏱ 等待超時（3 分鐘）。請重試或檢查瀏覽器是否完成。")
+                return
+            status_var.set(f"🌐 等待瀏覽器登入完成…（已等 {attempts['n']*3} 秒）")
+            self.after(3000, lambda: threading.Thread(target=poll, daemon=True).start())
+
+        # First poll after 5s (give browser time to open + user time to click)
+        self.after(5000, lambda: threading.Thread(target=poll, daemon=True).start())
+        return proc
+
     def _open_status_dialog(self, status: str, detail: str):
         """Pop a guided dialog tailored to the actual problem (login / quota / network)."""
         host = self.host
@@ -451,12 +503,11 @@ class GenecrGUI(tk.Tk):
             icon   = "🔑"
             header = f"偵測到 {host} 尚未登入"
             steps_text = (
-                f"請依下列步驟完成登入：\n\n"
-                f"1️⃣  按下方「開啟終端」會跳出新的命令列視窗\n"
-                f"2️⃣  在那個視窗中輸入：  /auth  （斜線+auth），按 Enter\n"
-                f"3️⃣  Gemini 會自動開啟瀏覽器，點選你的 Google 帳號\n"
-                f"4️⃣  瀏覽器顯示「Login Successful」後關閉終端\n"
-                f"5️⃣  回來這裡按「重新驗證」"
+                f"請按下方「🌐 一鍵登入」，會自動：\n\n"
+                f"  • 開啟瀏覽器\n"
+                f"  • 你只要點選你的 Google 帳號\n"
+                f"  • 完成後此視窗會自動關閉\n\n"
+                f"全程不用碰命令列。"
             )
             show_login_btn = True
         elif status == "quota":
@@ -514,15 +565,10 @@ class GenecrGUI(tk.Tk):
         bar = ttk.Frame(win)
         bar.pack(pady=12)
 
-        def open_terminal():
-            try:
-                if sys.platform == "win32":
-                    subprocess.Popen(["cmd", "/c", "start", "cmd", "/k", host], shell=False)
-                else:
-                    subprocess.Popen(["x-terminal-emulator", "-e", host])
-                status_var.set("已開啟終端。在那邊輸入 /auth 並按 Enter，完成後按下方「重新驗證」。")
-            except Exception as e:
-                status_var.set(f"無法開啟終端：{e}")
+        def auto_login():
+            login_btn.configure(state="disabled")
+            verify_btn.configure(state="disabled")
+            self._start_auto_login(win, status_var)
 
         def verify():
             status_var.set("驗證中…")
@@ -543,7 +589,7 @@ class GenecrGUI(tk.Tk):
             threading.Thread(target=worker, daemon=True).start()
 
         if show_login_btn:
-            login_btn = ttk.Button(bar, text=f"🔑 開啟終端登入 {host}", command=open_terminal)
+            login_btn = ttk.Button(bar, text=f"🌐 一鍵登入 {host}", command=auto_login)
             login_btn.pack(side="left", padx=4)
         verify_btn = ttk.Button(bar, text="🔄 重新驗證", command=verify)
         verify_btn.pack(side="left", padx=4)
@@ -927,18 +973,27 @@ class GenecrGUI(tk.Tk):
             return False
 
     def _wizard_login_gemini(self, parent):
-        # Open Gemini interactively in a new console window for OAuth login.
+        """Auto-login from wizard — same flow as main status dialog (no console)."""
+        win = tk.Toplevel(parent)
+        win.title("Gemini 登入中")
+        win.geometry("440x180")
+        win.transient(parent)
+        try: win.grab_set()
+        except Exception: pass
+        ttk.Label(win, text="🌐 一鍵登入 Gemini",
+                   font=("Microsoft JhengHei", 12, "bold")).pack(pady=(20, 6))
+        ttk.Label(win, text="瀏覽器將自動開啟，請點選你的 Google 帳號。",
+                   foreground="#555").pack()
+        status_var = tk.StringVar(value="準備中…")
+        ttk.Label(win, textvariable=status_var,
+                   foreground="#1e3a8a", wraplength=400).pack(pady=12, padx=20)
+        ttk.Button(win, text="關閉", command=win.destroy).pack(pady=8)
+        prev_host = self.host
+        self.host = "gemini"
         try:
-            if sys.platform == "win32":
-                # 'start' detaches into a new visible cmd window
-                subprocess.Popen(["cmd", "/c", "start", "cmd", "/k", "gemini"], shell=False)
-            else:
-                subprocess.Popen(["x-terminal-emulator", "-e", "gemini"])
-            messagebox.showinfo("Gemini 登入",
-                "已開啟新終端機。請在那邊完成 Google 登入後，回來按「🔄 重新檢測」。",
-                parent=parent)
-        except Exception as e:
-            messagebox.showerror("無法開啟", str(e), parent=parent)
+            self._start_auto_login(win, status_var)
+        finally:
+            self.host = prev_host
 
     def _restart(self):
         """Restart this app so the wizard's installs take effect."""

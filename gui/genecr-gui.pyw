@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.6"
+APP_VERSION = "0.1.7"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -276,7 +276,7 @@ def runtime_has_updates(genecr_dir: Path) -> bool:
 def upgrade_runtime(genecr_dir: Path, log) -> bool:
     """Run setup upgrade for the runtime; return True on success."""
     if sys.platform == "win32" and (genecr_dir / "setup.ps1").exists():
-        cmd = ["powershell", "-NoProfile", "-File", str(genecr_dir / "setup.ps1"), "upgrade"]
+        cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(genecr_dir / "setup.ps1"), "upgrade"]
     else:
         cmd = ["bash", str(genecr_dir / "setup"), "upgrade"]
     try:
@@ -541,7 +541,7 @@ class GenecrGUI(tk.Tk):
                     if not self._wizard_run_blocking(["git", "clone", GENECR_REPO_URL, str(target)], log):
                         return
                 if sys.platform == "win32" and (target / "setup.ps1").exists():
-                    cmd = ["powershell", "-NoProfile", "-File", str(target / "setup.ps1"), "install", host]
+                    cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(target / "setup.ps1"), "install", host]
                 else:
                     cmd = ["bash", str(target / "setup"), "install", host]
                 self._wizard_run_blocking(cmd, log)
@@ -1062,7 +1062,7 @@ class GenecrGUI(tk.Tk):
                     if not self._wizard_run_blocking(["git", "clone", GENECR_REPO_URL, str(target)], log):
                         return False
                 if sys.platform == "win32" and (target / "setup.ps1").exists():
-                    cmd2 = ["powershell", "-NoProfile", "-File", str(target / "setup.ps1"), "install", "gemini"]
+                    cmd2 = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(target / "setup.ps1"), "install", "gemini"]
                 else:
                     cmd2 = ["bash", str(target / "setup"), "install", "gemini"]
                 return self._wizard_run_blocking(cmd2, log)

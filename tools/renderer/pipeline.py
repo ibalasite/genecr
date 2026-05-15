@@ -204,7 +204,16 @@ def _resolve_command(ai_cfg: dict) -> str:
     raise KeyError(f"No AI command for host '{host}' (no ai.commands[{host}] and no ai.command)")
 
 
-def _run_ai(ai_cfg: dict, prompt_path: Path, output_path: Path, brief_file: Path) -> bool:
+_QUOTA_KEYWORDS = (
+    "limit reached", "quota", "exceeded", "exhaust", "rate limit",
+    "resource exhausted", "restricting models", "too many requests",
+    "ratelimit", "429",
+)
+
+
+def _run_ai(ai_cfg: dict, prompt_path: Path, output_path: Path, brief_file: Path,
+            quota_retry_max: int = 2, quota_retry_wait: int = 60) -> bool:
+    """Run host CLI. Capture stderr; on quota-style failure auto-retry after wait."""
     cmd = _resolve_command(ai_cfg).format(
         prompt=str(prompt_path),
         output=str(output_path),
@@ -212,12 +221,35 @@ def _run_ai(ai_cfg: dict, prompt_path: Path, output_path: Path, brief_file: Path
         repo_root=str(REPO_ROOT),
     )
     print(f"      $ {cmd}")
-    try:
-        subprocess.run(cmd, shell=True, check=True)
-        return output_path.exists() and output_path.stat().st_size > 0
-    except subprocess.CalledProcessError as e:
-        print(f"      ✗ subprocess failed: {e}")
+    for retry in range(quota_retry_max + 1):
+        try:
+            r = subprocess.run(cmd, shell=True, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace")
+        except Exception as e:
+            print(f"      ✗ subprocess exception: {e}")
+            return False
+        # Success path
+        if r.returncode == 0 and output_path.exists() and output_path.stat().st_size > 0:
+            return True
+        # Failure — surface stderr so the user / GUI can classify
+        stderr = (r.stderr or "").strip()
+        stdout = (r.stdout or "").strip()
+        print(f"      ✗ subprocess failed (exit {r.returncode}); stderr/stdout below:")
+        if stderr:
+            for line in stderr.splitlines()[:20]:
+                print(f"        [stderr] {line}")
+        if stdout and stdout != stderr:
+            for line in stdout.splitlines()[:5]:
+                print(f"        [stdout] {line}")
+        # Quota detection — wait and retry once
+        combined_low = (stderr + " " + stdout).lower()
+        if retry < quota_retry_max and any(k in combined_low for k in _QUOTA_KEYWORDS):
+            wait = quota_retry_wait * (retry + 1)
+            print(f"      ⏱ 偵測到配額/限速關鍵字，等 {wait}s 後重試 ({retry + 1}/{quota_retry_max})…")
+            time.sleep(wait)
+            continue
         return False
+    return False
 
 
 def _validate_format(step: StepState) -> tuple[bool, str]:

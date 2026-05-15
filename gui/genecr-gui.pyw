@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.3"
+APP_VERSION = "0.1.4"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -194,14 +194,29 @@ PREREQ_INSTALL = {
     "node":   ["winget", "install", "-e", "--id", "OpenJS.NodeJS.LTS", "--accept-package-agreements", "--accept-source-agreements"],
     "git":    ["winget", "install", "-e", "--id", "Git.Git",          "--accept-package-agreements", "--accept-source-agreements"],
     "gemini": ["npm",    "install", "-g", "@google/gemini-cli"],
+    "claude": ["npm",    "install", "-g", "@anthropic-ai/claude-code"],
+    "codex":  ["npm",    "install", "-g", "@openai/codex"],
 }
 
 PREREQ_LABELS = {
     "node":   "Node.js (npm 用)",
     "git":    "Git",
     "gemini": "Gemini CLI",
+    "claude": "Claude Code CLI",
+    "codex":  "Codex CLI",
     "genecr": "genecr (本工具核心)",
 }
+
+HOST_BIN = {"gemini": "gemini", "claude": "claude", "codex": "codex"}
+
+
+def host_cli_installed(host: str) -> bool:
+    return shutil.which(HOST_BIN.get(host, "")) is not None
+
+
+def host_genecr_installed(host: str) -> bool:
+    d = HOST_DIRS.get(host)
+    return bool(d and (Path.home() / d / "skills" / "genecr" / "pipeline.json").exists())
 
 
 # ─── Login verification ─────────────────────────────────────────
@@ -326,15 +341,15 @@ class GenecrGUI(tk.Tk):
         installed = list_installed_hosts()
         default_host = self.host if self.host in installed else (installed[0] if installed else "unknown")
         self.host_var = tk.StringVar(value=default_host)
-        if len(installed) >= 2:
-            self.host_combo = ttk.Combobox(top, textvariable=self.host_var, width=10,
-                                            values=installed, state="readonly")
-            self.host_combo.pack(side="left")
-            self.host_combo.bind("<<ComboboxSelected>>", self._on_host_change)
-        else:
-            ttk.Label(top, text=default_host, font=("", 10, "bold")).pack(side="left")
+        self.host_combo = ttk.Combobox(top, textvariable=self.host_var, width=10,
+                                        values=installed if installed else ["(未裝)"],
+                                        state="readonly")
+        self.host_combo.pack(side="left")
+        self.host_combo.bind("<<ComboboxSelected>>", self._on_host_change)
+        ttk.Button(top, text="➕ 新增 AI", width=11,
+                   command=self._open_add_host_dialog).pack(side="left", padx=(6, 10))
         self.path_label = ttk.Label(top, text="", foreground="#666")
-        self.path_label.pack(side="left", padx=(10, 0))
+        self.path_label.pack(side="left")
         self._refresh_path_label()
 
         # Brief input
@@ -427,6 +442,114 @@ class GenecrGUI(tk.Tk):
         self.host = self.host_var.get()
         self.genecr_dir = host_to_dir(self.host)
         self._refresh_path_label()
+        # Refresh combo values in case a new host was just installed
+        self.host_combo.configure(values=list_installed_hosts() or ["(未裝)"])
+
+    def _open_add_host_dialog(self):
+        """Show all 3 hosts with status; let user install + login any of them."""
+        win = tk.Toplevel(self)
+        win.title("新增 / 管理 AI host")
+        win.geometry("560x460")
+        win.transient(self)
+        try: win.grab_set()
+        except Exception: pass
+
+        ttk.Label(win, text="選擇要新增的 AI", font=("Microsoft JhengHei", 13, "bold")
+                   ).pack(pady=(20, 4))
+        ttk.Label(win, text="同一台電腦可裝多個 AI；當一個配額用完時可切換到另一個。",
+                   foreground="#555", wraplength=520).pack(pady=(0, 8))
+
+        rows_frame = ttk.Frame(win)
+        rows_frame.pack(fill="both", expand=True, padx=20, pady=8)
+
+        # Order: Claude first (recommended fallback), then Gemini, then Codex
+        host_order = ["claude", "gemini", "codex"]
+        host_desc = {
+            "claude": "Anthropic Claude — 推薦備用，品質最佳（需付費 API 或 Pro 訂閱）",
+            "gemini": "Google Gemini — 有免費額度，配額用完每天會重置",
+            "codex":  "OpenAI Codex — 需 ChatGPT Plus 訂閱",
+        }
+        rows = {}
+
+        def render_rows():
+            for w in rows_frame.winfo_children(): w.destroy()
+            for h in host_order:
+                cli_ok = host_cli_installed(h)
+                gen_ok = host_genecr_installed(h)
+                row = ttk.LabelFrame(rows_frame, text=f"  {h.upper()}  ")
+                row.pack(fill="x", pady=4)
+                top = ttk.Frame(row); top.pack(fill="x", padx=6, pady=4)
+                cli_icon = "✅" if cli_ok else "❌"
+                gen_icon = "✅" if gen_ok else "❌"
+                status = f"{cli_icon} CLI    {gen_icon} genecr"
+                ttk.Label(top, text=status, font=("Consolas", 10)).pack(side="left")
+                ttk.Label(top, text=host_desc[h], foreground="#666",
+                           wraplength=360, font=("Microsoft JhengHei", 9)).pack(side="left", padx=(12,0))
+                btn_row = ttk.Frame(row); btn_row.pack(fill="x", padx=6, pady=(0,4))
+                if not cli_ok:
+                    ttk.Button(btn_row, text=f"安裝 {h.upper()} CLI",
+                                command=lambda hh=h: install_cli(hh)).pack(side="left", padx=2)
+                elif not gen_ok:
+                    ttk.Button(btn_row, text="安裝 genecr 到此 host",
+                                command=lambda hh=h: install_genecr(hh)).pack(side="left", padx=2)
+                else:
+                    ttk.Button(btn_row, text="🌐 登入 / 驗證",
+                                command=lambda hh=h: do_login(hh)).pack(side="left", padx=2)
+                    ttk.Button(btn_row, text="切換到此 host",
+                                command=lambda hh=h: switch_to(hh)).pack(side="left", padx=2)
+                rows[h] = row
+
+        log_frame = ttk.LabelFrame(win, text="進度")
+        log_frame.pack(fill="x", padx=20, pady=4)
+        log_text = tk.Text(log_frame, height=4, font=("Consolas", 9),
+                            background="#1e1e1e", foreground="#ddd", state="disabled")
+        log_text.pack(fill="x", padx=4, pady=4)
+        def log(m):
+            log_text.configure(state="normal")
+            log_text.insert("end", m + "\n"); log_text.see("end")
+            log_text.configure(state="disabled")
+
+        def install_cli(host):
+            cmd = PREREQ_INSTALL.get(host)
+            if not cmd:
+                log(f"❌ 不知怎麼裝 {host}"); return
+            log(f"\n=== 安裝 {host} CLI ===")
+            def worker():
+                ok = self._wizard_run_blocking(cmd, log)
+                self.after(0, render_rows)
+                if not ok: self.after(0, lambda: log(f"✗ {host} CLI 安裝失敗"))
+            threading.Thread(target=worker, daemon=True).start()
+
+        def install_genecr(host):
+            target = Path.home() / HOST_DIRS[host] / "skills" / "genecr"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            log(f"\n=== 安裝 genecr 到 {host} ===")
+            def worker():
+                if not target.exists():
+                    if not self._wizard_run_blocking(["git", "clone", GENECR_REPO_URL, str(target)], log):
+                        return
+                if sys.platform == "win32" and (target / "setup.ps1").exists():
+                    cmd = ["powershell", "-NoProfile", "-File", str(target / "setup.ps1"), "install", host]
+                else:
+                    cmd = ["bash", str(target / "setup"), "install", host]
+                self._wizard_run_blocking(cmd, log)
+                self.after(0, render_rows)
+            threading.Thread(target=worker, daemon=True).start()
+
+        def do_login(host):
+            prev = self.host; self.host = host
+            try:
+                self._open_status_dialog("not_logged_in", "")
+            finally:
+                self.host = prev
+
+        def switch_to(host):
+            self.host_var.set(host)
+            self._on_host_change()
+            log(f"✓ 已切換到 {host}")
+
+        render_rows()
+        ttk.Button(win, text="關閉", command=win.destroy).pack(pady=8)
 
     def _on_login_host(self):
         """Triggered by main UI button — show status dialog (re-verifies)."""
@@ -514,12 +637,16 @@ class GenecrGUI(tk.Tk):
             title  = f"{host} 配額已用完"
             icon   = "⏱"
             header = "今日免費配額已耗盡"
+            other_installed = [h for h in list_installed_hosts() if h != host]
+            switch_hint = (f"\n\n💡 偵測到你也裝了 {' / '.join(other_installed)}，"
+                            f"可以從上方下拉切換。") if other_installed else (
+                "\n\n💡 建議按主畫面的「➕ 新增 AI」裝 Claude 當備用。")
             steps_text = (
-                "Gemini 免費版每日有額度上限，已用完。\n\n"
-                "選項：\n"
-                "  • 等隔天 0:00（太平洋時間）配額自動重置\n"
-                "  • 或在終端中輸入  /upgrade  升級付費版（需信用卡）\n"
-                "  • 或暫時切換到 claude / codex（如果有裝）"
+                f"{host} 免費版每日有額度上限，已用完。\n\n"
+                f"選項：\n"
+                f"  • 等隔天 0:00（太平洋時間）配額自動重置\n"
+                f"  • 升級付費版"
+                + switch_hint
             )
             show_login_btn = False
         elif status == "network":

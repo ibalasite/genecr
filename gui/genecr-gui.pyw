@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.1.1"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]

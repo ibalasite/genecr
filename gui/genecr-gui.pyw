@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.10"
+APP_VERSION = "0.1.11"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -143,12 +143,8 @@ def extract_slug_name(brief: str, host: str, timeout: int = 60) -> tuple[dict | 
         out = (r.stdout or "").strip()
         if not out:
             stderr = (r.stderr or "").strip()
-            hint = f"\n\nCLI stderr 開頭：\n{stderr[:300]}" if stderr else ""
-            return None, (
-                f"{host} CLI 回傳空字串。\n\n"
-                f"最常見原因：尚未完成 {host} 的帳號登入。\n"
-                f"請按主畫面的「🔑 登入 {host}」按鈕完成 OAuth 登入後再試。{hint}"
-            )
+            # Don't guess the cause here — caller (_extract_done) classifies via stderr.
+            return None, f"{host} CLI 回傳空字串。\n\nCLI stderr：\n{stderr[:500] if stderr else '(stderr 為空)'}"
         out = re.sub(r"^```(?:json)?\s*|\s*```$", "", out, flags=re.MULTILINE).strip()
         return json.loads(out), None
     except subprocess.TimeoutExpired:
@@ -251,6 +247,38 @@ PREREQ_LABELS = {
 
 HOST_BIN = {"gemini": "gemini", "claude": "claude", "codex": "codex"}
 
+# Local OAuth credential file paths (for zero-token login state check).
+# Verified by listing actual ~/.gemini/, ~/.codex/, ~/.claude/ — these are
+# the files each CLI creates after a successful login.
+AUTH_FILES = {
+    "gemini": [Path.home() / ".gemini" / "oauth_creds.json"],
+    "claude": [Path.home() / ".claude" / ".credentials.json"],
+    "codex":  [Path.home() / ".codex"  / "auth.json"],
+}
+
+
+def check_login_state(host: str) -> bool:
+    """Return True if local OAuth credentials exist for the host. Zero token cost."""
+    return any(p.exists() for p in AUTH_FILES.get(host, []))
+
+
+def classify_call_failure(err_text: str) -> str:
+    """Classify why an AI call failed by inspecting the error/stderr text.
+    Returns one of: 'quota' / 'not_logged_in' / 'network' / 'unknown'.
+    Does NOT make any AI calls — pure string analysis."""
+    s = (err_text or "").lower()
+    quota_kws = ("limit reached", "quota", "exceeded", "exhaust", "rate limit",
+                 "resource exhausted", "restricting models", "too many requests",
+                 "ratelimit", "429")
+    auth_kws = ("auth", "login", "credential", "unauthor", "sign in", "401",
+                "permission denied", "not authenticated")
+    net_kws  = ("network", "timeout", "unreachable", "dns", "connect refused",
+                "econnrefused", "etimedout", "enotfound", "getaddrinfo")
+    if any(k in s for k in quota_kws): return "quota"
+    if any(k in s for k in auth_kws):  return "not_logged_in"
+    if any(k in s for k in net_kws):   return "network"
+    return "unknown"
+
 
 def host_cli_installed(host: str) -> bool:
     return shutil.which(HOST_BIN.get(host, "")) is not None
@@ -325,42 +353,28 @@ def deploy_genecr_python_native(host: str, log) -> bool:
     return True
 
 
-# ─── Login verification ─────────────────────────────────────────
-# Status codes: "ok" / "not_logged_in" / "quota" / "network" / "unknown"
+# ─── Login verification (zero token cost — local checks only) ───
+# Status codes: "ok_locally" / "cli_missing" / "not_logged_in"
+# NOTE: cannot detect "quota" — that's only knowable when the user
+# actually runs work and the AI returns an error. See _extract_done()
+# stderr classification for runtime quota detection.
 def verify_host_login(host: str, timeout: int = 30) -> tuple[str, str]:
-    """Ping host CLI; return (status, detail) where status is one of:
-       'ok', 'not_logged_in', 'quota', 'network', 'unknown'."""
+    """Local-only check: CLI in PATH + credentials file exists. Zero token.
+
+    Returns (status, detail) where status is:
+      'ok_locally'     — CLI installed AND local credentials present
+      'cli_missing'    — host CLI not found in PATH
+      'not_logged_in'  — CLI present but no local credential file
+    Quota state is NOT predicted here — only knowable on real call failure.
+    """
     if host not in CLI_MAP:
-        return "unknown", f"未知 host: {host}"
+        return "cli_missing", f"未知 host: {host}"
     bin_name = CLI_MAP[host][0][0]
-    bin_path = shutil.which(bin_name)
-    if not bin_path:
-        return "unknown", f"找不到 {bin_name} CLI"
-    cmd = [bin_path] + CLI_MAP[host][1]
-    creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
-    try:
-        r = subprocess.run(
-            cmd, input="reply with the single word: ok",
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=timeout, creationflags=creationflags,
-        )
-        out = (r.stdout or "").strip()
-        stderr = (r.stderr or "").strip()
-        combined = (out + " " + stderr).lower()
-        if out and "limit reached" not in combined and "quota" not in combined:
-            return "ok", out[:80]
-        # classify failure
-        if any(k in combined for k in ("limit reached", "quota", "exceeded", "exhaust")):
-            return "quota", "API 配額用完（每日免費額度已耗盡，等隔天 0:00 PT 重置或升級付費版）"
-        if any(k in combined for k in ("auth", "login", "credential", "unauthor", "sign in")):
-            return "not_logged_in", stderr[:300] or "尚未登入"
-        if any(k in combined for k in ("network", "timeout", "unreachable", "dns", "connect")):
-            return "network", stderr[:300] or "網路連線異常"
-        return "unknown", (stderr or "空回應，原因不明")[:300]
-    except subprocess.TimeoutExpired:
-        return "network", f"超時（>{timeout}s）"
-    except Exception as e:
-        return "unknown", str(e)
+    if not shutil.which(bin_name):
+        return "cli_missing", f"找不到 {bin_name} CLI"
+    if not check_login_state(host):
+        return "not_logged_in", f"找不到 {host} 本地憑證檔，可能尚未登入"
+    return "ok_locally", "本地憑證已存在（未實際呼叫 AI，未消耗配額）"
 
 
 # ─── Update check helpers ───────────────────────────────────────
@@ -510,15 +524,21 @@ class GenecrGUI(tk.Tk):
         ttk.Entry(row2, textvariable=self.outdir_var).pack(side="left", fill="x", expand=True, padx=(0, 6))
         ttk.Button(row2, text="瀏覽…", command=self._pick_outdir).pack(side="left")
 
-        # Run / Cancel / Login buttons
+        # Run / Cancel / Login area
         btn_row = ttk.Frame(self)
         btn_row.pack(pady=10)
         self.run_btn = ttk.Button(btn_row, text="🚀 開始生成", command=self._on_run)
         self.run_btn.pack(side="left", padx=4)
         self.cancel_btn = ttk.Button(btn_row, text="✋ 取消", command=self._on_cancel, state="disabled")
         self.cancel_btn.pack(side="left", padx=4)
-        self.login_btn = ttk.Button(btn_row, text="🔑 登入 host", command=self._on_login_host)
-        self.login_btn.pack(side="left", padx=4)
+
+        # Login slot — either a button (not logged in) or a label (logged in).
+        # Conditional rendering driven by check_login_state() — zero token cost.
+        self.login_slot = ttk.Frame(btn_row)
+        self.login_slot.pack(side="left", padx=4)
+        self.login_btn = None      # populated by _refresh_login_slot()
+        self.login_label = None
+        self._refresh_login_slot()
 
         # Progress
         ttk.Label(self, text="進度：").pack(anchor="w", **pad)
@@ -570,6 +590,36 @@ class GenecrGUI(tk.Tk):
         self._refresh_path_label()
         # Refresh combo values in case a new host was just installed
         self.host_combo.configure(values=list_installed_hosts() or ["(未裝)"])
+        # Re-evaluate login state for the newly selected host (zero token)
+        self._refresh_login_slot()
+
+    def _refresh_login_slot(self):
+        """Render either a status label (logged in) or an active button (not
+        logged in) in the login slot. Driven by check_login_state — 0 token."""
+        if not hasattr(self, "login_slot"):
+            return
+        # Clear current slot contents
+        for w in self.login_slot.winfo_children():
+            w.destroy()
+        self.login_btn = None
+        self.login_label = None
+        if check_login_state(self.host):
+            # Already logged in — show a non-clickable status label
+            self.login_label = ttk.Label(
+                self.login_slot,
+                text=f"✅ 已登入 {self.host}（偵測到本地憑證）",
+                foreground="#16a34a",
+                font=("Microsoft JhengHei", 10),
+            )
+            self.login_label.pack(side="left")
+        else:
+            # Not logged in — show actionable button
+            self.login_btn = ttk.Button(
+                self.login_slot,
+                text=f"🔑 登入 {self.host}",
+                command=self._on_login_host,
+            )
+            self.login_btn.pack(side="left")
 
     def _open_add_host_dialog(self):
         """Show all 3 hosts with status; let user install + login any of them."""
@@ -675,13 +725,20 @@ class GenecrGUI(tk.Tk):
         ttk.Button(win, text="關閉", command=win.destroy).pack(pady=8)
 
     def _on_login_host(self):
-        """Triggered by main UI button — show status dialog (re-verifies)."""
-        # Run verification first, then dispatch
-        st, detail = verify_host_login(self.host)
-        if st == "ok":
-            messagebox.showinfo("登入狀態", f"✅ {self.host} 已登入並可正常呼叫。")
+        """Triggered by login button. Re-checks credentials (user may have
+        completed login externally), then either:
+          - found credentials → flip slot to status label, done
+          - still missing → directly run auto-login flow (no extra prompts)
+        Zero token cost — only checks local files."""
+        if check_login_state(self.host):
+            # User logged in (perhaps externally) — refresh UI and stop
+            self._refresh_login_slot()
             return
-        self._open_status_dialog(st, detail)
+        # Still not logged in — open status dialog which contains 一鍵登入 button
+        self._open_status_dialog(
+            "not_logged_in",
+            f"找不到 {self.host} 本地憑證，將開始登入流程。"
+        )
 
     def _start_auto_login(self, parent_dialog, status_var):
         """Drive login per host:
@@ -729,11 +786,12 @@ class GenecrGUI(tk.Tk):
 
         def poll():
             attempts["n"] += 1
-            st, _ = verify_host_login(host, timeout=15)
-            if st == "ok":
+            # Zero-token check: just look at whether credential file appeared
+            if check_login_state(host):
                 try: proc.terminate()
                 except Exception: pass
                 status_var.set("✅ 登入成功！可以開始使用了。")
+                self._refresh_login_slot()  # main UI button → status label
                 self.after(1500, parent_dialog.destroy)
                 return
             if attempts["n"] >= max_attempts:
@@ -834,14 +892,15 @@ class GenecrGUI(tk.Tk):
             self._start_auto_login(win, status_var)
 
         def verify():
-            status_var.set("驗證中…")
+            status_var.set("驗證中（檢查本地憑證，不消耗配額）…")
             verify_btn.configure(state="disabled")
             if show_login_btn: login_btn.configure(state="disabled")
             def worker():
                 st, msg = verify_host_login(host, timeout=30)
                 def done():
-                    if st == "ok":
-                        status_var.set("✅ 通過！可以開始使用了。")
+                    if st == "ok_locally":
+                        status_var.set("✅ 已偵測到本地憑證。")
+                        self._refresh_login_slot()
                         for w in bar.winfo_children(): w.destroy()
                         ttk.Button(bar, text="完成", command=win.destroy).pack(side="left", padx=4)
                     else:
@@ -878,7 +937,17 @@ class GenecrGUI(tk.Tk):
     def _extract_done(self, data, err):
         self.extract_btn.configure(state="normal", text="🪄 從描述自動萃取")
         if err:
-            messagebox.showerror("萃取失敗", err)
+            # Classify cause from err's content (which includes CLI stderr).
+            # Don't make any extra AI calls — those would burn user tokens.
+            kind = classify_call_failure(err)
+            if kind == "quota":
+                self._open_status_dialog("quota", err)
+            elif kind == "not_logged_in":
+                self._open_status_dialog("not_logged_in", err)
+            elif kind == "network":
+                self._open_status_dialog("network", err)
+            else:
+                self._open_status_dialog("unknown", err)
             return
         slug = (data.get("slug") or "").strip()
         name = (data.get("name") or "").strip()
@@ -1346,10 +1415,11 @@ class GenecrGUI(tk.Tk):
 
         def worker():
             new_gui_msg = None
-            login_ok = True
+            missing_prereqs: list[str] = []
+            login_ok_status = "ok_locally"
             login_detail = ""
 
-            # 1. Check runtime updates
+            # 1. Check runtime updates (existing)
             set_status("檢查 runtime 版本…")
             if runtime_has_updates(self.genecr_dir):
                 set_status("正在更新 runtime（請稍候）…")
@@ -1359,29 +1429,67 @@ class GenecrGUI(tk.Tk):
                 else:
                     set_status("runtime 更新失敗，仍可使用舊版")
 
-            # 2. Verify host status (login / quota / network)
-            set_status(f"驗證 {self.host} 狀態…")
-            login_ok_status, login_detail = verify_host_login(self.host)
-            login_ok = (login_ok_status == "ok")
+            # 2. Component completeness check (every startup, not just first install)
+            set_status("檢查必要元件是否完整…")
+            for n in ["python", "node", "git", "gemini", "genecr"]:
+                if not check_prereq(n):
+                    missing_prereqs.append(n)
 
-            # 3. Check GUI version
+            # 3. Login state check (zero token — file existence only)
+            #    Only meaningful if no components missing for the current host
+            if not missing_prereqs:
+                set_status(f"檢查 {self.host} 登入狀態（不消耗 AI 配額）…")
+                login_ok_status, login_detail = verify_host_login(self.host)
+
+            # 4. GUI version check (existing)
             set_status("檢查 GUI 版本…")
             latest = latest_gui_version()
             if latest and _vtuple(latest) > _vtuple(APP_VERSION):
                 new_gui_msg = (latest, APP_VERSION)
 
-            # Done — show main window
+            # Done — show main window, then handle issues in priority order
             def finish():
                 bar.stop()
                 splash.destroy()
                 self.deiconify()
-                if not login_ok:
-                    self._open_status_dialog(login_ok_status, login_detail)
+                # Priority 1: missing components — block work until fixed
+                if missing_prereqs:
+                    self._notify_missing_prereqs(missing_prereqs)
+                # Priority 2: not logged in (only if components are fine)
+                elif login_ok_status == "not_logged_in":
+                    self._open_status_dialog("not_logged_in", login_detail)
+                # Priority 3: GUI update available (non-blocking)
                 if new_gui_msg:
                     self._notify_new_gui(*new_gui_msg)
             self.after(0, finish)
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _notify_missing_prereqs(self, missing: list):
+        """Pop a dialog when one or more required components are missing
+        (detected at startup, after initial install)."""
+        win = tk.Toplevel(self)
+        win.title("元件缺失")
+        win.geometry("480x320")
+        win.transient(self)
+        try: win.grab_set()
+        except Exception: pass
+        ttk.Label(win, text="⚠ 偵測到必要元件缺失",
+                   foreground="#c00", font=("Microsoft JhengHei", 13, "bold")
+                   ).pack(pady=(20, 6))
+        names = "、".join(PREREQ_LABELS.get(n, n) for n in missing)
+        ttk.Label(win, text=f"缺少：{names}", wraplength=440,
+                   font=("Microsoft JhengHei", 11)).pack(padx=20, pady=8)
+        ttk.Label(win, text="可能原因：被解除安裝、PATH 變動、或此機器從未裝過。\n"
+                            "請按下方按鈕開啟安裝精靈，會自動補上。",
+                   wraplength=440, foreground="#555").pack(padx=20, pady=4)
+        bar = ttk.Frame(win)
+        bar.pack(pady=14)
+        def open_wizard():
+            win.destroy()
+            self._open_install_wizard()
+        ttk.Button(bar, text="🔧 開啟安裝精靈", command=open_wizard).pack(side="left", padx=4)
+        ttk.Button(bar, text="稍後再說", command=win.destroy).pack(side="left", padx=4)
 
     def _notify_new_gui(self, latest: str, current: str):
         win = tk.Toplevel(self)

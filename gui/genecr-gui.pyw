@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.5"
+APP_VERSION = "0.1.6"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -314,6 +314,18 @@ class GenecrGUI(tk.Tk):
         self.title(APP_TITLE)
         self.geometry("780x980")
         self.minsize(680, 720)
+
+        # Window icon — works for dev (.pyw) and PyInstaller bundle (sys._MEIPASS)
+        try:
+            base = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
+            ico = base / "icon.ico"
+            if ico.exists() and sys.platform == "win32":
+                self.iconbitmap(default=str(ico))
+            png = base / "icon.png"
+            if png.exists():
+                self.iconphoto(True, tk.PhotoImage(file=str(png)))
+        except Exception:
+            pass
 
         self.genecr_dir = detect_genecr_dir()
         self.host = detect_host(self.genecr_dir) if self.genecr_dir else "unknown"

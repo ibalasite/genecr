@@ -32,7 +32,14 @@ foreach ($cand in @("python3", "python")) {
 if (-not $py) { Write-Error "需要 Python 3"; exit 1 }
 
 Write-Host "[build] using $py" -ForegroundColor Cyan
-& $py -m pip install -q pyinstaller
+& $py -m pip install -q pyinstaller pillow
+
+# Generate icon if missing
+$ico = Join-Path $scriptDir "icon.ico"
+if (-not (Test-Path $ico)) {
+    Write-Host "[build] generating icon…" -ForegroundColor Cyan
+    & $py (Join-Path $scriptDir "make-icon.py")
+}
 
 # Build single-file windowed exe (no console) named genecr-gui
 Write-Host "[build] running PyInstaller…" -ForegroundColor Cyan
@@ -43,6 +50,9 @@ try {
         --onefile `
         --windowed `
         --name "genecr-gui" `
+        --icon $ico `
+        --add-data "icon.ico;." `
+        --add-data "icon.png;." `
         --distpath $dist `
         --workpath $build `
         --specpath $scriptDir `

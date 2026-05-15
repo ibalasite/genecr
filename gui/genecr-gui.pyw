@@ -133,6 +133,7 @@ def extract_slug_name(brief: str, host: str, timeout: int = 60) -> tuple[dict | 
     creationflags = 0
     if sys.platform == "win32":
         creationflags = subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]
+    out = ""
     try:
         r = subprocess.run(
             cli_cmd, input=prompt, capture_output=True, text=True,
@@ -140,12 +141,20 @@ def extract_slug_name(brief: str, host: str, timeout: int = 60) -> tuple[dict | 
             creationflags=creationflags,
         )
         out = (r.stdout or "").strip()
+        if not out:
+            stderr = (r.stderr or "").strip()
+            hint = f"\n\nCLI stderr 開頭：\n{stderr[:300]}" if stderr else ""
+            return None, (
+                f"{host} CLI 回傳空字串。\n\n"
+                f"最常見原因：尚未完成 {host} 的帳號登入。\n"
+                f"請按主畫面的「🔑 登入 {host}」按鈕完成 OAuth 登入後再試。{hint}"
+            )
         out = re.sub(r"^```(?:json)?\s*|\s*```$", "", out, flags=re.MULTILINE).strip()
         return json.loads(out), None
     except subprocess.TimeoutExpired:
         return None, f"CLI 超時（>{timeout}s）"
     except json.JSONDecodeError as e:
-        return None, f"AI 回傳非 JSON：{e}"
+        return None, f"AI 回傳非 JSON：{e}\n\n原始內容前 300 字：\n{out[:300]}"
     except Exception as e:
         return None, str(e)
 
@@ -322,13 +331,15 @@ class GenecrGUI(tk.Tk):
         ttk.Entry(row2, textvariable=self.outdir_var).pack(side="left", fill="x", expand=True, padx=(0, 6))
         ttk.Button(row2, text="瀏覽…", command=self._pick_outdir).pack(side="left")
 
-        # Run / Cancel buttons
+        # Run / Cancel / Login buttons
         btn_row = ttk.Frame(self)
         btn_row.pack(pady=10)
         self.run_btn = ttk.Button(btn_row, text="🚀 開始生成", command=self._on_run)
         self.run_btn.pack(side="left", padx=4)
         self.cancel_btn = ttk.Button(btn_row, text="✋ 取消", command=self._on_cancel, state="disabled")
         self.cancel_btn.pack(side="left", padx=4)
+        self.login_btn = ttk.Button(btn_row, text="🔑 登入 host", command=self._on_login_host)
+        self.login_btn.pack(side="left", padx=4)
 
         # Progress
         ttk.Label(self, text="進度：").pack(anchor="w", **pad)
@@ -378,6 +389,22 @@ class GenecrGUI(tk.Tk):
         self.host = self.host_var.get()
         self.genecr_dir = host_to_dir(self.host)
         self._refresh_path_label()
+
+    def _on_login_host(self):
+        """Open the host CLI in a new console window for OAuth login."""
+        bin_name = self.host
+        try:
+            if sys.platform == "win32":
+                subprocess.Popen(["cmd", "/c", "start", "cmd", "/k", bin_name], shell=False)
+            else:
+                subprocess.Popen(["x-terminal-emulator", "-e", bin_name])
+            messagebox.showinfo(
+                f"登入 {bin_name}",
+                f"已開啟新終端機跑 `{bin_name}`。\n"
+                f"請在那邊完成帳號登入（瀏覽器會自動開啟），完成後關閉終端，回來重試。"
+            )
+        except Exception as e:
+            messagebox.showerror("無法開啟", str(e))
 
     def _refresh_path_label(self):
         gd = self.genecr_dir

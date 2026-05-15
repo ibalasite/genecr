@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.4"
+APP_VERSION = "0.1.5"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -561,28 +561,41 @@ class GenecrGUI(tk.Tk):
         self._open_status_dialog(st, detail)
 
     def _start_auto_login(self, parent_dialog, status_var):
-        """Drive the login flow programmatically:
-           spawn gemini, pipe /auth, poll verify_host_login until success."""
+        """Drive login per host:
+           - gemini: spawn interactive, pipe /auth
+           - codex:  spawn `codex login` (subcommand, opens browser)
+           - claude: spawn `claude auth login` (subcommand, opens browser)
+           Then poll verify_host_login until success."""
         host = self.host
         bin_path = shutil.which(host)
         if not bin_path:
             status_var.set(f"❌ 找不到 {host} CLI")
             return None
 
+        # Per-host login command + whether to pipe stdin
+        login_cmd_map = {
+            "gemini": ([bin_path], "/auth\n"),                 # interactive + stdin
+            "codex":  ([bin_path, "login"], None),             # subcommand
+            "claude": ([bin_path, "auth", "login"], None),     # subcommand
+        }
+        cmd, stdin_input = login_cmd_map.get(host, ([bin_path], None))
+
         creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
         try:
             proc = subprocess.Popen(
-                [bin_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace",
+                cmd,
+                stdin=subprocess.PIPE if stdin_input else None,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True, encoding="utf-8", errors="replace",
                 creationflags=creationflags,
             )
-            # Send /auth command — this triggers OAuth flow which opens user's browser
-            try:
-                proc.stdin.write("/auth\n")
-                proc.stdin.flush()
-            except Exception:
-                pass
-            status_var.set("🌐 已開啟 Google 登入網頁，請在瀏覽器完成登入…")
+            if stdin_input:
+                try:
+                    proc.stdin.write(stdin_input)
+                    proc.stdin.flush()
+                except Exception:
+                    pass
+            status_var.set(f"🌐 已啟動 {host} 登入流程，瀏覽器應即將開啟，請點選你的帳號…")
         except Exception as e:
             status_var.set(f"❌ 啟動失敗：{e}")
             return None

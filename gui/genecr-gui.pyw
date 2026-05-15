@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.7"
+APP_VERSION = "0.1.8"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -183,7 +183,20 @@ def check_prereq(name: str) -> bool:
     """Check if a prerequisite is available."""
     if name == "node":   return shutil.which("node") is not None
     if name == "git":    return shutil.which("git")  is not None
-    if name == "python": return True  # we're running on python
+    if name == "python":
+        # Check for SYSTEM python (not the PyInstaller-bundled one).
+        # Subprocess needs a real python.exe to run pipeline.py / pip install.
+        for cand in ("python3", "python"):
+            path = shutil.which(cand)
+            if not path: continue
+            try:
+                creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+                r = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=3, creationflags=creationflags)
+                if r.returncode == 0 and r.stdout.startswith("Python 3"):
+                    return True
+            except Exception:
+                continue
+        return False
     if name == "winget": return shutil.which("winget") is not None
     if name == "gemini": return shutil.which("gemini") is not None
     if name == "genecr": return (Path.home() / ".gemini" / "skills" / "genecr" / "pipeline.json").exists()
@@ -191,6 +204,7 @@ def check_prereq(name: str) -> bool:
 
 
 PREREQ_INSTALL = {
+    "python": ["winget", "install", "-e", "--id", "Python.Python.3.13", "--accept-package-agreements", "--accept-source-agreements"],
     "node":   ["winget", "install", "-e", "--id", "OpenJS.NodeJS.LTS", "--accept-package-agreements", "--accept-source-agreements"],
     "git":    ["winget", "install", "-e", "--id", "Git.Git",          "--accept-package-agreements", "--accept-source-agreements"],
     "gemini": ["npm",    "install", "-g", "@google/gemini-cli"],
@@ -199,6 +213,7 @@ PREREQ_INSTALL = {
 }
 
 PREREQ_LABELS = {
+    "python": "Python 3 (執行 pipeline 用)",
     "node":   "Node.js (npm 用)",
     "git":    "Git",
     "gemini": "Gemini CLI",
@@ -217,6 +232,70 @@ def host_cli_installed(host: str) -> bool:
 def host_genecr_installed(host: str) -> bool:
     d = HOST_DIRS.get(host)
     return bool(d and (Path.home() / d / "skills" / "genecr" / "pipeline.json").exists())
+
+
+def deploy_genecr_python_native(host: str, log) -> bool:
+    """Python-native deploy — replaces setup.ps1 / setup bash for locked-down
+    Windows envs where PowerShell is blocked. Does:
+      1. Copy {runtime}/skills/* → ~/.X/skills/
+      2. pip install -r tools/renderer/requirements.txt
+      3. Copy tools/renderer/*.py → tools/bin/
+    Assumes git clone to {runtime} already done.
+    """
+    import shutil as sh
+    home = Path.home()
+    host_dir = HOST_DIRS.get(host)
+    if not host_dir:
+        log(f"❌ 未知 host: {host}")
+        return False
+    runtime = home / host_dir / "skills" / "genecr"
+    skills_dst = home / host_dir / "skills"
+
+    if not runtime.exists():
+        log(f"❌ 找不到 runtime: {runtime}")
+        return False
+
+    # 1. Deploy skills
+    skills_src = runtime / "skills"
+    if skills_src.exists():
+        log(f"[deploy] {skills_src} → {skills_dst}")
+        skills_dst.mkdir(parents=True, exist_ok=True)
+        for child in skills_src.iterdir():
+            if not child.is_dir():
+                continue
+            dst = skills_dst / child.name
+            if dst.exists():
+                sh.rmtree(dst)
+            sh.copytree(child, dst)
+            log(f"  · {child.name}")
+
+    # 2. Deploy tools — pip install + copy py files
+    renderer = runtime / "tools" / "renderer"
+    bin_dir = runtime / "tools" / "bin"
+    if renderer.exists():
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        req = renderer / "requirements.txt"
+        if req.exists():
+            log(f"[deploy] pip install -r {req}")
+            try:
+                creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+                r = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", "-q", "-r", str(req)],
+                    capture_output=True, text=True, encoding="utf-8", errors="replace",
+                    creationflags=creationflags,
+                )
+                if r.returncode != 0:
+                    log(f"  ⚠ pip 失敗：{r.stderr[:200]}")
+            except Exception as e:
+                log(f"  ⚠ pip 例外：{e}")
+        for fname in ("render.py", "pipeline.py", "orchestrate.py"):
+            src = renderer / fname
+            if src.exists():
+                sh.copy2(src, bin_dir / fname)
+                log(f"  · tools/bin/{fname}")
+
+    log(f"✅ deploy 完成")
+    return True
 
 
 # ─── Login verification ─────────────────────────────────────────
@@ -275,10 +354,18 @@ def runtime_has_updates(genecr_dir: Path) -> bool:
 
 def upgrade_runtime(genecr_dir: Path, log) -> bool:
     """Run setup upgrade for the runtime; return True on success."""
-    if sys.platform == "win32" and (genecr_dir / "setup.ps1").exists():
-        cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(genecr_dir / "setup.ps1"), "upgrade"]
-    else:
-        cmd = ["bash", str(genecr_dir / "setup"), "upgrade"]
+    # Python-native upgrade: git pull + redeploy
+    try:
+        host = detect_host(genecr_dir) or "gemini"
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+        subprocess.run(["git", "-C", str(genecr_dir), "pull", "--ff-only"],
+                       capture_output=True, timeout=60, creationflags=creationflags)
+        return deploy_genecr_python_native(host, log)
+    except Exception as e:
+        log(f"❌ {e}")
+        return False
+    # Legacy bash fallback (kept for non-Windows compatibility)
+    cmd = ["bash", str(genecr_dir / "setup"), "upgrade"]
     try:
         creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -540,11 +627,8 @@ class GenecrGUI(tk.Tk):
                 if not target.exists():
                     if not self._wizard_run_blocking(["git", "clone", GENECR_REPO_URL, str(target)], log):
                         return
-                if sys.platform == "win32" and (target / "setup.ps1").exists():
-                    cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(target / "setup.ps1"), "install", host]
-                else:
-                    cmd = ["bash", str(target / "setup"), "install", host]
-                self._wizard_run_blocking(cmd, log)
+                # Python-native deploy
+                deploy_genecr_python_native(host, log)
                 self.after(0, render_rows)
             threading.Thread(target=worker, daemon=True).start()
 
@@ -1013,7 +1097,7 @@ class GenecrGUI(tk.Tk):
         list_frame = ttk.Frame(win)
         list_frame.pack(fill="both", expand=True, padx=20, pady=14)
 
-        prereqs = ["node", "git", "gemini", "genecr"]
+        prereqs = ["python", "node", "git", "gemini", "genecr"]
         status_labels: dict[str, ttk.Label] = {}
 
         def set_status(name, icon, suffix=""):
@@ -1061,11 +1145,8 @@ class GenecrGUI(tk.Tk):
                 if not target.exists():
                     if not self._wizard_run_blocking(["git", "clone", GENECR_REPO_URL, str(target)], log):
                         return False
-                if sys.platform == "win32" and (target / "setup.ps1").exists():
-                    cmd2 = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(target / "setup.ps1"), "install", "gemini"]
-                else:
-                    cmd2 = ["bash", str(target / "setup"), "install", "gemini"]
-                return self._wizard_run_blocking(cmd2, log)
+                # Python-native deploy (no PowerShell — works in locked-down corp envs)
+                return deploy_genecr_python_native("gemini", log)
             if cmd is None:
                 return True
             if cmd[0] == "winget" and not check_prereq("winget"):

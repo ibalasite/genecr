@@ -26,7 +26,7 @@ from tkinter import ttk, filedialog, messagebox
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
-APP_VERSION = "0.1.8"
+APP_VERSION = "0.1.9"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -203,10 +203,24 @@ def check_prereq(name: str) -> bool:
     return False
 
 
+# Direct download URLs (avoid winget which can fail without Microsoft account login).
+PREREQ_DOWNLOAD = {
+    "python": (
+        "https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe",
+        ["/quiet", "InstallAllUsers=0", "PrependPath=1", "Include_test=0"],
+    ),
+    "node": (
+        "https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi",
+        ["/quiet", "/norestart", "ADDLOCAL=ALL"],
+    ),
+    "git": (
+        "https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.1/Git-2.47.1-64-bit.exe",
+        ["/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS"],
+    ),
+}
+
 PREREQ_INSTALL = {
-    "python": ["winget", "install", "-e", "--id", "Python.Python.3.13", "--accept-package-agreements", "--accept-source-agreements"],
-    "node":   ["winget", "install", "-e", "--id", "OpenJS.NodeJS.LTS", "--accept-package-agreements", "--accept-source-agreements"],
-    "git":    ["winget", "install", "-e", "--id", "Git.Git",          "--accept-package-agreements", "--accept-source-agreements"],
+    # winget left as fallback for non-direct-download cases (CLIs via npm)
     "gemini": ["npm",    "install", "-g", "@google/gemini-cli"],
     "claude": ["npm",    "install", "-g", "@anthropic-ai/claude-code"],
     "codex":  ["npm",    "install", "-g", "@openai/codex"],
@@ -1138,20 +1152,22 @@ class GenecrGUI(tk.Tk):
         finish_btn.pack(side="right")
 
         def run_step(name) -> bool:
-            cmd = PREREQ_INSTALL.get(name)
+            # 1) Direct-download installers (Python / Node / Git) — bypass winget
+            if name in PREREQ_DOWNLOAD:
+                url, args = PREREQ_DOWNLOAD[name]
+                return self._wizard_download_install(url, args, log)
+            # 2) genecr — git clone + Python deploy
             if name == "genecr":
                 target = Path.home() / ".gemini" / "skills" / "genecr"
                 target.parent.mkdir(parents=True, exist_ok=True)
                 if not target.exists():
                     if not self._wizard_run_blocking(["git", "clone", GENECR_REPO_URL, str(target)], log):
                         return False
-                # Python-native deploy (no PowerShell — works in locked-down corp envs)
                 return deploy_genecr_python_native("gemini", log)
+            # 3) npm-based CLIs (Gemini / Claude / Codex)
+            cmd = PREREQ_INSTALL.get(name)
             if cmd is None:
                 return True
-            if cmd[0] == "winget" and not check_prereq("winget"):
-                log(f"❌ 沒有 winget，無法自動裝 {name}。請手動安裝。")
-                return False
             return self._wizard_run_blocking(cmd, log)
 
         def auto_install():
@@ -1186,6 +1202,42 @@ class GenecrGUI(tk.Tk):
         if not all(check_prereq(n) for n in prereqs):
             log("檢測到缺少套件，3 秒後自動開始安裝…（要中止可關閉視窗）")
             self.after(3000, lambda: threading.Thread(target=auto_install, daemon=True).start())
+
+    def _wizard_download_install(self, url: str, install_args: list[str], log) -> bool:
+        """Download installer (.msi/.exe) from URL and run silently. Avoids winget."""
+        import urllib.request, tempfile
+        try:
+            fname = url.split("/")[-1]
+            tmp = Path(tempfile.gettempdir()) / fname
+            log(f"⬇ 下載 {fname} …")
+            with urllib.request.urlopen(url, timeout=60) as r, open(tmp, "wb") as f:
+                total = int(r.headers.get("Content-Length", 0))
+                downloaded = 0; chunk = 65536
+                while True:
+                    buf = r.read(chunk)
+                    if not buf: break
+                    f.write(buf); downloaded += len(buf)
+                    if total and downloaded % (chunk * 16) < chunk:
+                        self.after(0, log, f"  … {downloaded // 1024 // 1024} MB / {total // 1024 // 1024} MB")
+            log(f"✓ 下載完成（{tmp.stat().st_size // 1024 // 1024} MB），開始安裝…")
+
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+            if str(tmp).lower().endswith(".msi"):
+                cmd = ["msiexec", "/i", str(tmp)] + install_args
+            else:
+                cmd = [str(tmp)] + install_args
+            log(f"$ {' '.join(cmd[:3])} ...")
+            r2 = subprocess.run(cmd, capture_output=True, text=True, timeout=600,
+                                  encoding="utf-8", errors="replace",
+                                  creationflags=creationflags)
+            if r2.returncode != 0:
+                log(f"❌ 安裝失敗 exit {r2.returncode}: {r2.stderr[:300]}")
+                return False
+            log("✓ 安裝程式跑完")
+            return True
+        except Exception as e:
+            log(f"❌ {e}")
+            return False
 
     def _wizard_run_blocking(self, cmd: list[str], log) -> bool:
         """Run cmd synchronously, stream lines to log(), return True on rc=0."""

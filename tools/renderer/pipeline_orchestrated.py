@@ -146,7 +146,7 @@ def orchestrated_call_ai_for_step(
     ai_cfg: dict,
     brief_file: Path,
     run_dir: Path,
-    max_rounds: int = 20,
+    max_rounds: int | None = None,
 ) -> RunStepResult:
     """Run the program-orchestrated generate→review→fix loop for one step.
 

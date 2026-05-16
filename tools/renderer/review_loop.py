@@ -68,25 +68,26 @@ def run_step(
     ai_invoker: AIInvoker,
     schema_validate: SchemaValidator,
     cross_check_fn: CrossCheckFn,
-    max_rounds: int = 20,
+    max_rounds: int | None = None,
 ) -> RunStepResult:
     """Program-controlled loop. Three independent AI subagents.
 
-    Convergence criterion is `len(all_issues) == 0` (program-counted, not
-    AI-self-reported). max_rounds is an EMERGENCY SAFETY CAP to prevent
-    infinite spend if a reviewer/fixer pair never converges — it is NOT
-    the success threshold. Default 20 = generous room before bail.
+    The ONLY success criterion is `len(all_issues) == 0` (program-counted,
+    not AI-self-reported). There is NO N-round 'give up' threshold —
+    arbitrary numbers (3, 20, ...) violate the finding=0 principle.
+
+    `max_rounds=None` (default) = no cap; loop until convergence or human
+    aborts. User may pass a small integer in tests to keep test runs cheap;
+    production runs leave it None.
 
     Flow:
       1. Generator produces initial input.json
-      2. Repeat (capped by max_rounds):
+      2. Loop:
          a. Schema validate (program)
          b. cross_check (program)
          c. Reviewer subagent (independent)
          d. If all issue lists empty → SUCCESS
          e. Else: fixer subagent (independent) → new input.json
-      3. If cap hit without convergence: success=False + full issue list.
-         Pipeline blocks downstream until user intervenes.
     """
     # 1. Generator
     gen_raw = ai_invoker("generator", {
@@ -103,8 +104,9 @@ def run_step(
         )
 
     last_issues: list[Issue] = []
-
-    for attempt in range(1, max_rounds + 1):
+    attempt = 0
+    while max_rounds is None or attempt < max_rounds:
+        attempt += 1
         # Update all_data so cross_check sees the current step's output
         all_data = {**all_data, step_name: data}
 
@@ -135,10 +137,7 @@ def run_step(
         if not all_issues:
             return RunStepResult(success=True, attempts=attempt, data=data)
 
-        # Fixer (independent subagent) — only if we have more rounds left
-        if attempt >= max_rounds:
-            break
-
+        # Fixer (independent subagent) — no early exit; only end is finding=0
         fix_raw = ai_invoker("fixer", {
             "step": step_name,
             "input": data,
@@ -156,7 +155,9 @@ def run_step(
                 )],
             )
 
+    # Only reachable when max_rounds is set (tests). Production = loop forever
+    # until finding=0 or exception.
     return RunStepResult(
-        success=False, attempts=max_rounds, data=data,
+        success=False, attempts=attempt, data=data,
         final_issues=last_issues,
     )

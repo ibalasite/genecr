@@ -1,40 +1,70 @@
 # spec-basic review rules
 
-You are reviewing `spec-basic.input.json`. spec-basic is THE root document —
-everything downstream depends on it. Reject shallow or inconsistent content.
+You review `spec-basic.input.json`. Apply each numbered rule. Cite the
+real input field path in every issue. Use only the category tags in the
+whitelist.
 
-## Required checks
+## RULES
 
-1. **competitors**: at least 6 entries; each entry's `highlight` must be a
-   specific differentiator, not a vague placeholder like "亮點" or "TBD".
-   Reject if any competitor field is `<...>` template noise.
+### R1 — `template_noise`
+Check: no field value is a placeholder string.
+Fail when: any string field equals or contains `<...>` / "TBD" / "<待補>" / "<填寫>".
 
-2. **resource_counts**: every category value is a non-negative integer (or a
-   nested dict whose leaves are non-negative integers). The set of categories
-   must reflect ALL asset types the activity actually needs — if `summary`
-   mentions music but `resource_counts.sounds` is missing, flag it.
+### R2 — `shallow_competitor`
+Check: every entry in `competitors[]` has all required sub-fields filled
+with concrete content (no placeholders, no one-word answers).
+Path: `competitors[*].{name, market, highlight, url}` plus any extended
+fields (mechanic, rtp, payout, user_flow, differentiation, weakness) the
+input declares.
+Fail when: any sub-field is empty, a placeholder, or one word.
 
-3. **matrix vs axes**: every cell in `matrix` lies on the cross of an
-   existing row in `axes.rows` and column in `axes.cols`. Flag dangling cells.
+### R3 — `count_inconsistent`
+Check: `resource_counts.<category>` integer equals the number of entries
+in this document that match that category.
+Path: `resource_counts.*`
+Fail when: declared count != actual count of matching entries within this
+document (e.g. resource_counts.competitors=6 but competitors[] has 5).
+Note: cross-document counts are checked by program cross_check, not here.
 
-4. **user_journey vs wireframes**: every meaningful step in `user_journey`
-   should have at least one `wireframes[]` entry that visualizes it. Flag
-   journey steps with no wireframe coverage.
+### R4 — `axis_option_mismatch`
+Check: `matrix.cols` values appear as `options[].name` in some axis;
+`matrix.rows[].label` values appear as `options[].name` in some axis.
+Path: `matrix.{cols, rows[].label}` ↔ `axes[*].options[*].name`
+Fail when: matrix references a label that no axis option defines.
 
-5. **i18n**: zh / en / es entries must be aligned — same keys present in all
-   languages. Flag missing translations.
+### R5 — `journey_no_wireframe`
+Check: every meaningful step in `user_journey[]` is depicted by at least
+one `wireframes[]` entry.
+Path: `user_journey[*]` ↔ `wireframes[*]`
+Fail when: a journey step has no wireframe that visualises it.
 
-6. **acceptance_criteria**: each entry must be concrete and testable. Reject
-   "system works", "good UX", etc. Must specify behavior + condition.
+### R6 — `i18n_missing`
+Check: every translation key referenced in `ui_sections`, `ui_misc`, or
+`copywriting` (if present) exists in `i18n` for every declared language.
+Path: `i18n.*`
+Fail when: a referenced key is missing for any declared language.
 
-7. **internal references**: all cross-IDs (sc-xxx, api-xxx, ASSET-xxx) must
-   resolve to something elsewhere in the document or be marked as upstream.
+### R7 — `untestable_acceptance`
+Check: every entry in `rules[]` (or `acceptance_criteria[]` if present)
+specifies a concrete condition + observable outcome.
+Path: `rules[*]` / `acceptance_criteria[*]`
+Fail when: text is purely abstract ("system works", "good UX"), or
+specifies an outcome without the triggering condition.
 
-8. **template noise**: any field whose value matches `<...>` or "TBD" or
-   "<填寫>" patterns. Reject — the AI generator did not fill it in.
+### R8 — `unresolved_reference`
+Check: every cross-ID (e.g. `api-xxx`, `sc-xxx`, `ASSET-xxx`) referenced
+inside this document resolves to another item in this document, or to
+an upstream document.
+Path: any string that matches the ID patterns
+Fail when: ID appears but no definition is found.
 
-## Issue category tags to use
+## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
-- `shallow_competitor`, `count_inconsistent`, `dangling_matrix_cell`,
-  `journey_no_wireframe`, `i18n_missing`, `untestable_acceptance`,
-  `unresolved_reference`, `template_noise`
+- `template_noise`
+- `shallow_competitor`
+- `count_inconsistent`
+- `axis_option_mismatch`
+- `journey_no_wireframe`
+- `i18n_missing`
+- `untestable_acceptance`
+- `unresolved_reference`

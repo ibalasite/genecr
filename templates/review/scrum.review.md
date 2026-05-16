@@ -1,35 +1,53 @@
 # scrum review rules
 
-You are reviewing `scrum.input.json`. Stories must cover every spec-basic
-module, every spec-advanced table, every asset type. Estimation must be
-reasonable.
+You review `scrum.input.json`. Apply each numbered rule. Cite the real
+input field path in every issue. Use only the category tags in the
+whitelist.
 
-## Required checks
+## RULES
 
-1. **module coverage**: every spec-basic `summary` / `user_journey` module
-   has at least one story. Flag missing modules.
+### R1 — `template_noise`
+Check: no field value is a placeholder.
+Fail when: any string contains `<...>` / "TBD".
 
-2. **table coverage**: every `spec-advanced.data_models[]` table has at
-   least one backend story (creation, migration, or query workload).
+### R2 — `module_uncovered`
+Check: every distinct user_journey area in `spec-basic.user_journey` has
+at least one story.
+Path: `stories[*]` ↔ upstream `spec-basic.user_journey`
+Fail when: a user_journey area has no representative story.
 
-3. **asset coverage**: every distinct asset type (per spec-basic
-   resource_counts) has at least one art/sound story.
+### R3 — `table_no_story`
+Check: every entry in `spec-advanced.data_models[]` is referenced by at
+least one backend story.
+Path: `stories[*]` ↔ upstream `spec-advanced.data_models`
+Fail when: a table has no story creating/maintaining/querying it.
 
-4. **story shape**: each story has role / want / benefit filled with
-   concrete content, not "<role>" placeholder.
+### R4 — `role_placeholder`
+Check: each story's `role`, `want`, `benefit` is concrete (not "<role>").
+Path: `stories[*].{role, want, benefit}`
+Fail when: placeholder text or empty.
 
-5. **group consistency**: every `stories[].group` references an existing
-   `groups[].key`. No orphan group keys.
+### R5 — `orphan_group`
+Check: every `stories[].group` value matches an existing `groups[].key`.
+Path: `stories[*].group` ↔ `groups[*].key`
+Fail when: a story references an undefined group key.
 
-6. **estimation sanity**: `points` ∈ {1, 2, 3, 5, 8, 13} (Fibonacci). Flag
-   42, 100, or non-numeric values.
+### R6 — `non_fibonacci_points`
+Check: when `points` is provided, it is in {1, 2, 3, 5, 8, 13}.
+Path: `stories[*].points`
+Fail when: non-Fibonacci or non-integer value (e.g. 42, 100, "TBD").
 
-7. **depends_on**: every dependency references an existing story id.
+### R7 — `dangling_dependency`
+Check: every `stories[].depends_on` id matches another `stories[].id`.
+Path: `stories[*].depends_on`
+Fail when: a dependency id is not declared.
 
-8. **template noise**: reject `<...>` placeholders.
+## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
-## Issue category tags
-
-- `module_uncovered`, `table_no_story`, `asset_type_no_story`,
-  `role_placeholder`, `orphan_group`, `non_fibonacci_points`,
-  `dangling_dependency`, `template_noise`
+- `template_noise`
+- `module_uncovered`
+- `table_no_story`
+- `role_placeholder`
+- `orphan_group`
+- `non_fibonacci_points`
+- `dangling_dependency`

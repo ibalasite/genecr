@@ -1,32 +1,50 @@
 # docs review rules
 
-You are reviewing `docs.input.json`. This is the integration document
-center — sections reference the 6 upstream .md files. Internal links must
-resolve. API Explorer config must match spec-advanced APIs.
+You review `docs.input.json`. Apply each numbered rule. Cite the real
+input field path in every issue. Use only the category tags in the
+whitelist.
 
-## Required checks
+## RULES
 
-1. **section coverage**: `sections[]` contains entries for spec-basic,
-   spec-advanced, assets, bdd, scrum, prototype (the 6 core docs). Missing
-   any → flag.
+### R1 — `template_noise`
+Check: no field value is a placeholder.
+Fail when: any string contains `<...>` / "TBD".
 
-2. **section types**: every `sections[].type` matches one of the 7 step
-   types (spec-basic / spec-advanced / assets / bdd / scrum / prototype /
-   docs). No invented types.
+### R2 — `section_missing`
+Check: `sections[]` includes entries for at least: spec-basic,
+spec-advanced, assets, bdd, scrum, prototype.
+Path: `sections[*].type`
+Fail when: any of those 6 types is absent from sections.
 
-3. **api_explorer ↔ spec-advanced**: every entry in `api_explorer[]` has
-   a matching entry in `spec-advanced.apis` with the same id, method, path.
-   Flag inventions or divergences.
+### R3 — `section_invented_type`
+Check: every `sections[].type` is one of: spec-basic, spec-advanced,
+assets, bdd, scrum, prototype, docs.
+Path: `sections[*].type`
+Fail when: type value is not in that set.
 
-4. **api_explorer completeness**: each entry has method, path, desc,
-   plus at least one `responses[]` example payload.
+### R4 — `api_explorer_not_in_specs`
+Check: every entry in `api_explorer[]` has matching id+method+path in
+upstream `spec-advanced.apis[]`.
+Path: `api_explorer[*]` ↔ upstream `spec-advanced.apis[*]`
+Fail when: id/method/path triple does not match any upstream API.
 
-5. **feature consistency**: `feature.name` and `feature.slug` match
-   spec-basic.feature exactly.
+### R5 — `api_explorer_response_empty`
+Check: each `api_explorer[].responses` (if the field is declared) has
+at least one example payload.
+Path: `api_explorer[*].responses`
+Fail when: responses array is empty.
 
-6. **template noise**: reject `<...>` placeholders.
+### R6 — `feature_inconsistent`
+Check: `feature.name` and `feature.slug` exactly match
+`spec-basic.feature.name` / `spec-basic.feature.slug`.
+Path: `feature` ↔ upstream `spec-basic.feature`
+Fail when: name or slug differs.
 
-## Issue category tags
+## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
-- `section_missing`, `section_invented_type`, `api_explorer_not_in_specs`,
-  `api_explorer_response_empty`, `feature_inconsistent`, `template_noise`
+- `template_noise`
+- `section_missing`
+- `section_invented_type`
+- `api_explorer_not_in_specs`
+- `api_explorer_response_empty`
+- `feature_inconsistent`

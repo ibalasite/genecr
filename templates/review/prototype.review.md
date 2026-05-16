@@ -1,39 +1,58 @@
 # prototype review rules
 
-You are reviewing `prototype.input.json`. The HTML must implement the
-user_journey from spec-basic, use assets from the assets list, and reflect
-the state machine from spec-advanced.
+You review `prototype.input.json`. Apply each numbered rule. Cite the
+real input field path in every issue. Use only the category tags in the
+whitelist.
 
-## Required checks
+## RULES
 
-1. **HTML completeness**: `prototype_html` opens with `<html>` or
-   `<!DOCTYPE` and contains both `<style>` and `<script>` blocks (single-
-   file, zero external deps).
+### R1 — `template_noise`
+Check: no field value is a placeholder.
+Fail when: any string contains `<...>` / "TBD" inside `prototype_html`
+or other fields.
 
-2. **user_journey coverage**: every step in `spec-basic.user_journey` is
-   reachable via UI interaction in the HTML. Flag steps the HTML doesn't
-   surface.
+### R2 — `not_complete_html`
+Check: `prototype_html` starts with `<html`, `<!DOCTYPE`, `<body`, or
+`<div` (case insensitive) AND contains both `<style>` and `<script>`.
+Path: `prototype_html`
+Fail when: missing any of those markers (per project rule: self-contained
+inline CSS + JS).
 
-3. **asset references**: image / icon references in HTML use the same IDs
-   or names as `assets.input.json`. No invented asset names.
+### R3 — `external_dep_present`
+Check: `prototype_html` contains no `src="http`, no `href="http` for
+scripts/stylesheets.
+Path: `prototype_html`
+Fail when: any external URL reference for code or styles.
 
-4. **state machine**: state transitions in JS match
-   `spec-advanced.client.states`. Flag transitions that don't exist
-   upstream.
+### R4 — `not_mobile_375`
+Check: `prototype_html` references mobile viewport (`width=device-width`
+or explicit 375px).
+Path: `prototype_html`
+Fail when: viewport meta missing or width clearly desktop-only.
 
-5. **mobile viewport**: 375px width target; check the CSS doesn't assume
-   desktop layout.
+### R5 — `journey_step_unreachable`
+Check: every step in upstream `spec-basic.user_journey` is reachable
+via a UI element (button / link / form) in `prototype_html`.
+Path: `prototype_html` ↔ upstream `spec-basic.user_journey`
+Fail when: a journey step has no visible UI handler.
 
-6. **no external deps**: no `<script src="http...">`, no `<link
-   rel="stylesheet" href="http...">`. All inline.
+### R6 — `asset_id_invented`
+Check: when `prototype_html` references icon/image ids, they match ids
+from upstream `assets.assets[].id`.
+Path: `prototype_html` ↔ upstream `assets.assets[*].id`
+Fail when: a referenced asset id is not declared upstream.
 
-7. **interactivity**: every primary CTA has a click handler. Reject HTML
-   that is purely static.
+### R7 — `cta_no_handler`
+Check: every primary action button has an `onclick` or event listener.
+Path: `prototype_html`
+Fail when: a `<button>` with no click handler.
 
-8. **template noise**: reject `<填寫>` / "TBD" in HTML strings.
+## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
-## Issue category tags
-
-- `not_complete_html`, `journey_step_unreachable`, `asset_id_invented`,
-  `transition_not_upstream`, `not_mobile_375`, `external_dep_present`,
-  `cta_no_handler`, `template_noise`
+- `template_noise`
+- `not_complete_html`
+- `external_dep_present`
+- `not_mobile_375`
+- `journey_step_unreachable`
+- `asset_id_invented`
+- `cta_no_handler`

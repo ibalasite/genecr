@@ -1,43 +1,75 @@
 # spec-advanced review rules
 
-You are reviewing `spec-advanced.input.json`. This is the technical
-elaboration of spec-basic. Architecture, APIs, DB schema, Redis schema —
-all must be coherent with spec-basic and self-consistent.
+You review `spec-advanced.input.json`. Apply each numbered rule. Cite the
+real input field path in every issue. Use only the category tags in the
+whitelist.
 
-## Required checks
+## RULES
 
-1. **architecture.diagram**: non-empty valid Mermaid syntax. Reject empty
-   string, placeholder text, or non-Mermaid prose.
+### R1 — `template_noise`
+Check: no field value is a placeholder string.
+Fail when: any string field equals or contains `<...>` / "TBD" / "<待補>".
 
-2. **APIs vs upstream**: every endpoint in `apis[]` either implements a
-   `user_journey` step from spec-basic, or supports a wireframe interaction.
-   Flag APIs with no upstream purpose.
+### R2 — `mermaid_invalid`
+Check: `architecture.diagram` is a non-empty Mermaid source.
+Path: `architecture.diagram`
+Fail when: empty string, prose paragraph, or text that doesn't start with
+a Mermaid keyword (graph / flowchart / sequenceDiagram / erDiagram /
+classDiagram / stateDiagram).
 
-3. **DB schema completeness**: each `data_models[].kind = mysql|postgres`
-   entry has:
-   - non-empty `fields[]` with name/type per row
-   - non-empty `indexes` listing PK + secondary indexes
-   - `create_table_sql` matching the field/index declarations
-   Flag mismatches between fields and CREATE TABLE.
+### R3 — `api_no_upstream`
+Check: every endpoint in `apis[]` serves a `spec-basic.user_journey` step
+or a wireframe interaction.
+Path: `apis[*]`
+Fail when: an endpoint has no traceable upstream purpose.
 
-4. **SQL covers indexes**: every `db_queries[].sql` WHERE/JOIN column appears
-   in some `data_models[].indexes`. (The program cross_check enforces this
-   mechanically; you cross-verify the SQL actually answers the scenario.)
+### R4 — `schema_field_index_mismatch`
+Check: each `data_models[]` entry with kind ∈ {mysql, postgres, sqlite}
+has fields[] and indexes; `create_table_sql` declares the same field
+names and the same index names.
+Path: `data_models[*].{fields, indexes, create_table_sql}`
+Fail when: a field in `fields[]` is absent from `create_table_sql`, or
+an index named in `indexes` is absent from `create_table_sql`.
 
-5. **Redis schema**: each `data_models[].kind = redis` has a `redis_pattern`,
-   `value_type` ∈ {string, hash, list, zset, set}, and a TTL declaration.
-   `redis_ops` commands match the declared value_type (no LPUSH on a hash).
+### R5 — `sql_no_matching_index`
+Check: each entry in `db_queries[]` has a WHERE/JOIN column covered by
+some declared index in `data_models[*].indexes`.
+Path: `db_queries[*].sql` ↔ `data_models[*].indexes`
+Fail when: a WHERE/JOIN column has no covering index.
 
-6. **state machine**: `client.states[]` from/trigger/to all reference
-   declared states. No orphan states. Initial state present.
+### R6 — `redis_command_type_mismatch`
+Check: commands in `redis_ops[]` match the `value_type` declared in the
+corresponding `data_models[kind=redis].value_type`.
+Path: `redis_ops[*].commands` ↔ `data_models[*].value_type`
+Fail when: e.g. LPUSH used on a key declared as hash, HSET used on string.
 
-7. **business_logic**: each entry's `pseudocode` references real APIs +
-   real data_models. No magic.
+### R7 — `orphan_state`
+Check: every `client.states[].from` and `client.states[].to` references
+a state mentioned by some other transition (no orphans).
+Path: `client.states[*]`
+Fail when: a state name appears only once across all transitions.
 
-8. **template noise**: reject any `<...>` / "TBD" placeholders.
+### R8 — `pseudocode_magic`
+Check: each `business_logic[].pseudocode` references real APIs from
+`apis[]` and real tables from `data_models[]`.
+Path: `business_logic[*].pseudocode`
+Fail when: pseudocode invokes API names or table names that don't exist.
 
-## Issue category tags
+### R9 — `count_inconsistent`
+Check: `counts.api_endpoints` (if present) equals `len(apis)`;
+`counts.tables` equals number of relational data_models;
+`counts.redis_keys` equals number of redis data_models.
+Path: `counts.*` ↔ `apis` / `data_models`
+Fail when: declared count differs from actual.
 
-- `mermaid_invalid`, `api_no_upstream`, `schema_field_index_mismatch`,
-  `sql_doesnt_answer_scenario`, `redis_command_type_mismatch`,
-  `orphan_state`, `pseudocode_magic`, `template_noise`
+## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
+
+- `template_noise`
+- `mermaid_invalid`
+- `api_no_upstream`
+- `schema_field_index_mismatch`
+- `sql_no_matching_index`
+- `redis_command_type_mismatch`
+- `orphan_state`
+- `pseudocode_magic`
+- `count_inconsistent`

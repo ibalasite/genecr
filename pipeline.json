@@ -23,7 +23,8 @@
       "prompt": "templates/prompts/spec-advanced.prompt.md",
       "input":  "spec-advanced.input.json",
       "output": "{slug}-spec-advanced.md",
-      "stub_fixture": "templates/examples/spec-advanced.input.json"
+      "stub_fixture": "templates/examples/spec-advanced.input.json",
+      "depends_on": ["spec-basic"]
     },
     {
       "name": "assets",
@@ -31,7 +32,8 @@
       "prompt": "templates/prompts/assets.prompt.md",
       "input":  "assets.input.json",
       "output": "{slug}-assets.md",
-      "stub_fixture": "templates/examples/assets.input.json"
+      "stub_fixture": "templates/examples/assets.input.json",
+      "depends_on": ["spec-basic"]
     },
     {
       "name": "bdd",
@@ -40,7 +42,7 @@
       "input":  "bdd.input.json",
       "output": "{slug}-bdd.md",
       "stub_fixture": "templates/examples/bdd.input.json",
-      "depends_on": ["spec-advanced"]
+      "depends_on": ["spec-basic", "spec-advanced", "assets"]
     },
     {
       "name": "scrum",
@@ -48,7 +50,8 @@
       "prompt": "templates/prompts/scrum.prompt.md",
       "input":  "scrum.input.json",
       "output": "{slug}-scrum.md",
-      "stub_fixture": "templates/examples/scrum.input.json"
+      "stub_fixture": "templates/examples/scrum.input.json",
+      "depends_on": ["spec-basic", "spec-advanced", "assets"]
     },
     {
       "name": "prototype",
@@ -57,7 +60,7 @@
       "input":  "prototype.input.json",
       "output": "{slug}-prototype.html",
       "stub_fixture": "templates/examples/prototype.input.json",
-      "depends_on": ["spec-basic"]
+      "depends_on": ["spec-basic", "spec-advanced", "assets"]
     },
     {
       "name": "docs",

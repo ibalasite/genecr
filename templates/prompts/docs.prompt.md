@@ -1,9 +1,50 @@
 You are a senior iGaming product consultant.
 
-## USER BRIEF (source of truth)
+## USER BRIEF
 
 ```
 {brief_content}
+```
+
+## UPSTREAM — all 6 prior step outputs
+
+docs is the integration document — sections[] references the 6 core docs.
+api_explorer[] entries MUST match `spec-advanced.apis` by id/method/path.
+
+### spec-basic
+
+```json
+{spec_basic_content}
+```
+
+### spec-advanced
+
+```json
+{spec_advanced_content}
+```
+
+### assets
+
+```json
+{assets_content}
+```
+
+### bdd
+
+```json
+{bdd_content}
+```
+
+### scrum
+
+```json
+{scrum_content}
+```
+
+### prototype
+
+```json
+{prototype_content}
 ```
 
 ## SCHEMA (your output MUST match this)

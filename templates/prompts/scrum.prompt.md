@@ -4,10 +4,36 @@ You are a senior iGaming SCRUM master / tech lead.
 Cocos Creator client / Node.js + Express server / MySQL + Redis.
 Drivers: `mysql2` or `Sequelize`, `ioredis`, `Express`.
 
-## USER BRIEF (source of truth)
+## USER BRIEF
 
 ```
 {brief_content}
+```
+
+## UPSTREAM — spec-basic (modules + journey + resource counts)
+
+Stories MUST cover every module / journey step. Asset stories (art / SFX)
+must cover every category in `resource_counts`.
+
+```json
+{spec_basic_content}
+```
+
+## UPSTREAM — spec-advanced (tables + APIs)
+
+Every backend story must cover at least one `data_models[]` table or
+`apis[]` endpoint. Don't invent infra outside spec-advanced.
+
+```json
+{spec_advanced_content}
+```
+
+## UPSTREAM — assets (planning art/sound work)
+
+Assets stories should reference real asset ids from this list.
+
+```json
+{assets_content}
 ```
 
 ## SCHEMA (your output MUST match this)

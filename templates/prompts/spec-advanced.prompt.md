@@ -6,11 +6,41 @@ You are a senior iGaming backend engineer.
 - **DB**: MySQL — 表用 `MySQL Table`，欄位 MySQL 型別（`BIGINT UNSIGNED`, `VARCHAR(N)`, `DATETIME`, `JSON`），索引 `PRIMARY KEY`/`UNIQUE`/`INDEX`，driver `mysql2` 或 `Sequelize`
 - **Cache**: Redis — driver `ioredis`
 
-## USER BRIEF (source of truth)
+## USER BRIEF
 
 ```
 {brief_content}
 ```
+
+## UPSTREAM — spec-basic (企畫版, source of truth for feature scope)
+
+You MUST align with this. Every API, table, state, and pseudocode entry
+should serve a spec-basic feature module / user_journey step. Do not invent
+features outside spec-basic.
+
+```json
+{spec_basic_content}
+```
+
+## ADDITIONAL OUTPUT REQUIREMENTS
+
+Beyond the base schema, include:
+
+- `data_models[]` with `kind` ∈ {mysql, redis}. For mysql kind: provide
+  `fields` (name/type/nullable/desc), `indexes` (PRIMARY/UNIQUE/INDEX
+  declarations), and `create_table_sql` (full CREATE TABLE matching the
+  fields + indexes). For redis kind: provide `redis_pattern`
+  (e.g. `user:{uid}:level`), `value_type` ∈ {string, hash, list, zset, set},
+  and `ttl`.
+
+- `db_queries[]`: each entry has `scenario`, `sql` (real query), and
+  `used_indexes`. Downstream cross_check verifies WHERE columns are
+  covered by some declared index.
+
+- `redis_ops[]`: each entry has `scenario`, `commands` (real ioredis-style
+  sequence), and `accessed_keys` (patterns from data_models[kind=redis]
+  that the commands touch). Downstream cross_check verifies every
+  accessed_key is declared.
 
 ## SCHEMA (your output MUST match this)
 

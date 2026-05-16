@@ -18,6 +18,24 @@ You are a senior iGaming product consultant.
 {example_content}
 ```
 
+## RESOURCE COUNTS — required output (used by downstream cross_check)
+
+You MUST include a top-level `resource_counts` object declaring the EXACT
+count of every asset category the feature needs. Downstream `assets` will
+be checked mechanically against these counts (program-side count, not AI
+self-report).
+
+Format: `category → integer OR nested dict whose leaves are integers`.
+
+Include every category this activity actually uses (do not pad with zeros,
+do not omit a real category). Common ones:
+- `images`, `animations`, `sounds`, `videos`, `fonts`, `particles`,
+  `copywriting`, `i18n_strings`
+- Plus bookkeeping: `modules` (功能模組數), `acceptance_criteria`
+  (與 `acceptance_criteria` 陣列長度一致)
+
+Write real integers — no `<N>` placeholders.
+
 ## TASK
 Print a single JSON object to STDOUT. **Nothing else.** No markdown fences,
 no commentary. Your entire response = the JSON.

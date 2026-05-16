@@ -350,12 +350,14 @@
   .wf-appbar > .wf-section-title { flex: 1; margin: 0; font-size: 15px; }
   .wf-banner { padding: 10px 16px; border-bottom: 1.5px solid var(--line); }
   .wf-marquee { padding: 6px 16px; border-bottom: 1.5px solid var(--line); display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); overflow: hidden; }
-  .wf-stage { padding: 20px 16px; display: grid; place-items: center; min-height: 320px; }
+  .wf-stage { padding: 20px 16px; display: grid; place-items: center; min-height: 320px; gap: 12px; }
+  .wf-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); gap: 8px; width: 100%; }
   .wf-info { display: flex; justify-content: space-around; padding: 10px 16px; border-top: 1.5px solid var(--line); }
   .wf-actionbar { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
   .wf-actionbar .wf-btn-primary { flex: 1; }
   .wf-shortcuts { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
   .wf-shortcuts .wf-btn { flex: 1; }
+  .wf-bottomnav { display: flex; justify-content: space-around; align-items: center; padding: 10px 16px; border-top: 2px solid var(--line); background: #fbfbfc; }
   .wf-wheel { position: relative; width: 240px; height: 240px; border-radius: 50%; border: 2.5px solid var(--ink); overflow: hidden; background: conic-gradient(from -15deg, #fff 0 30deg, var(--soft) 30deg 60deg, #fff 60deg 90deg, var(--soft) 90deg 120deg, #fff 120deg 150deg, var(--soft) 150deg 180deg, #fff 180deg 210deg, var(--soft) 210deg 240deg, #fff 240deg 270deg, var(--soft) 270deg 300deg, #fff 300deg 330deg, var(--soft) 330deg 360deg); }
   .wf-wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 20px solid var(--ink); z-index: 3; }
   .wf-wheel-hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 70px; height: 70px; border-radius: 50%; border: 2.5px solid var(--ink); background: #fff; display: grid; place-items: center; font-weight: 800; font-size: 14px; z-index: 2; }

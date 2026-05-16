@@ -153,6 +153,32 @@ def test_docs_template_has_sidebar(repo_root):
     assert "sidebar" in tpl.lower(), "docs template missing sidebar"
 
 
+def test_docs_template_has_complete_wireframe_css(repo_root):
+    """Every wf-* class the wireframe DSL prompt allows must have a CSS rule
+    in docs.html.tmpl — otherwise AI-generated wireframes render as a
+    vertical pileup of overlapping divs (bug seen in checkin7v2 run)."""
+    tpl = (repo_root / "templates" / "docs.html.tmpl").read_text(encoding="utf-8")
+    required_classes = [
+        ".wf-scope", ".wf-mobile", ".wf-modal", ".wf-panel", ".wf-frame",
+        ".wf-statusbar", ".wf-appbar", ".wf-banner", ".wf-marquee",
+        ".wf-stage", ".wf-board", ".wf-info", ".wf-actionbar",
+        ".wf-shortcuts", ".wf-bottomnav",
+        ".wf-pill", ".wf-btn", ".wf-skeleton-line", ".wf-skeleton-block",
+        ".wf-skeleton-pill", ".wf-dot", ".wf-icon-slot", ".wf-badge",
+        ".wf-modal-icon", ".wf-modal-title", ".wf-modal-body",
+        ".wf-modal-meta", ".wf-modal-actions",
+        ".wf-section-title", ".wf-helper", ".wf-divider",
+        ".wf-required", ".wf-countdown", ".wf-empty",
+        ".wf-wheel", ".wf-wheel-pointer", ".wf-wheel-hub",
+    ]
+    missing = [c for c in required_classes if c not in tpl]
+    assert not missing, (
+        f"docs.html.tmpl missing CSS for: {missing}\n"
+        f"AI generates wireframes using these classes; without CSS the "
+        f"layout collapses to a vertical pileup."
+    )
+
+
 # ─── Jinja `| safe` filter preservation ────────────────────────────────────
 
 @pytest.mark.parametrize("tmpl_name", [

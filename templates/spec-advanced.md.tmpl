@@ -80,6 +80,30 @@
 
 ## 四、資料模型
 
+{# Auto-generated ER diagram from relational tables. Additive — does NOT
+   replace architecture.diagram above. Only relational kinds (mysql /
+   postgres / sqlite) participate; redis tables get their own section below. #}
+{%- set _er_tables = [] -%}
+{%- for _m in data_models -%}
+{%- if _m.kind in ('mysql', 'postgres', 'sqlite') -%}
+{%- set _ = _er_tables.append(_m) -%}
+{%- endif -%}
+{%- endfor -%}
+{% if _er_tables %}
+### 整體 ER 圖
+
+```mermaid
+erDiagram
+{% for m in _er_tables %}
+    {{ m.name | replace(' ', '_') }} {
+{% for f in m.fields %}
+        {{ (f.type or 'string') | replace(' ', '_') | replace('(', '_') | replace(')', '_') | replace(',', '_') }} {{ f.name }}
+{% endfor %}
+    }
+{% endfor %}
+```
+
+{% endif %}
 {% for m in data_models %}
 ### {{ m.name }}（{{ m.kind }}）
 {{ m.desc }}

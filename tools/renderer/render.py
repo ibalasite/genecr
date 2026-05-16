@@ -80,7 +80,12 @@ def preprocess(type_: str, data: dict, base_dir: Path) -> dict:
     if slug:
         data["prototype_path"] = f"{slug}-prototype.html"
     md = _md.Markdown(extensions=["fenced_code", "tables", "toc", "attr_list"])
-    sections = data.get("sections", [])
+    # prototype is rendered as standalone .html and embedded via prototype_path
+    # (separate template block). Drop any prototype entry the AI included in
+    # sections[] — there is no sibling .md to read.
+    sections = [s for s in data.get("sections", [])
+                if s.get("type") != "prototype"]
+    data["sections"] = sections
     for s in sections:
         # Compute md filename deterministically: <slug>-<type>.md
         if "type" in s and slug:

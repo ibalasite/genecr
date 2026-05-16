@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "spec-advanced input",
+  "type": "object",
+  "required": ["feature", "architecture", "client", "apis", "data_models", "business_logic", "cache_strategy"],
+  "properties": {
+    "feature": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {"type": "string"},
+        "slug": {"type": "string"}
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "required": ["overview", "diagram"],
+      "properties": {
+        "overview": {"type": "string"},
+        "diagram": {
+          "type": "string",
+          "description": "Mermaid diagram source (flowchart/erDiagram/sequenceDiagram). MUST stay non-empty — preserved render feature."
+        },
+        "data_flow": {"type": "string"}
+      }
+    },
+    "client": {
+      "type": "object",
+      "required": ["scene", "components", "states"],
+      "properties": {
+        "scene": {"type": "string"},
+        "components": {"type": "array"},
+        "states": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "trigger", "to"],
+            "properties": {
+              "from": {"type": "string"},
+              "trigger": {"type": "string"},
+              "to": {"type": "string"}
+            }
+          }
+        },
+        "update_strategy": {"type": "string"},
+        "performance": {"type": "string"}
+      }
+    },
+    "apis": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "method", "path", "desc"],
+        "properties": {
+          "id": {"type": "string"},
+          "method": {"type": "string"},
+          "path": {"type": "string"},
+          "desc": {"type": "string"},
+          "auth": {"type": "string"},
+          "reads": {},
+          "writes": {},
+          "params": {},
+          "request": {},
+          "response": {}
+        }
+      }
+    },
+    "data_models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "kind", "fields"],
+        "properties": {
+          "name": {"type": "string"},
+          "kind": {"type": "string", "description": "e.g. mysql / postgres / redis"},
+          "desc": {"type": "string"},
+          "fields": {"type": "array"},
+          "indexes": {"description": "array of index definitions, or placeholder string in template examples"},
+          "apis": {"type": "array"},
+          "create_table_sql": {
+            "type": "string",
+            "description": "Full CREATE TABLE SQL (for relational kind) — used for downstream cross-check"
+          },
+          "redis_pattern": {
+            "type": "string",
+            "description": "Key pattern (for redis kind) e.g. user:{uid}:level"
+          },
+          "value_type": {
+            "type": "string",
+            "description": "redis value type: string/hash/list/zset/set"
+          },
+          "ttl": {"description": "seconds or 'permanent'"}
+        }
+      }
+    },
+    "business_logic": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "desc"],
+        "properties": {
+          "title": {"type": "string"},
+          "desc": {"type": "string"},
+          "pseudocode": {"type": "string"}
+        }
+      }
+    },
+    "cache_strategy": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "desc"],
+        "properties": {
+          "key": {"type": "string"},
+          "ttl": {},
+          "desc": {"type": "string"}
+        }
+      }
+    },
+    "db_queries": {
+      "type": "array",
+      "description": "Scenario SQL with index alignment metadata for cross_check",
+      "items": {
+        "type": "object",
+        "required": ["scenario", "sql"],
+        "properties": {
+          "scenario": {"type": "string"},
+          "sql": {"type": "string"},
+          "used_indexes": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "redis_ops": {
+      "type": "array",
+      "description": "Scenario Redis operations with key alignment metadata for cross_check",
+      "items": {
+        "type": "object",
+        "required": ["scenario", "commands"],
+        "properties": {
+          "scenario": {"type": "string"},
+          "commands": {"type": "array", "items": {"type": "string"}},
+          "accessed_keys": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "description": "Derived counts for downstream cross_check (api_endpoints, tables, redis_keys)",
+      "properties": {
+        "api_endpoints": {"type": "integer", "minimum": 0},
+        "tables": {"type": "integer", "minimum": 0},
+        "redis_keys": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

@@ -1,10 +1,21 @@
 {
-  "feature": {"name": "<功能名稱>", "slug": "<feature-slug>"},
+  "feature": {
+    "name": "<功能名稱>",
+    "slug": "<feature-slug>"
+  },
   "change_log": [
-    {"date": "<YYYY-MM-DD>", "author": "<作者>", "note": "<變更說明>"}
+    {
+      "date": "<YYYY-MM-DD>",
+      "author": "<作者>",
+      "note": "<變更說明>"
+    }
   ],
   "related_docs": [
-    {"file": "<檔案或連結>", "desc": "<說明>", "status": "<進行中|已完成|待補>"}
+    {
+      "file": "<檔案或連結>",
+      "desc": "<說明>",
+      "status": "<進行中|已完成|待補>"
+    }
   ],
   "summary": {
     "what": "<一句話描述這個功能是什麼>",
@@ -12,32 +23,99 @@
     "audience": "<目標族群：哪一類玩家>"
   },
   "competitors": [
-    {"name": "<競業 A>", "market": "<市場>", "highlight": "<亮點/差異>", "url": "<連結>"},
-    {"name": "<競業 B>", "market": "<市場>", "highlight": "<亮點/差異>", "url": "<連結>"}
+    {
+      "name": "<競業 A>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    },
+    {
+      "name": "<競業 B>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    },
+    {
+      "name": "<競業 C>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    },
+    {
+      "name": "<競業 D>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    },
+    {
+      "name": "<競業 E>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    },
+    {
+      "name": "<競業 F>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    }
   ],
   "comparison_table": {
-    "competitors": ["<競業 A>", "<競業 B>"],
+    "competitors": [
+      "<競業 A>",
+      "<競業 B>"
+    ],
     "rows": [
-      {"item": "<對比項>", "us": "<我們>", "others": ["<競業 A 值>", "<競業 B 值>"]}
+      {
+        "item": "<對比項>",
+        "us": "<我們>",
+        "others": [
+          "<競業 A 值>",
+          "<競業 B 值>"
+        ]
+      }
     ]
   },
   "axes": [
-    {"name": "<切換軸名稱>", "options": [
-      {"name": "<選項 1>", "desc": "<說明>"},
-      {"name": "<選項 2>", "desc": "<說明>"}
-    ]}
+    {
+      "name": "<切換軸名稱>",
+      "options": [
+        {
+          "name": "<選項 1>",
+          "desc": "<說明>"
+        },
+        {
+          "name": "<選項 2>",
+          "desc": "<說明>"
+        }
+      ]
+    }
   ],
   "matrix": {
     "description": "<軸交叉組合說明>",
     "row_axis": "<row 軸名>",
     "col_axis": "<col 軸名>",
-    "cols": ["<col 1>", "<col 2>"],
+    "cols": [
+      "<col 1>",
+      "<col 2>"
+    ],
     "rows": [
-      {"label": "<row 1>", "cells": ["✓", "--"], "time": "<時間區段選項>"}
+      {
+        "label": "<row 1>",
+        "cells": [
+          "✓",
+          "--"
+        ],
+        "time": "<時間區段選項>"
+      }
     ]
   },
   "fields": [
-    {"name": "<欄位名>", "desc": "<說明 + 格式規則>", "example": "<範例值>"}
+    {
+      "name": "<欄位名>",
+      "desc": "<說明 + 格式規則>",
+      "example": "<範例值>"
+    }
   ],
   "rules": {
     "trigger": "<觸發條件>",
@@ -46,10 +124,17 @@
     "anti_cheat": "<防作弊機制>"
   },
   "user_journey": [
-    {"action": "<玩家動作>", "detail": "<細節>", "emotion": "<情緒/動機>"}
+    {
+      "action": "<玩家動作>",
+      "detail": "<細節>",
+      "emotion": "<情緒/動機>"
+    }
   ],
   "ui_sections": [
-    {"name": "<UI 區域名>", "detail": "<位置 + 互動細節>"}
+    {
+      "name": "<UI 區域名>",
+      "detail": "<位置 + 互動細節>"
+    }
   ],
   "ui_misc": {
     "refresh": "<刷新機制>",
@@ -57,16 +142,36 @@
     "edge_cases": "<斷網/無資料/權限不足等邊界處理>"
   },
   "i18n": [
-    {"zh": "<中文詞條>", "en": "<English>", "es": "<Español>"}
+    {
+      "zh": "<中文詞條>",
+      "en": "<English>",
+      "es": "<Español>"
+    }
   ],
   "help_page": {
     "hook": "<一句話 hook>",
-    "bullets": ["<🎯 賣點 1>", "<💰 賣點 2>", "<🎁 賣點 3>"],
-    "steps": ["<步驟 1>", "<步驟 2>", "<步驟 3>"]
+    "bullets": [
+      "<🎯 賣點 1>",
+      "<💰 賣點 2>",
+      "<🎁 賣點 3>"
+    ],
+    "steps": [
+      "<步驟 1>",
+      "<步驟 2>",
+      "<步驟 3>"
+    ]
   },
   "timeline": [
-    {"phase": "Phase 1 - MVP", "content": "<MVP 內容>", "duration": "<X 週>"},
-    {"phase": "Phase 2 - 優化", "content": "<優化內容>", "duration": "<X 週>"}
+    {
+      "phase": "Phase 1 - MVP",
+      "content": "<MVP 內容>",
+      "duration": "<X 週>"
+    },
+    {
+      "phase": "Phase 2 - 優化",
+      "content": "<優化內容>",
+      "duration": "<X 週>"
+    }
   ],
   "resources": {
     "art": "<美術資源概數>",

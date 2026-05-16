@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "docs input",
+  "type": "object",
+  "required": ["feature", "sections"],
+  "properties": {
+    "feature": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {"type": "string"},
+        "slug": {"type": "string"}
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Each section references a sibling markdown file (resolved via slug + type by pipeline preprocess).",
+      "items": {
+        "type": "object",
+        "required": ["title", "type"],
+        "properties": {
+          "title": {"type": "string"},
+          "type": {
+            "type": "string",
+            "description": "Section type id, e.g. spec-basic / spec-advanced / assets / bdd / scrum"
+          },
+          "md": {
+            "type": "string",
+            "description": "Optional explicit md filename — usually computed by preprocess from slug+type"
+          }
+        }
+      }
+    },
+    "api_explorer": {
+      "type": "array",
+      "description": "Interactive API Explorer config (preserved render feature)",
+      "items": {
+        "type": "object",
+        "required": ["id", "method", "path"],
+        "properties": {
+          "id": {"type": "string"},
+          "method": {"type": "string"},
+          "path": {"type": "string"},
+          "desc": {"type": "string"},
+          "params": {},
+          "responses": {}
+        }
+      }
+    }
+  }
+}

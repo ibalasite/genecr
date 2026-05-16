@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "scrum input",
+  "type": "object",
+  "required": ["feature", "epic", "groups", "stories"],
+  "properties": {
+    "feature": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {"type": "string"},
+        "slug": {"type": "string"}
+      }
+    },
+    "epic": {
+      "type": "object",
+      "required": ["title", "desc"],
+      "properties": {
+        "title": {"type": "string"},
+        "desc": {"type": "string"}
+      }
+    },
+    "groups": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["key", "name"],
+        "properties": {
+          "key": {"type": "string"},
+          "name": {"type": "string"},
+          "icon": {"type": "string"}
+        }
+      }
+    },
+    "stories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "group", "title", "role", "want", "benefit"],
+        "properties": {
+          "id": {"type": ["string", "integer"]},
+          "group": {"type": "string"},
+          "title": {"type": "string"},
+          "role": {"type": "string"},
+          "want": {"type": "string"},
+          "benefit": {"type": "string"},
+          "acceptance": {"type": "array"},
+          "points": {},
+          "depends_on": {"type": "array"}
+        }
+      }
+    }
+  }
+}

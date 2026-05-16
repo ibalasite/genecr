@@ -353,10 +353,31 @@ def execute_one(step: StepState, ai_cfg: dict, done: set[str], brief_file: Path)
     changed = False
     if not step.input_exists:
         print(f"\n▶ {step.name}: AI step")
-        if call_ai(step, ai_cfg, brief_file):
-            changed = True
+        # Orchestrated mode: program-controlled generate→review→fix with
+        # independent subagents (set "orchestrated": false in ai_cfg to use
+        # legacy same-AI fix loop).
+        if ai_cfg.get("orchestrated", True) and not ai_cfg.get("stub_mode"):
+            from pipeline_orchestrated import orchestrated_call_ai_for_step
+            result = orchestrated_call_ai_for_step(
+                step_name=step.name,
+                step_type=step.type,
+                ai_cfg=ai_cfg,
+                brief_file=brief_file,
+                run_dir=step.input_path.parent,
+            )
+            if result.success:
+                changed = True
+                print(f"   ✓ {step.name}: orchestrated success after {result.attempts} round(s)")
+            else:
+                print(f"   ✗ {step.name}: {len(result.final_issues)} issue(s) unresolved after {result.attempts} round(s)")
+                for issue in result.final_issues[:8]:
+                    print(f"     [{issue.category}] {issue.detail}")
+                return False
         else:
-            return False
+            if call_ai(step, ai_cfg, brief_file):
+                changed = True
+            else:
+                return False
     if not step.output_exists or step.output_stale:
         print(f"▶ {step.name}: render step")
         if call_render(step):
@@ -413,7 +434,7 @@ def main(argv: list[str]) -> int:
     positional = [a for i, a in enumerate(args) if not a.startswith("--") and i not in consumed]
 
     pipeline_arg = next((p for p in positional if p.endswith(".json")), None)
-    brief_arg = " ".join(p for p in positional if not p.endswith(".json")).strip()
+    non_json_positional = [p for p in positional if not p.endswith(".json")]
     slug_arg = _arg_value(args, "--slug")
     name_arg = _arg_value(args, "--name")
 
@@ -422,6 +443,13 @@ def main(argv: list[str]) -> int:
         print(f"[error] pipeline file not found: {pipeline_path}")
         print(__doc__)
         return 1
+
+    # Detect step-name as positional → revalidate mode.
+    # Load pipeline cfg early to know the step name vocabulary.
+    _cfg_for_names = json.loads(pipeline_path.read_text(encoding="utf-8"))
+    _all_step_names = {s["name"] for s in _cfg_for_names.get("steps", [])}
+    revalidate_step = next((p for p in non_json_positional if p in _all_step_names), None)
+    brief_arg = " ".join(p for p in non_json_positional if p != revalidate_step).strip()
 
     # Resolve slug + run_dir.
     # New run (--new or first ever): --slug REQUIRED.
@@ -482,10 +510,62 @@ def main(argv: list[str]) -> int:
         except KeyboardInterrupt:
             return 0
 
+    if revalidate_step:
+        return _revalidate_one_step(revalidate_step, steps, ai_cfg, brief_file, run_dir)
+
     run_once(steps, ai_cfg, brief_file)
     print_status(steps, run_dir)
     n_done = sum(1 for s in steps if s.output_exists and not s.output_stale)
     return 0 if n_done == len(steps) else 1
+
+
+def _revalidate_one_step(step_name: str, steps: list[StepState], ai_cfg: dict,
+                          brief_file: Path, run_dir: Path) -> int:
+    """Revalidate one named step against current rules.
+
+    - If <step>.input.json exists → load + pass as initial_data → skip
+      generator → run review/fix loop until finding=0.
+    - If missing → full flow (generator + review/fix).
+    - Always re-render afterwards (template may have changed).
+    """
+    step = next((s for s in steps if s.name == step_name), None)
+    if step is None:
+        print(f"[error] step '{step_name}' not in pipeline.json")
+        return 1
+
+    initial_data = None
+    if step.input_exists:
+        try:
+            initial_data = json.loads(step.input_path.read_text(encoding="utf-8"))
+            print(f"\n▶ {step.name}: revalidate (existing input loaded, skipping generator)")
+        except Exception as e:
+            print(f"[warn] {step.name}: failed to load existing input.json ({e}); falling back to full generation")
+    else:
+        print(f"\n▶ {step.name}: input.json missing — full generator + review/fix")
+
+    from pipeline_orchestrated import orchestrated_call_ai_for_step
+    result = orchestrated_call_ai_for_step(
+        step_name=step.name,
+        step_type=step.type,
+        ai_cfg=ai_cfg,
+        brief_file=brief_file,
+        run_dir=step.input_path.parent,
+        initial_data=initial_data,
+    )
+    if not result.success:
+        print(f"   ✗ {step.name}: {len(result.final_issues)} issue(s) unresolved after {result.attempts} round(s)")
+        for issue in result.final_issues[:8]:
+            print(f"     [{issue.category}] {issue.detail}")
+        return 1
+    print(f"   ✓ {step.name}: success after {result.attempts} round(s)")
+
+    # Always re-render (template may have changed).
+    if step.output_path.exists():
+        step.output_path.unlink()
+    print(f"▶ {step.name}: render step (forced)")
+    if not call_render(step):
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -224,3 +224,44 @@ def test_result_includes_final_data():
     result = run_step("spec-basic", {}, ai, _ok_schema, _ok_cross_check)
     assert result.success
     assert result.data == final_data
+
+
+# ─── revalidate mode: skip generator, start from existing input.json ────────
+
+def test_initial_data_skips_generator():
+    """When initial_data is provided (existing input.json on disk), generator
+    must NOT be invoked — review/fix loop starts directly with that data."""
+    existing = {"feature": {"name": "existing", "slug": "x"}}
+    ai = FakeAI(responses={
+        "reviewer": [json.dumps({"issues": []})],
+        # NO generator entry — should not be called
+    })
+    result = run_step(
+        "spec-basic", {}, ai, _ok_schema, _ok_cross_check,
+        initial_data=existing,
+    )
+    assert result.success
+    assert ai.count("generator") == 0
+    assert ai.count("reviewer") == 1
+    assert result.data == existing
+
+
+def test_initial_data_with_issues_runs_fixer():
+    """initial_data fails new rules → fixer corrects without generator call."""
+    existing = {"feature": {"name": "old", "slug": "x"}}
+    fixed = {"feature": {"name": "new", "slug": "x"}}
+    ai = FakeAI(responses={
+        "reviewer": [
+            json.dumps({"issues": [{"category": "x", "detail": "outdated"}]}),
+            json.dumps({"issues": []}),
+        ],
+        "fixer": [json.dumps(fixed)],
+    })
+    result = run_step(
+        "spec-basic", {}, ai, _ok_schema, _ok_cross_check,
+        initial_data=existing,
+    )
+    assert result.success
+    assert ai.count("generator") == 0
+    assert ai.count("fixer") == 1
+    assert result.data == fixed

@@ -147,10 +147,13 @@ def orchestrated_call_ai_for_step(
     brief_file: Path,
     run_dir: Path,
     max_rounds: int | None = None,
+    initial_data: dict | None = None,
 ) -> RunStepResult:
     """Run the program-orchestrated generate→review→fix loop for one step.
 
     Reads existing upstream *.input.json files from run_dir.
+    If `initial_data` is provided, generator is skipped — the loop starts
+    by reviewing that data against current rules (revalidate mode).
     On success, writes the final accepted data to {step}.input.json.
     """
     upstream = _load_all_upstream(step_name, run_dir)
@@ -166,6 +169,7 @@ def orchestrated_call_ai_for_step(
         schema_validate=schema_validate,
         cross_check_fn=run_all_checks,
         max_rounds=max_rounds,
+        initial_data=initial_data,
     )
 
     if result.success and result.data is not None:

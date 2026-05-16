@@ -69,6 +69,7 @@ def run_step(
     schema_validate: SchemaValidator,
     cross_check_fn: CrossCheckFn,
     max_rounds: int | None = None,
+    initial_data: dict | None = None,
 ) -> RunStepResult:
     """Program-controlled loop. Three independent AI subagents.
 
@@ -89,19 +90,24 @@ def run_step(
          d. If all issue lists empty → SUCCESS
          e. Else: fixer subagent (independent) → new input.json
     """
-    # 1. Generator
-    gen_raw = ai_invoker("generator", {
-        "step": step_name,
-        "upstream": all_data,
-    })
-    try:
-        data = _parse_json(gen_raw)
-    except Exception as e:
-        return RunStepResult(
-            success=False, attempts=0,
-            final_issues=[Issue(step=step_name, category="generator_invalid_json",
-                                detail=str(e))],
-        )
+    # 1. Generator — skipped when initial_data is provided (revalidate mode:
+    # an existing <step>.input.json is fed in directly so we re-check it
+    # against current rules without burning tokens on regeneration).
+    if initial_data is not None:
+        data = initial_data
+    else:
+        gen_raw = ai_invoker("generator", {
+            "step": step_name,
+            "upstream": all_data,
+        })
+        try:
+            data = _parse_json(gen_raw)
+        except Exception as e:
+            return RunStepResult(
+                success=False, attempts=0,
+                final_issues=[Issue(step=step_name, category="generator_invalid_json",
+                                    detail=str(e))],
+            )
 
     last_issues: list[Issue] = []
     attempt = 0

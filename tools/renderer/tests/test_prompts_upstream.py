@@ -60,3 +60,39 @@ def test_assets_aligns_with_spec_basic_resource_counts():
     body = (PROMPTS / "assets.prompt.md").read_text(encoding="utf-8")
     assert "resource_counts" in body
     assert "cross_check" in body.lower() or "mechanically" in body.lower()
+
+
+# ── generator strengthening (convergence triangle: gen quality first hit) ──
+
+GENERATOR_STEPS = ["spec-basic", "spec-advanced", "assets", "bdd",
+                   "scrum", "prototype", "docs"]
+
+
+@pytest.mark.parametrize("step", GENERATOR_STEPS)
+def test_prompt_has_stakes_block(step):
+    body = (PROMPTS / f"{step}.prompt.md").read_text(encoding="utf-8")
+    assert "## STAKES" in body, f"{step} missing STAKES block"
+
+
+@pytest.mark.parametrize("step", GENERATOR_STEPS)
+def test_prompt_has_preflight_checklist(step):
+    body = (PROMPTS / f"{step}.prompt.md").read_text(encoding="utf-8")
+    assert "PRE-FLIGHT CHECKLIST" in body, f"{step} missing PRE-FLIGHT block"
+    # Pre-flight should reference at least the first 3 review rules
+    for tag in ("R1", "R2", "R3"):
+        assert f"- {tag}" in body, f"{step} pre-flight missing {tag}"
+
+
+@pytest.mark.parametrize("step", GENERATOR_STEPS)
+def test_prompt_has_output_language_directive(step):
+    body = (PROMPTS / f"{step}.prompt.md").read_text(encoding="utf-8")
+    assert "OUTPUT LANGUAGE" in body, f"{step} missing OUTPUT LANGUAGE block"
+    assert "Traditional Chinese" in body or "zh-TW" in body
+    assert "string field" in body.lower() or "field values" in body.lower()
+
+
+def test_bdd_preflight_flags_sequence_diagram_required():
+    body = (PROMPTS / "bdd.prompt.md").read_text(encoding="utf-8")
+    assert "sequence_diagram" in body.lower()
+    # User-flagged critical phrase explicitly present
+    assert "user-flagged critical" in body.lower() or "critical" in body.lower()

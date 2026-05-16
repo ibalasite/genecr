@@ -71,10 +71,10 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["name", "kind", "fields"],
+        "required": ["name", "kind"],
         "properties": {
           "name": {"type": "string"},
-          "kind": {"type": "string", "description": "e.g. mysql / postgres / redis"},
+          "kind": {"type": "string", "description": "e.g. mysql / postgres / sqlite / 'MySQL Table' / redis"},
           "desc": {"type": "string"},
           "fields": {"type": "array"},
           "indexes": {"description": "array of index definitions, or placeholder string in template examples"},
@@ -92,7 +92,15 @@
             "description": "redis value type: string/hash/list/zset/set"
           },
           "ttl": {"description": "seconds or 'permanent'"}
-        }
+        },
+        "allOf": [
+          {
+            "comment": "Conditional required fields by kind. Relational entries need fields[]; redis entries need redis_pattern + value_type. Avoids the convergence bug where AI sensibly omits fields for a redis string key but schema demanded fields unconditionally.",
+            "if": { "properties": { "kind": { "const": "redis" } } },
+            "then": { "required": ["redis_pattern", "value_type"] },
+            "else": { "required": ["fields"] }
+          }
+        ]
       }
     },
     "business_logic": {

@@ -20,6 +20,12 @@ for the next 5 minutes of pipeline time, for no gain.
 
 **Treat every required field as MUST. No "best effort", no placeholders.**
 
+
+**Final human gate**: a senior product planner reviews all 7 documents
+end-to-end at the end of the pipeline. If quality is below the planner's
+bar, the entire run is rejected — the user reruns every step from scratch.
+Every token and every minute spent here is doubled, tripled, or worse.
+
 ## PRE-FLIGHT CHECKLIST — the reviewer will fail your output on any of these
 
 Before submitting, verify EACH:

@@ -9,6 +9,12 @@ fail the loop. Sloppy = guaranteed rework.
 
 **Production input. Independent reviewer + fixer loop. Zero-issue exit.**
 
+
+**Final human gate**: a senior product planner reviews all 7 documents
+end-to-end at the end of the pipeline. If quality is below the planner's
+bar, the entire run is rejected — the user reruns every step from scratch.
+Every token and every minute spent here is doubled, tripled, or worse.
+
 ## PRE-FLIGHT CHECKLIST — reviewer will fail on any of these
 
 - R1 `template_noise`: zero `<...>` / "TBD"

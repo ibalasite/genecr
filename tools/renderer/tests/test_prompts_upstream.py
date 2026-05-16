@@ -84,6 +84,14 @@ def test_prompt_has_preflight_checklist(step):
 
 
 @pytest.mark.parametrize("step", GENERATOR_STEPS)
+def test_prompt_has_final_human_gate_warning(step):
+    body = (PROMPTS / f"{step}.prompt.md").read_text(encoding="utf-8")
+    assert "Final human gate" in body, f"{step} missing Final human gate clause"
+    assert "senior product planner" in body
+    assert "rerun" in body.lower() or "from scratch" in body.lower()
+
+
+@pytest.mark.parametrize("step", GENERATOR_STEPS)
 def test_prompt_has_output_language_directive(step):
     body = (PROMPTS / f"{step}.prompt.md").read_text(encoding="utf-8")
     assert "OUTPUT LANGUAGE" in body, f"{step} missing OUTPUT LANGUAGE block"

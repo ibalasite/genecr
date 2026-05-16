@@ -68,18 +68,25 @@ def run_step(
     ai_invoker: AIInvoker,
     schema_validate: SchemaValidator,
     cross_check_fn: CrossCheckFn,
-    max_rounds: int = 3,
+    max_rounds: int = 20,
 ) -> RunStepResult:
     """Program-controlled loop. Three independent AI subagents.
 
+    Convergence criterion is `len(all_issues) == 0` (program-counted, not
+    AI-self-reported). max_rounds is an EMERGENCY SAFETY CAP to prevent
+    infinite spend if a reviewer/fixer pair never converges — it is NOT
+    the success threshold. Default 20 = generous room before bail.
+
     Flow:
       1. Generator produces initial input.json
-      2. For up to max_rounds:
+      2. Repeat (capped by max_rounds):
          a. Schema validate (program)
          b. cross_check (program)
          c. Reviewer subagent (independent)
-         d. If all issue lists empty → success
+         d. If all issue lists empty → SUCCESS
          e. Else: fixer subagent (independent) → new input.json
+      3. If cap hit without convergence: success=False + full issue list.
+         Pipeline blocks downstream until user intervenes.
     """
     # 1. Generator
     gen_raw = ai_invoker("generator", {

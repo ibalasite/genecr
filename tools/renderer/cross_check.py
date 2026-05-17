@@ -138,19 +138,32 @@ def _role_budget_days(spec_basic: dict, spec_advanced: dict | None) -> dict[str,
     }
 
 
-def check_role_workload_against_formula(
+def check_timeline_against_formula(spec_basic: dict, spec_advanced: dict | None) -> list[Issue]:
+    """For spec-basic step: timeline_weeks vs formula expected_weeks.
+    Does NOT touch scrum (different fixer owner)."""
+    total_expected_days = sum(_role_budget_days(spec_basic, spec_advanced).values())
+    expected_weeks = total_expected_days / 5
+    total_weeks = sum(t.get("duration_weeks", 0) or 0
+                      for t in (spec_basic.get("timeline") or []) if isinstance(t, dict))
+    if total_weeks > expected_weeks * 1.3 and expected_weeks >= 0.5:
+        return [Issue(
+            step="spec-basic",
+            category="timeline_overestimated",
+            detail=(
+                f"timeline 總週數 {total_weeks} 超過公式預估 {expected_weeks:.1f} 週"
+                f" × 1.3 = {expected_weeks*1.3:.1f} 週（總工作天 {total_expected_days:.1f}/5）"
+            ),
+        )]
+    return []
+
+
+def check_scrum_workload(
     spec_basic: dict,
     spec_advanced: dict | None,
-    assets: dict | None,
     scrum: dict | None,
 ) -> list[Issue]:
-    """Per-role workload cap based on objective input counts.
-
-    Fixes the dual-inflation hole: previous wireframe-only check let
-    inflated totals pass because tolerance was generous. Per-role caps
-    catch even single-role overestimates (e.g. "server" alone bloating).
-    Tolerance ±30%; tiny budgets (≤1d) only flag when actually exceeded.
-    """
+    """For scrum step: per-role + total points vs formula. Does NOT touch
+    spec-basic.timeline (different fixer owner)."""
     expected = _role_budget_days(spec_basic, spec_advanced)
     total_expected = sum(expected.values())
 
@@ -165,7 +178,7 @@ def check_role_workload_against_formula(
     issues: list[Issue] = []
     for role, exp in expected.items():
         act = actual.get(role, 0)
-        max_act = max(exp * 1.3, 1.0)  # always allow at least 1 point of slack
+        max_act = max(exp * 1.3, 1.0)
         if act > max_act:
             issues.append(Issue(
                 step="scrum",
@@ -185,21 +198,13 @@ def check_role_workload_against_formula(
                 f"+ tables×0.2 + asset_sub_cats×0.05 + planner 1 + po 0.5）"
             ),
         ))
-
-    # Timeline cross-check (uses same formula → days/5 = weeks)
-    total_weeks = sum(t.get("duration_weeks", 0) or 0
-                      for t in (spec_basic.get("timeline") or []) if isinstance(t, dict))
-    expected_weeks = total_expected / 5
-    if total_weeks > expected_weeks * 1.3 and expected_weeks >= 0.5:
-        issues.append(Issue(
-            step="spec-basic",
-            category="timeline_overestimated",
-            detail=(
-                f"timeline 總週數 {total_weeks} 超過公式預估 {expected_weeks:.1f} 週"
-                f" × 1.3 = {expected_weeks*1.3:.1f} 週（總工作天 {total_expected:.1f}/5）"
-            ),
-        ))
     return issues
+
+
+# Kept for backward-compat with existing tests; delegates to the split funcs.
+def check_role_workload_against_formula(spec_basic, spec_advanced, assets, scrum):
+    return (check_scrum_workload(spec_basic, spec_advanced, scrum)
+            + check_timeline_against_formula(spec_basic, spec_advanced))
 
 
 def check_scope_against_wireframes(spec_basic_data: dict, scrum_data: dict) -> list[Issue]:
@@ -435,12 +440,12 @@ def run_all_checks(step_name: str, all_step_data: dict) -> list[Issue]:
         issues += check_scenario_count(bdd, sb, sa)
 
     if step_name == "scrum" and sb and scrum:
-        # per-role formula supersedes old single-factor checks
-        issues += check_role_workload_against_formula(sb, sa, assets, scrum)
+        # Scrum step owns per-role + total points checks.
+        issues += check_scrum_workload(sb, sa, scrum)
     if step_name == "spec-basic" and sb:
-        # Even before scrum exists, spec-basic timeline can be checked
-        # against the formula (per-role expected days summed).
-        issues += check_role_workload_against_formula(sb, sa, assets, scrum)
+        # spec-basic step ONLY checks its own timeline (no scrum coupling —
+        # spec-basic fixer can't edit scrum.input.json stories).
+        issues += check_timeline_against_formula(sb, sa)
 
     if step_name == "spec-advanced" and sa:
         issues += check_sql_index_alignment(sa)

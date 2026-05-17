@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "spec-basic input",
   "type": "object",
-  "required": ["feature", "change_log", "related_docs", "summary", "competitors", "axes", "matrix", "fields", "rules", "user_journey", "ui_sections", "ui_misc", "i18n", "help_page", "timeline", "resources"],
+  "required": ["feature", "change_log", "related_docs", "summary", "competitors", "axes", "matrix", "fields", "rules", "user_journey", "ui_sections", "ui_misc", "i18n", "help_page", "timeline", "resources", "resource_counts"],
   "properties": {
     "feature": {
       "type": "object",

@@ -216,6 +216,19 @@ def test_wireframe_styleguide_renders_all_primitives(repo_root):
     assert not missing, f"styleguide missing demo for: {missing}"
 
 
+def test_docs_template_has_unique_heading_id_logic(repo_root):
+    """markdown's toc extension slugifies Chinese headings to ASCII-only ids
+    like `_1` `_2` — multiple panels then have colliding ids, and
+    getElementById always returns the first hit (often in a hidden panel)
+    → TOC links appear broken. Template must prefix every heading id with
+    its panel.id at load time."""
+    tpl = (repo_root / "templates" / "docs.html.tmpl").read_text(encoding="utf-8")
+    assert "uniquifyHeadingIds" in tpl, "docs template missing heading id uniquifier"
+    assert "panel.id + '__'" in tpl, "uniquifier must prefix with panel.id"
+    # also assert it's actually invoked on load
+    assert "uniquifyHeadingIds()" in tpl, "uniquifier defined but never called"
+
+
 def test_wireframe_containers_have_max_width(repo_root):
     """All wireframe containers MUST have a bounded width (sandbox principle).
     wireframes represent screens, never page-spanning responsive layout."""

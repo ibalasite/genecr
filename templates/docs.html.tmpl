@@ -538,6 +538,22 @@ function sanitizeMermaidSrc(src) {
   }).join('\n');
 }
 
+// ─── Heading ID uniquification ───
+// markdown 的 toc 擴展用 ASCII-only slugify → 中文 heading 被剝光只剩 `_1`/`_2`/...
+// 跨多個 panel 必然碰撞（panel-0 有 `_2`，panel-1 也有 `_2`），getElementById 永遠
+// 抓第一個 → TOC 點下去跳到隱藏 panel 的 heading，看起來「沒反應」。
+// 修法：對每個 panel 內所有 h1-h4 的 id 加上 panel.id 前綴，全域保證唯一。
+function uniquifyHeadingIds() {
+  document.querySelectorAll('.panel').forEach(panel => {
+    if (!panel.id) return;
+    panel.querySelectorAll('h1, h2, h3, h4').forEach(h => {
+      if (!h.id) return;
+      if (h.id.startsWith(panel.id + '__')) return;  // idempotent
+      h.id = panel.id + '__' + h.id;
+    });
+  });
+}
+
 function transformMermaid() {
   document.querySelectorAll('pre code.language-mermaid').forEach(code => {
     const src = sanitizeMermaidSrc(code.textContent);
@@ -612,7 +628,10 @@ function buildToc() {
   if (!heads.length) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無標題</div>'; return; }
   let html = '';
   heads.forEach((h, i) => {
-    if (!h.id) h.id = 'h-' + i + '-' + (h.textContent || '').replace(/\s+/g, '-').slice(0, 30);
+    if (!h.id) {
+      // auto-id MUST include panel.id prefix to avoid collisions across panels
+      h.id = active.id + '__h-' + i + '-' + (h.textContent || '').replace(/\s+/g, '-').slice(0, 30);
+    }
     html += `<a class="toc__link toc__link--${h.tagName.toLowerCase()}" href="#${h.id}">${h.textContent}</a>`;
   });
   listEl.innerHTML = html;
@@ -875,6 +894,7 @@ document.getElementById('lightbox').addEventListener('wheel', e => {
 
 // Init
 transformMermaid();
+uniquifyHeadingIds();
 renderMermaidIn(document.querySelector('.panel.active'));
 
 // Resolve location.hash → switch panel (also runs on hashchange so in-document

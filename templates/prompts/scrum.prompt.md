@@ -88,11 +88,17 @@ Assets stories should reference real asset ids from this list.
   - 「實作 POST /api/checkin/claim」→ **1-2 點**
   - 「Redis lock 去重邏輯 + 整合測試」→ **2 點**
   - 「整套後台 CMS（含 5 個頁面 + 表單 + 資料表）」→ **8 點**（這才算 epic）
-- **整個 feature 總點數**（有 AI 協助，要往下調）：
-  - 小活動（幾頁流程）→ **8-12 點**（約 2 週）
-  - 中型 feature → 20-40 點
-  - 大型 feature → 50+ 點
-- **總點數必須對齊 spec-basic.timeline 總週數 × 5**（容差 ±50%；reviewer R12 強制）
+- **估點公式**（per-role 工作天 = 點數；cross_check 程式自動算）：
+  ```
+  client_engineer = wireframes × 0.5
+  server_engineer = apis × 0.4 + tables × 0.2
+  art             = asset_sub_categories × 0.05
+  planner         = 1.0
+  po              = 0.5
+  ```
+- **每個 owner_role 點數總和 ≤ 公式預估 × 1.3**（容差 ±30%）
+- **總點數 ≤ total_days × 1.3**，且**對齊 timeline_weeks × 5**
+- 範例：6 wf + 8 api + 7 tables + 30 sub → client 3 + server 4.6 + art 1.5 + planner 1 + po 0.5 = 10.6 → 全 scrum 約 8-13 點
 
 ## owner_role 必填（reviewer R8 + R11 強制）
 

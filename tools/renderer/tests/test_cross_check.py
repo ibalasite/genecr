@@ -182,6 +182,92 @@ def test_scope_cap_catches_dual_inflation():
     assert len(issues) >= 2  # both timeline AND points flagged
 
 
+# ─── per-role workload formula (user-calibrated, 10-day anchor) ────────────
+# Formula:
+#   client_engineer days = wireframes × 0.5
+#   server_engineer days = apis × 0.4 + tables × 0.2
+#   art days             = unique_asset_subcategories × 0.05
+#   planner days         = 1.0  (setup overhead)
+#   po days              = 0.5  (acceptance review)
+#   total_days = sum
+# Anchor case: 6 wf / 8 api / 7 tables / 30 sub → ≈ 10.6 days (user said 10)
+# Tolerance: ±30%
+
+def _make_inputs(wf=6, api=8, tables=7, sub_cats=30, story_points=None,
+                 timeline_weeks=2):
+    sb = {
+        "wireframes": [{}] * wf,
+        "timeline": [{"duration_weeks": timeline_weeks}],
+        "resource_counts": {"image": {f"c{i}": 1 for i in range(sub_cats)}},
+    }
+    sa = {
+        "apis": [{}] * api,
+        "data_models": [{"name": f"t{i}"} for i in range(tables)],
+    }
+    scrum = {"stories": [{"points": p, "owner_role": "server_engineer"}
+                          for p in (story_points or [])]}
+    return sb, sa, scrum
+
+
+def test_role_workload_anchor_calibration():
+    """6/8/7/30 → ≈10.6 days. Distributed in scrum ≤ 13.8 (×1.3) should pass."""
+    from cross_check import check_role_workload_against_formula
+    sb, sa, _ = _make_inputs()
+    scrum = {"stories": [
+        # 3 client + 5 server + 1 art + 1 planner + 1 po = 11 (within 10.6 × 1.3 = 13.8)
+        *[{"owner_role": "client_engineer", "points": 1} for _ in range(3)],
+        *[{"owner_role": "server_engineer", "points": 1} for _ in range(5)],
+        {"owner_role": "art", "points": 1},
+        {"owner_role": "planner", "points": 1},
+        {"owner_role": "po", "points": 1},
+    ]}
+    issues = check_role_workload_against_formula(sb, sa, None, scrum)
+    assert issues == [], f"expected pass for ~11-point distribution, got: {[i.detail for i in issues]}"
+
+
+def test_role_workload_flags_server_overestimate():
+    """server budget = 8×0.4 + 7×0.2 = 4.6 d. 23 pts → 5x over → flag."""
+    from cross_check import check_role_workload_against_formula
+    sb, sa, _ = _make_inputs()
+    scrum = {"stories": [{"owner_role": "server_engineer", "points": p} for p in [5, 8, 5, 5]]}  # 23
+    issues = check_role_workload_against_formula(sb, sa, None, scrum)
+    assert any("server_engineer" in i.detail and "23" in i.detail for i in issues)
+
+
+def test_role_workload_flags_client_overestimate():
+    """client budget = 6×0.5 = 3 d. 19 pts → 6x over."""
+    from cross_check import check_role_workload_against_formula
+    sb, sa, _ = _make_inputs()
+    scrum = {"stories": [{"owner_role": "client_engineer", "points": p} for p in [5, 8, 3, 3]]}  # 19
+    issues = check_role_workload_against_formula(sb, sa, None, scrum)
+    assert any("client_engineer" in i.detail and "19" in i.detail for i in issues)
+
+
+def test_role_workload_flags_total_overestimate():
+    """Total formula = 10.6 d. 52 pts → flag total + several roles."""
+    from cross_check import check_role_workload_against_formula
+    sb, sa, _ = _make_inputs()
+    scrum = {"stories": [
+        *[{"owner_role": "client_engineer", "points": p} for p in [5, 8, 3, 3]],     # 19
+        *[{"owner_role": "server_engineer", "points": p} for p in [5, 8, 5, 5]],     # 23
+        *[{"owner_role": "art", "points": p} for p in [2, 2, 2]],                    # 6
+        {"owner_role": "planner", "points": 4},
+    ]}  # total 52
+    issues = check_role_workload_against_formula(sb, sa, None, scrum)
+    assert any("52" in i.detail and ("總" in i.detail or "total" in i.detail.lower())
+               for i in issues)
+
+
+def test_role_workload_tiny_budgets_dont_block_zero_points():
+    """planner/po budget ≤ 1 day. 0 points should NOT flag (just under-spec)."""
+    from cross_check import check_role_workload_against_formula
+    sb, sa, _ = _make_inputs()
+    scrum = {"stories": []}  # no stories at all
+    issues = check_role_workload_against_formula(sb, sa, None, scrum)
+    # No over-budget issue when actual = 0
+    assert all("planner" not in i.detail and "po" not in i.detail for i in issues)
+
+
 def test_resource_counts_no_counts_field_no_issue():
     """If spec-basic has no resource_counts, can't check — emit no issue
     (validation already enforces presence at production time)."""

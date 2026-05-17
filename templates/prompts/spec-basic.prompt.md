@@ -134,16 +134,24 @@ Write real integers — no `<N>` placeholders.
 human-readable（"2 週"），`duration_weeks` 是 cross_check 對齊 scrum
 points 用的數字。
 
-**規模對照**（reviewer R13 + cross_check）：
+**估時公式**（reviewer R13 + cross_check 程式自動算）：
 
-| feature 規模 | timeline 總週數上限 | scrum 總點數對應 |
-|---|---|---|
-| 小活動（幾頁流程，如 7 天簽到 / 排行榜） | ≤ 2 週 | 8-12 點 |
-| 中型 feature（多模組 + 後台） | 3-8 週 | 20-40 點 |
-| 大型 feature（跨系統 + 多角色） | 8-16 週 | 50+ 點 |
+```
+total_days = wireframes × 0.5            # client
+           + apis × 0.4 + tables × 0.2   # server
+           + asset_sub_categories × 0.05  # art
+           + 1.5                          # planner + po
+total_weeks = total_days / 5
+```
 
-1 週 ≈ 5 工作天 ≈ 5 點。**有 AI 協助**，傳統估時要往下調。不要憑直覺寫
-「Phase 1 - 4 週 + Phase 2 - 3 週」這種 7 週小活動 — 那是傳統人力估時。
+容差 ±30%。**不准用「小/中/大」主觀分類** — 用具體公式算。
+
+範例對照（本 case 量級）：
+- 6 wf + 8 api + 7 tables + 30 sub-cats → total_days ≈ 10.6 → **total_weeks ≈ 2**
+- 12 wf + 15 api + 12 tables + 50 sub-cats → ≈ 23 days ≈ 4.6 週
+- 25 wf + 30 api + 25 tables + 100 sub-cats → ≈ 47 days ≈ 9.5 週
+
+**有 AI 協助**，傳統「4 週 + 3 週」估時錯了 — 7 頁畫面該 ≤ 2 週。
 
 ## TASK
 Print a single JSON object to STDOUT. **Nothing else.** No markdown fences,

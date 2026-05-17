@@ -116,6 +116,92 @@ def check_resource_counts(spec_basic_data: dict, assets_data: dict) -> list[Issu
 
 # ─── timeline ↔ scrum points alignment ──────────────────────────────────────
 
+def _role_budget_days(spec_basic: dict, spec_advanced: dict | None) -> dict[str, float]:
+    """Per-role work-day budget calibrated to user's 10-day anchor on a
+    6 wf / 8 api / 7 tables / 30 sub-cats case."""
+    wf_n = len(spec_basic.get("wireframes") or [])
+    api_n = len((spec_advanced or {}).get("apis") or [])
+    table_n = len((spec_advanced or {}).get("data_models") or [])
+    sub_cats = 0
+    rc = spec_basic.get("resource_counts") or {}
+    for k, v in rc.items():
+        if k in {"modules", "acceptance_criteria", "api_endpoints"}:
+            continue
+        if isinstance(v, dict):
+            sub_cats += len(v)
+    return {
+        "client_engineer": wf_n * 0.5,
+        "server_engineer": api_n * 0.4 + table_n * 0.2,
+        "art":             sub_cats * 0.05,
+        "planner":         1.0,
+        "po":              0.5,
+    }
+
+
+def check_role_workload_against_formula(
+    spec_basic: dict,
+    spec_advanced: dict | None,
+    assets: dict | None,
+    scrum: dict | None,
+) -> list[Issue]:
+    """Per-role workload cap based on objective input counts.
+
+    Fixes the dual-inflation hole: previous wireframe-only check let
+    inflated totals pass because tolerance was generous. Per-role caps
+    catch even single-role overestimates (e.g. "server" alone bloating).
+    Tolerance ±30%; tiny budgets (≤1d) only flag when actually exceeded.
+    """
+    expected = _role_budget_days(spec_basic, spec_advanced)
+    total_expected = sum(expected.values())
+
+    actual: dict[str, int] = {}
+    for s in (scrum or {}).get("stories", []) or []:
+        if not isinstance(s, dict):
+            continue
+        r = s.get("owner_role", "?")
+        actual[r] = actual.get(r, 0) + (s.get("points", 0) or 0)
+    total_actual = sum(actual.values())
+
+    issues: list[Issue] = []
+    for role, exp in expected.items():
+        act = actual.get(role, 0)
+        max_act = max(exp * 1.3, 1.0)  # always allow at least 1 point of slack
+        if act > max_act:
+            issues.append(Issue(
+                step="scrum",
+                category="oversized_story",
+                detail=(
+                    f"{role} 實際 {act} 點 vs 公式預估 {exp:.1f} 點（上限 {max_act:.1f}）"
+                    f" — 切太細或估點太高；建議拆分或合併 stories"
+                ),
+            ))
+    if total_actual > total_expected * 1.3:
+        issues.append(Issue(
+            step="scrum",
+            category="oversized_story",
+            detail=(
+                f"總點數 {total_actual} 超過公式預估 {total_expected:.1f} × 1.3 = "
+                f"{total_expected*1.3:.1f}（量體公式: wireframes×0.5 + apis×0.4 "
+                f"+ tables×0.2 + asset_sub_cats×0.05 + planner 1 + po 0.5）"
+            ),
+        ))
+
+    # Timeline cross-check (uses same formula → days/5 = weeks)
+    total_weeks = sum(t.get("duration_weeks", 0) or 0
+                      for t in (spec_basic.get("timeline") or []) if isinstance(t, dict))
+    expected_weeks = total_expected / 5
+    if total_weeks > expected_weeks * 1.3 and expected_weeks >= 0.5:
+        issues.append(Issue(
+            step="spec-basic",
+            category="timeline_overestimated",
+            detail=(
+                f"timeline 總週數 {total_weeks} 超過公式預估 {expected_weeks:.1f} 週"
+                f" × 1.3 = {expected_weeks*1.3:.1f} 週（總工作天 {total_expected:.1f}/5）"
+            ),
+        ))
+    return issues
+
+
 def check_scope_against_wireframes(spec_basic_data: dict, scrum_data: dict) -> list[Issue]:
     """Wireframe-anchored objective scope cap.
 
@@ -349,12 +435,12 @@ def run_all_checks(step_name: str, all_step_data: dict) -> list[Issue]:
         issues += check_scenario_count(bdd, sb, sa)
 
     if step_name == "scrum" and sb and scrum:
-        issues += check_timeline_vs_scrum_points(sb, scrum)
-        issues += check_scope_against_wireframes(sb, scrum)
+        # per-role formula supersedes old single-factor checks
+        issues += check_role_workload_against_formula(sb, sa, assets, scrum)
     if step_name == "spec-basic" and sb:
         # Even before scrum exists, spec-basic timeline can be checked
-        # against its own wireframe count.
-        issues += check_scope_against_wireframes(sb, scrum)
+        # against the formula (per-role expected days summed).
+        issues += check_role_workload_against_formula(sb, sa, assets, scrum)
 
     if step_name == "spec-advanced" and sa:
         issues += check_sql_index_alignment(sa)

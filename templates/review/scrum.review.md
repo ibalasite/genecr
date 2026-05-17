@@ -53,13 +53,20 @@ Path: `stories[*].owner_role` ↔ upstream `assets.assets[*].owner_role` 全集
 Fail when: 某 role 有 N 個 asset 但 stories 沒任何 owner_role=該 role 的條目。
 
 ### R10 — `oversized_story`
-Check: 1 點 = 1 工作天。預設 1-3 點；>80% 的 stories 應 ≤ 3 點。8/13 點僅用於真 epic（描述明顯不可拆才允許）。
-       單一 feature stories 總點數 ≤ feature 規模上限（小活動 15、中型 60、大型 80）。
-Path: `stories[*].points`
+Check: 1 點 = 1 工作天。每個 owner_role 點數總和 ≤ 公式預估 × 1.3。
+**公式**（per-role 工作天）：
+- client_engineer = wireframes × 0.5
+- server_engineer = apis × 0.4 + tables × 0.2
+- art             = unique_asset_subcategories × 0.05
+- planner         = 1.0
+- po              = 0.5
+- total_days      = sum
+Path: `stories[*].points` grouped by `owner_role`
 Fail when:
-- 任一 story points > 5 且描述含「+」「與」「整合」「+ 測試」等可分動詞 → 該拆
-- 全部 stories 總點數超過該 feature timeline_total_weeks × 7（容差 1.4x）
-Fix hint: 拆成更小條目；單 API 1-2 點不該 8 點。
+- 任一 owner_role 點數 > 公式預估 × 1.3（且超 1 點 slack）→ 切太細或估點高
+- 全部 stories 總點數 > total_days × 1.3
+- 任一 story points > 5 且描述含「+/與/整合/+ 測試」可分動詞 → 該拆
+Fix hint: 由 cross_check.check_role_workload_against_formula 程式計算，issue 內含實際數字差。
 
 ### R11 — `team_wording_used`
 Check: 文案中**不可**出現「團隊」/ 「Team」/ 「組」指代 owner。我們只有一個 scrum team。
@@ -68,10 +75,13 @@ Fail when: 出現「Server 團隊」「Client 組」「Art Team」等措辭。
 Fix hint: 改用「Server 工程師」「Client 工程師」「美術」等個人 role 措辭，或直接用 `owner_role` enum 值。
 
 ### R12 — `timeline_scrum_mismatch`
-Check: scrum 總點數 ≈ spec-basic.timeline 總週數 × 5（容差 ±50%；1 週 ≈ 5 工作天）。
+Check: scrum 總點數 ≈ spec-basic.timeline 總週數 × 5（1 週 ≈ 5 工作天）。
+       同時兩邊都必須對齊公式預估 total_days（容差 ±30%）。
 Path: stories[*].points 總和 ↔ upstream `spec-basic.timeline[*].duration_weeks` 總和
-Fail when: 兩邊差超過 1.5x（如 spec 寫 2 週 = 期望 10 點，scrum 寫 30 點，或 spec 寫 7 週 = 期望 35 點，scrum 寫 10 點）。
-Fix hint: 任一邊調整，使兩邊規模匹配（小活動 timeline ≤ 2 週 + scrum 8-12 點為標準）。
+Fail when:
+- total_points 與 total_weeks×5 比例偏離 ±30%
+- 或任一邊偏離公式預估 total_days 超過 ±30%
+Fix hint: 由 cross_check 程式自動算出公式預估，issue 含具體數字；任一邊調整使對齊。
 
 ## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 

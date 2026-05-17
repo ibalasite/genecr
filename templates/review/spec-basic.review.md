@@ -87,10 +87,13 @@ Fail when: 任一 asset 類別的值是 `int` 而非 `{子類: int}` dict。例�
 Fix hint: 拆子類別，例如 `"image": 24` → `"image": {"格子狀態圖": 21, "寶箱": 1, "二選一卡片": 2}`。
 
 ### R13 — `timeline_overestimated`
-Check: `timeline[].duration_weeks` 總和不可超過 feature 規模對應上限（小活動 ≤ 2 週、中型 ≤ 8 週、大型 ≤ 16 週）。
+Check: `timeline[].duration_weeks` 總和 ≤ 公式預估週數 × 1.3。
+**公式**：total_days = wireframes×0.5 + apis×0.4 + tables×0.2 + asset_sub_cats×0.05 + 1.5 (planner+po)
+         total_weeks ≈ total_days / 5
 Path: `timeline[*].duration_weeks`
-Fail when: 小活動（幾頁流程）總週數 > 2；中型 > 8；大型 > 16。有 AI 協助，不該寫「4 週 + 3 週」這種傳統估時。
-Fix hint: 縮短 phase 時程或合併 phase。
+Fail when: total_weeks > 公式預估週數 × 1.3
+Fix hint: 由 cross_check.check_role_workload_against_formula 程式算出，issue 含具體數字；縮短 phase 或合併。
+範例：6 wf + 8 api + 7 table + 30 sub-cats → total_days ≈ 10.6 → total_weeks ≈ 2.1 → max 2.7 週
 
 ## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 

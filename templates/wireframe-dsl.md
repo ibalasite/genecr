@@ -80,6 +80,12 @@
 - **`.wf-panel` 預設兒童垂直 stack**（flex column gap 8px）。需要橫排請包進 `.wf-row`。
 - **`.wf-skeleton-{line,pill,block}` 是「空白占位」**，**禁止塞文字內容**。要文字行用 `.wf-line`；要段落用 `.wf-text`。違反此規則 reviewer R9 會擋。
 - `<span>` 子元素直接放 panel 不會自動橫排，必須包 `.wf-row`（reviewer R10 會擋）。
+- **Sandbox 原則**：所有 wireframe 永遠是「螢幕示意 sandbox」，**有最大寬度上限**，不應隨頁面寬度自適應：
+  - `.wf-mobile` = 360px 寬（手機畫面）
+  - `.wf-modal` = 300px 寬（彈窗）
+  - `.wf-frame` = max 720px（通用螢幕外框，居中）
+  - `.wf-desktop` = max 960px（後台/桌面畫面，居中）
+  - 若要表達「100% 自適應 / fluid」，在 sandbox 內示意即可（如 `<div class="wf-mobile"><div style="width:100%">…</div></div>`），絕不可讓 wireframe 本身吃滿頁寬。
 
 ### 3.1 Container 結構（外框 + Mobile 容器 + Modal）
 

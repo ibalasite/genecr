@@ -216,6 +216,24 @@ def test_wireframe_styleguide_renders_all_primitives(repo_root):
     assert not missing, f"styleguide missing demo for: {missing}"
 
 
+def test_wireframe_containers_have_max_width(repo_root):
+    """All wireframe containers MUST have a bounded width (sandbox principle).
+    wireframes represent screens, never page-spanning responsive layout."""
+    tpl = (repo_root / "templates" / "docs.html.tmpl").read_text(encoding="utf-8")
+    # Each container's CSS rule should contain a width constraint
+    for cls, must in [
+        (".wf-mobile", "width: 360px"),
+        (".wf-modal {", "width: 300px"),
+        (".wf-frame", "max-width: 720px"),
+        (".wf-desktop", "max-width: 960px"),
+    ]:
+        # find the rule and check it contains the constraint within ~300 chars
+        i = tpl.find(cls)
+        assert i >= 0, f"{cls} rule missing from docs.html.tmpl"
+        rule_body = tpl[i:i+400]
+        assert must in rule_body, f"{cls} missing constraint '{must}' — wireframe will overflow page width"
+
+
 def test_wireframe_dsl_doc_lists_all_primitives(repo_root):
     """wireframe-dsl.md must register every primitive in section 3 tables."""
     dsl = (repo_root / "templates" / "wireframe-dsl.md").read_text(encoding="utf-8")

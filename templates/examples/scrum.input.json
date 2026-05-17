@@ -1,15 +1,38 @@
 {
-  "feature": {"name": "<功能名稱>", "slug": "<feature-slug>"},
+  "feature": {
+    "name": "<功能名稱>",
+    "slug": "<feature-slug>"
+  },
   "epic": {
     "title": "<Epic 標題>",
     "desc": "<Epic 描述>"
   },
   "groups": [
-    {"key": "infra", "name": "基礎建設", "icon": "🏗️"},
-    {"key": "art", "name": "美術與動畫", "icon": "🎨"},
-    {"key": "logic", "name": "遊戲邏輯", "icon": "🎮"},
-    {"key": "reward", "name": "獎勵系統", "icon": "🏆"},
-    {"key": "qa", "name": "QA 測試", "icon": "🧪"}
+    {
+      "key": "infra",
+      "name": "基礎建設",
+      "icon": "🏗️"
+    },
+    {
+      "key": "art",
+      "name": "美術與動畫",
+      "icon": "🎨"
+    },
+    {
+      "key": "logic",
+      "name": "遊戲邏輯",
+      "icon": "🎮"
+    },
+    {
+      "key": "reward",
+      "name": "獎勵系統",
+      "icon": "🏆"
+    },
+    {
+      "key": "qa",
+      "name": "QA 測試",
+      "icon": "🧪"
+    }
   ],
   "stories": [
     {
@@ -19,10 +42,16 @@
       "role": "後端工程師",
       "want": "建立 Node.js + Express service 含 MySQL/Redis 連線",
       "benefit": "後續 API 都掛在此服務下",
-      "acceptance": ["服務能啟動並通過健康檢查", "MySQL/Redis 連線設定可由環境變數覆寫"],
+      "acceptance": [
+        "服務能啟動並通過健康檢查",
+        "MySQL/Redis 連線設定可由環境變數覆寫"
+      ],
       "points": 3,
-      "teams": ["Server"],
-      "tech_notes": "Express + mysql2 + ioredis"
+      "teams": [
+        "Server"
+      ],
+      "tech_notes": "Express + mysql2 + ioredis",
+      "owner_role": "server_engineer"
     }
   ]
 }

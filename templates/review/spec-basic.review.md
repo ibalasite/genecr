@@ -80,6 +80,18 @@ Path: `wireframes[*].html`
 Fail when: a wf-* class string is not on the DSL allow-list.
 Fix hint: pick a real DSL primitive; do not invent classes.
 
+### R12 — `resource_counts_must_be_nested`
+Check: `resource_counts` 中每個 asset 大類（image / sound / animation / video / particle / font / copywriting / ...）必須是 **nested dict** `{子類: int}`，不可給純整數總數。
+Path: `resource_counts.*`
+Fail when: 任一 asset 類別的值是 `int` 而非 `{子類: int}` dict。例外：`modules` / `acceptance_criteria` / `api_endpoints` 等 bookkeeping 欄位允許純整數。
+Fix hint: 拆子類別，例如 `"image": 24` → `"image": {"格子狀態圖": 21, "寶箱": 1, "二選一卡片": 2}`。
+
+### R13 — `timeline_overestimated`
+Check: `timeline[].duration_weeks` 總和不可超過 feature 規模對應上限（小活動 ≤ 2 週、中型 ≤ 8 週、大型 ≤ 16 週）。
+Path: `timeline[*].duration_weeks`
+Fail when: 小活動（幾頁流程）總週數 > 2；中型 > 8；大型 > 16。有 AI 協助，不該寫「4 週 + 3 週」這種傳統估時。
+Fix hint: 縮短 phase 時程或合併 phase。
+
 ## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
 - `template_noise`
@@ -93,3 +105,5 @@ Fix hint: pick a real DSL primitive; do not invent classes.
 - `skeleton_with_text`
 - `inline_children_no_row`
 - `class_not_in_dsl`
+- `resource_counts_must_be_nested`
+- `timeline_overestimated`

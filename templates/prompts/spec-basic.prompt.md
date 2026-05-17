@@ -89,16 +89,61 @@ count of every asset category the feature needs. Downstream `assets` will
 be checked mechanically against these counts (program-side count, not AI
 self-report).
 
-Format: `category → integer OR nested dict whose leaves are integers`.
+### Format — 必為 nested dict 子類拆分（reviewer R12 強制）
 
-Include every category this activity actually uses (do not pad with zeros,
-do not omit a real category). Common ones:
-- `images`, `animations`, `sounds`, `videos`, `fonts`, `particles`,
-  `copywriting`, `i18n_strings`
-- Plus bookkeeping: `modules` (功能模組數), `acceptance_criteria`
-  (與 `acceptance_criteria` 陣列長度一致)
+每個 asset 大類（image / animation / sound / video / font / particle /
+copywriting / i18n_strings）必須是 `{子類名: int}` 的 nested dict，**不准只給整數總數**。
+
+**錯誤範例**：
+```json
+"resource_counts": { "image": 24, "sound": 6 }   ❌  reviewer R12 退
+```
+
+**正確範例**：
+```json
+"resource_counts": {
+  "image": {
+    "格子狀態圖": 21,
+    "寶箱": 1,
+    "二選一卡片": 2,
+    "主橫幅": 1,
+    "icon": 4
+  },
+  "sound": {
+    "簽到成功": 1,
+    "斷簽提示": 1,
+    "大獎選擇彈窗": 1,
+    "確認領取": 1,
+    "倒數結束": 1,
+    "活動結束": 1
+  }
+}
+```
+
+子類名要具描述性（使用者一看就知道是什麼）。下游 assets.assets[].category
+必須對應某個子類 key。
+
+Bookkeeping 欄位允許純整數：`modules` (功能模組數)、`acceptance_criteria`
+(陣列長度一致)、`api_endpoints`。
 
 Write real integers — no `<N>` placeholders.
+
+## TIMELINE — 估時原則（有 AI 協助，往下調，reviewer R13 強制）
+
+每個 `timeline[]` phase 必填 `duration_weeks` (integer)。`duration` 是
+human-readable（"2 週"），`duration_weeks` 是 cross_check 對齊 scrum
+points 用的數字。
+
+**規模對照**（reviewer R13 + cross_check）：
+
+| feature 規模 | timeline 總週數上限 | scrum 總點數對應 |
+|---|---|---|
+| 小活動（幾頁流程，如 7 天簽到 / 排行榜） | ≤ 2 週 | 8-12 點 |
+| 中型 feature（多模組 + 後台） | 3-8 週 | 20-40 點 |
+| 大型 feature（跨系統 + 多角色） | 8-16 週 | 50+ 點 |
+
+1 週 ≈ 5 工作天 ≈ 5 點。**有 AI 協助**，傳統估時要往下調。不要憑直覺寫
+「Phase 1 - 4 週 + Phase 2 - 3 週」這種 7 週小活動 — 那是傳統人力估時。
 
 ## TASK
 Print a single JSON object to STDOUT. **Nothing else.** No markdown fences,

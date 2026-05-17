@@ -17,20 +17,40 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "name", "type"],
+        "required": ["id", "name", "type", "category", "owner_role", "output_format", "suggested_filename", "usage"],
         "properties": {
           "id": {"type": "string"},
           "name": {"type": "string"},
           "type": {
             "type": "string",
-            "description": "Asset category: image / animation / sound / video / font / particle / copywriting / i18n / ..."
+            "description": "Asset 大類: image / animation / sound / video / font / particle / copywriting / i18n / ..."
           },
           "category": {
             "type": "string",
-            "description": "Sub-category within type (e.g. background / character / ui under images)"
+            "description": "Sub-category 必須對應 spec-basic.resource_counts[type] 的某個子類 key（如 '格子狀態圖' / '寶箱' / '簽到成功'）"
           },
-          "usage": {"type": "string"},
-          "spec": {},
+          "owner_role": {
+            "type": "string",
+            "enum": ["server_engineer", "client_engineer", "planner", "po", "art"],
+            "description": "scrum team 中誰負責產出/維護這個 asset"
+          },
+          "output_format": {
+            "type": "string",
+            "description": "檔案格式 + 解析度/位元率。例 'PNG 1920x600 @2x' / 'MP3 44.1kHz stereo' / 'JSON Lottie' / 'MP4 H.264 720p 30fps' / 'WOFF2' / 'JSON i18n key-value'"
+          },
+          "suggested_filename": {
+            "type": "string",
+            "description": "snake_case 含副檔名，建議含 feature_slug 前綴，例 'checkin7_banner_main.png'"
+          },
+          "usage": {
+            "type": "string",
+            "minLength": 20,
+            "description": "用在哪個畫面/哪個 UI section/觸發時機，至少 20 字寫清 where/when/what for"
+          },
+          "spec": {
+            "description": "規格 — 字串或字串陣列；一行一條",
+            "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]
+          },
           "image_prompt": {"type": "string"},
           "negative_prompt": {"type": "string"},
           "reference": {"description": "string URL, object with {platform, url}, or null"}

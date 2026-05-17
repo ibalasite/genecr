@@ -38,16 +38,25 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "group", "title", "role", "want", "benefit"],
+        "required": ["id", "group", "title", "role", "want", "benefit", "owner_role", "points"],
         "properties": {
           "id": {"type": ["string", "integer"]},
           "group": {"type": "string"},
           "title": {"type": "string"},
-          "role": {"type": "string"},
+          "role": {"type": "string", "description": "User story 中的 'as a ...' 角色（玩家/管理員/...），不是 owner"},
           "want": {"type": "string"},
           "benefit": {"type": "string"},
           "acceptance": {"type": "array"},
-          "points": {},
+          "owner_role": {
+            "type": "string",
+            "enum": ["server_engineer", "client_engineer", "planner", "po", "art"],
+            "description": "scrum team 中誰負責這個 story（個人 role，不是 team / 組）"
+          },
+          "points": {
+            "type": "integer",
+            "enum": [1, 2, 3, 5, 8, 13],
+            "description": "Fibonacci. 1 點 = 1 工作天。預設 1-3 點；5 = 較大但單 sprint 可完；8/13 = 真 epic 應拆"
+          },
           "depends_on": {"type": "array"}
         }
       }

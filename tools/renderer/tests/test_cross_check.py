@@ -93,13 +93,55 @@ def test_resource_counts_dynamic_categories():
 
 def test_resource_counts_nested_dict_sums():
     """resource_counts can be nested: { images: {bg: 3, ui: 5} } → sum 8."""
+    """Nested dict: per-sub-category check. assets must declare matching .category."""
     sb = _spec_basic_with_counts({"images": {"background": 2, "ui": 1}})
     assets = _assets_with([
-        {"id": "1", "name": "x", "type": "image"},
-        {"id": "2", "name": "y", "type": "image"},
-        {"id": "3", "name": "z", "type": "image"},
+        {"id": "1", "name": "x", "type": "image", "category": "background"},
+        {"id": "2", "name": "y", "type": "image", "category": "background"},
+        {"id": "3", "name": "z", "type": "image", "category": "ui"},
     ])
     assert check_resource_counts(sb, assets) == []
+
+
+def test_nested_subcategory_count_mismatch_per_sub():
+    """Nested dict: each sub-category checked independently."""
+    sb = _spec_basic_with_counts({"images": {"background": 2, "ui": 5}})
+    assets = _assets_with([
+        {"id": "1", "name": "x", "type": "image", "category": "background"},
+        {"id": "2", "name": "y", "type": "image", "category": "background"},
+        {"id": "3", "name": "z", "type": "image", "category": "ui"},
+    ])
+    issues = check_resource_counts(sb, assets)
+    assert any("'images.ui'" in i.detail and "declares 5" in i.detail and "has 1" in i.detail
+               for i in issues)
+
+
+def test_nested_undeclared_subcategory_flagged():
+    """assets has a sub-category that spec-basic didn't declare → issue."""
+    sb = _spec_basic_with_counts({"images": {"background": 1}})
+    assets = _assets_with([
+        {"id": "1", "name": "x", "type": "image", "category": "background"},
+        {"id": "2", "name": "y", "type": "image", "category": "rogue_sub"},
+    ])
+    issues = check_resource_counts(sb, assets)
+    assert any("rogue_sub" in i.detail and "not declared" in i.detail for i in issues)
+
+
+def test_timeline_vs_scrum_points_aligned():
+    from cross_check import check_timeline_vs_scrum_points
+    sb = {"timeline": [{"duration_weeks": 2}]}
+    scrum = {"stories": [{"points": p} for p in [2, 3, 2, 3]]}  # total 10 ≈ 2*5
+    assert check_timeline_vs_scrum_points(sb, scrum) == []
+
+
+def test_timeline_vs_scrum_points_mismatch():
+    from cross_check import check_timeline_vs_scrum_points
+    sb = {"timeline": [{"duration_weeks": 7}]}  # expects ~35 points
+    scrum = {"stories": [{"points": 2}, {"points": 3}]}  # 5, way off
+    issues = check_timeline_vs_scrum_points(sb, scrum)
+    assert len(issues) == 1
+    assert issues[0].step == "scrum"
+    assert "timeline_scrum_mismatch" == issues[0].category
 
 
 def test_resource_counts_no_counts_field_no_issue():

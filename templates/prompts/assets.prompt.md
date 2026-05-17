@@ -64,6 +64,42 @@ The number of assets you list per category MUST EXACTLY MATCH
 {spec_basic_content}
 ```
 
+## 每個 asset 必填欄位（reviewer R8-R12 強制）
+
+```
+id              # ASSET-NNN 或 kebab-case 唯一 id
+name            # 中文描述名（如「文案-連簽 7 日領大獎」）
+type            # 大類: image / animation / sound / video / font / particle / copywriting / i18n_strings
+category        # ★ 子類，必須對應 spec-basic.resource_counts[type] 的某個 key
+                #   例如 spec-basic 寫 image.格子狀態圖=21，這 21 張的 category 都填「格子狀態圖」
+owner_role      # ★ scrum team role 之一: server_engineer | client_engineer | planner | po | art
+output_format   # ★ 含格式 + 解析度/位元率，例如:
+                #   image:  "PNG 1920x600 @2x"
+                #   sound:  "MP3 44.1kHz stereo, ≤200KB"
+                #   animation: "JSON Lottie ≤60KB"
+                #   video:  "MP4 H.264 720p 30fps"
+                #   font:   "WOFF2"
+                #   copywriting / i18n_strings: "JSON i18n key-value"
+suggested_filename  # ★ snake_case + 副檔名，含 feature_slug 前綴
+                    #   例如「checkin7_banner_main.png」「checkin7_sfx_claim_success.mp3」
+usage           # ★ ≥20 字，寫清 where（哪畫面）/ when（什麼時機）/ what for（用途）
+spec            # 字串陣列（推薦）或字串。一行一條規格。例如 ["主視覺橫幅", "支援 zh/en/es 三語文字疊圖"]
+image_prompt    # 視覺類必填（image/animation/particle）：英文 prompt 含 subject + style + composition
+```
+
+**owner_role 對照表**：
+- `image` / `animation` / `sound` / `video` / `font` / `particle` → **art**
+- `copywriting` / `i18n_strings` → **planner**
+- API mock 資料 / schema 樣本 → **server_engineer**
+- UI 元件範例 / 互動原型 sample → **client_engineer**
+- 驗收標準附件 / 流程圖確認文件 → **po**
+
+**category 規則**：上游 spec-basic.resource_counts 拆了哪些子類，這些 assets 的
+category 就必須是其中一個 key（reviewer R12 強制）。不可自創新子類，要新增請改 spec-basic。
+
+**數字對齊**：每個 `<type>.<category>` 的 spec 宣告數 = 你列出的該 category assets 數。
+程式 cross_check 會逐子類比對，不一致 fixer 必補。
+
 ## SCHEMA (your output MUST match this)
 
 ```json

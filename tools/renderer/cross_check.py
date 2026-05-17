@@ -54,31 +54,88 @@ def check_resource_counts(spec_basic_data: dict, assets_data: dict) -> list[Issu
     if not counts:
         return []
 
-    # Count actual assets per normalized type
-    actual: dict[str, int] = {}
+    # Count actual assets per (type, category) bucket
+    actual_total: dict[str, int] = {}            # type → total count
+    actual_sub: dict[str, dict[str, int]] = {}   # type → { category → count }
     for a in assets_data.get("assets", []):
-        cat = _normalize_type(a.get("type", ""))
-        if not cat:
+        t = _normalize_type(a.get("type", ""))
+        if not t:
             continue
-        actual[cat] = actual.get(cat, 0) + 1
+        actual_total[t] = actual_total.get(t, 0) + 1
+        sub = a.get("category")
+        if sub:
+            actual_sub.setdefault(t, {})
+            actual_sub[t][sub] = actual_sub[t].get(sub, 0) + 1
 
     issues: list[Issue] = []
     for cat, declared_value in counts.items():
         # Skip non-resource bookkeeping fields
         if cat in {"modules", "acceptance_criteria", "api_endpoints"}:
             continue
-        declared = _sum_count(declared_value)
-        actual_n = actual.get(_normalize_type(cat), 0)
-        if declared != actual_n:
-            issues.append(Issue(
-                step="assets",
-                category="resource_count_mismatch",
-                detail=(
-                    f"category '{cat}': spec-basic declares {declared}, "
-                    f"assets lists {actual_n}"
-                ),
-            ))
+        n_type = _normalize_type(cat)
+        if isinstance(declared_value, dict):
+            # Nested: check each sub-category
+            actual_sub_map = actual_sub.get(n_type, {})
+            for sub_name, sub_n in declared_value.items():
+                actual_n = actual_sub_map.get(sub_name, 0)
+                if sub_n != actual_n:
+                    issues.append(Issue(
+                        step="assets",
+                        category="resource_count_mismatch",
+                        detail=(
+                            f"'{cat}.{sub_name}': spec-basic declares {sub_n}, "
+                            f"assets has {actual_n} entries with category='{sub_name}'"
+                        ),
+                    ))
+            # Also check no extra subs in assets that spec-basic didn't declare
+            for sub_name in actual_sub_map:
+                if sub_name not in declared_value:
+                    issues.append(Issue(
+                        step="assets",
+                        category="resource_count_mismatch",
+                        detail=(
+                            f"assets has category '{cat}.{sub_name}' "
+                            f"({actual_sub_map[sub_name]} items) not declared in spec-basic"
+                        ),
+                    ))
+        else:
+            # Flat int — total count comparison
+            declared = _sum_count(declared_value)
+            actual_n = actual_total.get(n_type, 0)
+            if declared != actual_n:
+                issues.append(Issue(
+                    step="assets",
+                    category="resource_count_mismatch",
+                    detail=(
+                        f"category '{cat}': spec-basic declares {declared}, "
+                        f"assets lists {actual_n}"
+                    ),
+                ))
     return issues
+
+
+# ─── timeline ↔ scrum points alignment ──────────────────────────────────────
+
+def check_timeline_vs_scrum_points(spec_basic_data: dict, scrum_data: dict) -> list[Issue]:
+    """1 週 ≈ 5 點 (1 點 = 1 工作天). 兩邊規模需匹配 (容差 ±50%)."""
+    timeline = spec_basic_data.get("timeline") or []
+    total_weeks = sum(t.get("duration_weeks", 0) or 0 for t in timeline if isinstance(t, dict))
+    stories = scrum_data.get("stories") or []
+    total_points = sum(s.get("points", 0) or 0 for s in stories if isinstance(s, dict))
+    if total_weeks <= 0 or total_points <= 0:
+        return []
+    expected_points = total_weeks * 5
+    ratio = total_points / expected_points
+    if ratio < 0.5 or ratio > 1.5:
+        return [Issue(
+            step="scrum",
+            category="timeline_scrum_mismatch",
+            detail=(
+                f"scrum 總點數 {total_points} 與 spec-basic.timeline 總週數 {total_weeks} "
+                f"× 5 = 期望 {expected_points} 點不符（容差 ±50%）；ratio={ratio:.2f}"
+            ),
+        )]
+    return []
 
 
 # ─── scenario count ─────────────────────────────────────────────────────────
@@ -233,11 +290,16 @@ def run_all_checks(step_name: str, all_step_data: dict) -> list[Issue]:
 
     issues: list[Issue] = []
 
+    scrum = all_step_data.get("scrum") or {}
+
     if step_name == "assets" and sb and assets:
         issues += check_resource_counts(sb, assets)
 
     if step_name == "bdd" and bdd:
         issues += check_scenario_count(bdd, sb, sa)
+
+    if step_name == "scrum" and sb and scrum:
+        issues += check_timeline_vs_scrum_points(sb, scrum)
 
     if step_name == "spec-advanced" and sa:
         issues += check_sql_index_alignment(sa)

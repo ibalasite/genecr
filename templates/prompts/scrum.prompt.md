@@ -80,6 +80,41 @@ Assets stories should reference real asset ids from this list.
 {assets_content}
 ```
 
+## 估點原則（reviewer R10 + R12 強制）
+
+- **1 點 = 1 工作天**（純開發時間，不含等待/會議）
+- 預設 **1-3 點**。`5` = 較大但單 sprint 可完成。`8`/`13` = 真正 epic（描述須明顯不可拆才允許）
+- 範例對照：
+  - 「實作 POST /api/checkin/claim」→ **1-2 點**
+  - 「Redis lock 去重邏輯 + 整合測試」→ **2 點**
+  - 「整套後台 CMS（含 5 個頁面 + 表單 + 資料表）」→ **8 點**（這才算 epic）
+- **整個 feature 總點數**（有 AI 協助，要往下調）：
+  - 小活動（幾頁流程）→ **8-12 點**（約 2 週）
+  - 中型 feature → 20-40 點
+  - 大型 feature → 50+ 點
+- **總點數必須對齊 spec-basic.timeline 總週數 × 5**（容差 ±50%；reviewer R12 強制）
+
+## owner_role 必填（reviewer R8 + R11 強制）
+
+每個 story 必須有 `owner_role`（個人 role，**不是 team / 組 / 團隊**）：
+`{server_engineer | client_engineer | planner | po | art}`
+
+寫法：`"owner_role": "server_engineer"`（**禁用** `"owner_team": "Server"`）
+
+文案/markdown 顯示用「**負責角色**」。**絕對禁用「負責團隊」/「Team」/「組」字眼** —
+我們只有一個 scrum team，不分組。
+
+owner_role 對照：
+- API / DB / Redis / 後端流程 → `server_engineer`
+- UI 元件 / Cocos 場景 / 客端互動 → `client_engineer`
+- 規則 / 文案 / i18n / 流程設計 → `planner`
+- 驗收 / 跨組決策 / 推廣計畫 → `po`
+- 圖 / 動效 / 音效 / 字型 → `art`
+
+## stories 覆蓋規則（reviewer R9 強制）
+
+上游 `assets.assets[*].owner_role` 全集中每個 role 都要有對應 story 覆蓋。
+
 ## SCHEMA (your output MUST match this)
 
 ```json

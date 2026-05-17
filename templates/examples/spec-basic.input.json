@@ -165,12 +165,14 @@
     {
       "phase": "Phase 1 - MVP",
       "content": "<MVP 內容>",
-      "duration": "<X 週>"
+      "duration": "<X 週>",
+      "duration_weeks": 1
     },
     {
       "phase": "Phase 2 - 優化",
       "content": "<優化內容>",
-      "duration": "<X 週>"
+      "duration": "<X 週>",
+      "duration_weeks": 1
     }
   ],
   "resources": {
@@ -189,5 +191,13 @@
       "desc": "<彈窗用途>",
       "html": "<div class=\"wf-scope\"><div class=\"wf-modal\"><div class=\"wf-modal-icon\">ICON</div><div class=\"wf-modal-title\">標題</div><div class=\"wf-modal-body\">內容</div><div class=\"wf-modal-actions\"><button class=\"wf-btn wf-btn-primary\">確認</button></div></div></div>"
     }
-  ]
+  ],
+  "resource_counts": {
+    "image": {
+      "<sub-category>": 1
+    },
+    "sound": {
+      "<sub-category>": 1
+    }
+  }
 }

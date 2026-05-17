@@ -151,8 +151,27 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["phase", "content", "duration"],
-        "properties": {"phase": {"type": "string"}, "content": {"type": "string"}, "duration": {"type": "string"}}
+        "required": ["phase", "content", "duration", "duration_weeks"],
+        "properties": {
+          "phase": {"type": "string"},
+          "content": {"type": "string"},
+          "duration": {"type": "string", "description": "Human-readable, e.g. '2 週'"},
+          "duration_weeks": {"type": "integer", "minimum": 1, "description": "Numeric weeks for cross_check with scrum points"}
+        }
+      }
+    },
+    "resource_counts": {
+      "type": "object",
+      "description": "Nested dict {大類: {子類: N}}. 不准只給整數總數 — 必須拆子類才能跟 assets.category 對齊。例：{image: {格子狀態圖: 21, 寶箱: 1}, sound: {簽到成功: 1}}",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": {"type": "integer", "minimum": 0},
+            "minProperties": 1
+          },
+          {"type": "integer", "minimum": 0, "description": "純整數只允許用於 modules/acceptance_criteria 等 bookkeeping 欄位"}
+        ]
       }
     },
     "resources": {

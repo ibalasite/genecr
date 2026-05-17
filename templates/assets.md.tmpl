@@ -2,23 +2,70 @@
 
 共 {{ assets | length }} 個資源。
 
+## 按角色分組統計（程式自動）
+
+{% set role_counts = {} %}
+{%- for a in assets -%}
+{%- if a.owner_role in role_counts -%}
+{%- set _ = role_counts.update({a.owner_role: role_counts[a.owner_role] + 1}) -%}
+{%- else -%}
+{%- set _ = role_counts.update({a.owner_role: 1}) -%}
+{%- endif -%}
+{%- endfor %}
+| 負責角色 | 數量 |
+|----------|------|
+{% for role, n in role_counts.items() %}
+| `{{ role }}` | {{ n }} |
+{% endfor %}
+
+## 按子類分組統計（程式自動 — 對齊 spec-basic.resource_counts）
+
+{% set cat_counts = {} %}
+{%- for a in assets -%}
+{%- set key = a.type ~ '.' ~ (a.category | default('(無 category)')) -%}
+{%- if key in cat_counts -%}
+{%- set _ = cat_counts.update({key: cat_counts[key] + 1}) -%}
+{%- else -%}
+{%- set _ = cat_counts.update({key: 1}) -%}
+{%- endif -%}
+{%- endfor %}
+| 大類 . 子類 | 實際資產數 |
+|---|---|
+{% for key, n in cat_counts.items() %}
+| {{ key }} | {{ n }} |
+{% endfor %}
+
+> 上面數字由程式對 `assets[]` 跑 group-by 自動算出。cross_check 已驗證跟
+> `spec-basic.resource_counts` 對齊，若不一致 reviewer 會擋。
+
 ## 索引
-| ID | 名稱 | 類型 |
-|----|------|------|
+
+| ID | 名稱 | 類型 | 子類 | 負責角色 | 輸出格式 | 建議檔名 |
+|----|------|------|------|----------|----------|----------|
 {% for a in assets %}
-| [`{{ a.id }}`](#{{ a.id }}) | {{ a.name }} | {{ a.type }} |
+| [`{{ a.id }}`](#{{ a.id }}) | {{ a.name }} | {{ a.type }} | {{ a.category | default('-') }} | `{{ a.owner_role | default('-') }}` | {{ a.output_format | default('-') }} | `{{ a.suggested_filename | default('-') }}` |
 {% endfor %}
 
 ---
 
+## 詳細規格
+
 {% for a in assets %}
 ### <a id="{{ a.id }}"></a> [{{ a.id }}] {{ a.name }}
-- **類型**：{{ a.type }}
+
+- **類型**：{{ a.type }} / 子類：{{ a.category | default('-') }}
+- **負責角色**：`{{ a.owner_role | default('未指派') }}`
+- **建議檔名**：`{{ a.suggested_filename | default('未填') }}`
+- **輸出格式**：{{ a.output_format | default('未填') }}
 - **用途**：{{ a.usage }}
 - **規格**：
+{% if a.spec is string %}
+  - {{ a.spec }}
+{% else %}
 {% for s in a.spec %}
   - {{ s }}
 {% endfor %}
+{% endif %}
 {% if a.image_prompt %}
 - **AI 圖像 Prompt**（英文）：
   > {{ a.image_prompt }}
@@ -30,7 +77,7 @@
   > {{ a.audio_prompt }}
 {% endif %}
 {% if a.reference %}
-- **參考競業**：[{{ a.reference.platform }}]({{ a.reference.url }})
+- **參考競業**：[{{ a.reference.platform | default('參考') }}]({{ a.reference.url | default(a.reference) }})
 {% endif %}
 
 ---

@@ -116,6 +116,56 @@ def check_resource_counts(spec_basic_data: dict, assets_data: dict) -> list[Issu
 
 # ─── timeline ↔ scrum points alignment ──────────────────────────────────────
 
+def check_scope_against_wireframes(spec_basic_data: dict, scrum_data: dict) -> list[Issue]:
+    """Wireframe-anchored objective scope cap.
+
+    Cures the bug where LLM reviewer subjectively classifies a feature as
+    "medium" and lets 7-week / 52-point estimates through. wireframe count
+    is the concrete proxy for screen scope:
+      max_total_weeks  ≈ wireframe_count × 0.5
+      max_total_points ≈ wireframe_count × 2.5
+    Tolerance ±30% (narrower than the ±50% old timeline-vs-points ratio,
+    which permitted dual inflation on both sides).
+    """
+    wf_n = len(spec_basic_data.get("wireframes") or [])
+    if wf_n == 0:
+        return []
+    max_weeks = wf_n * 0.5 * 1.3   # +30% headroom
+    max_points = wf_n * 2.5 * 1.3
+
+    issues: list[Issue] = []
+
+    total_weeks = sum(t.get("duration_weeks", 0) or 0
+                      for t in (spec_basic_data.get("timeline") or [])
+                      if isinstance(t, dict))
+    if total_weeks > max_weeks:
+        issues.append(Issue(
+            step="spec-basic",
+            category="timeline_overestimated",
+            detail=(
+                f"timeline 總週數 {total_weeks} 超過 wireframes={wf_n} 的合理上限 "
+                f"{max_weeks:.1f} 週（公式: wireframes × 0.5 × 1.3 headroom）。"
+                f"有 AI 協助，{wf_n} 頁畫面應該 ≤ {max_weeks:.1f} 週。"
+            ),
+        ))
+
+    if scrum_data:
+        total_points = sum(s.get("points", 0) or 0
+                           for s in (scrum_data.get("stories") or [])
+                           if isinstance(s, dict))
+        if total_points > max_points:
+            issues.append(Issue(
+                step="scrum",
+                category="oversized_story",
+                detail=(
+                    f"scrum 總點數 {total_points} 超過 wireframes={wf_n} 的合理上限 "
+                    f"{max_points:.1f} 點（公式: wireframes × 2.5 × 1.3 headroom）。"
+                    f"{wf_n} 頁畫面活動應 ≤ {max_points:.1f} 點。檢查是否切太細或估點太高。"
+                ),
+            ))
+    return issues
+
+
 def check_timeline_vs_scrum_points(spec_basic_data: dict, scrum_data: dict) -> list[Issue]:
     """1 週 ≈ 5 點 (1 點 = 1 工作天). 兩邊規模需匹配 (容差 ±50%)."""
     timeline = spec_basic_data.get("timeline") or []
@@ -300,6 +350,11 @@ def run_all_checks(step_name: str, all_step_data: dict) -> list[Issue]:
 
     if step_name == "scrum" and sb and scrum:
         issues += check_timeline_vs_scrum_points(sb, scrum)
+        issues += check_scope_against_wireframes(sb, scrum)
+    if step_name == "spec-basic" and sb:
+        # Even before scrum exists, spec-basic timeline can be checked
+        # against its own wireframe count.
+        issues += check_scope_against_wireframes(sb, scrum)
 
     if step_name == "spec-advanced" and sa:
         issues += check_sql_index_alignment(sa)

@@ -144,6 +144,44 @@ def test_timeline_vs_scrum_points_mismatch():
     assert "timeline_scrum_mismatch" == issues[0].category
 
 
+# ─── wireframe-anchored scope cap (objective formula) ──────────────────────
+
+def test_scope_cap_passes_when_within_bounds():
+    """6 wireframes → max 3 weeks / 15 points. Actual 2 weeks / 10 points OK."""
+    from cross_check import check_scope_against_wireframes
+    sb = {"wireframes": [{}] * 6, "timeline": [{"duration_weeks": 2}]}
+    scrum = {"stories": [{"points": 2}] * 5}  # 10 points
+    assert check_scope_against_wireframes(sb, scrum) == []
+
+
+def test_scope_cap_flags_inflated_timeline():
+    """6 wireframes → max 3 weeks; 7 weeks overshoots."""
+    from cross_check import check_scope_against_wireframes
+    sb = {"wireframes": [{}] * 6, "timeline": [{"duration_weeks": 7}]}
+    scrum = {"stories": []}
+    issues = check_scope_against_wireframes(sb, scrum)
+    assert any("週" in i.detail and "7" in i.detail for i in issues)
+
+
+def test_scope_cap_flags_inflated_points():
+    """6 wireframes → max 15 points; 52 points overshoots."""
+    from cross_check import check_scope_against_wireframes
+    sb = {"wireframes": [{}] * 6, "timeline": [{"duration_weeks": 2}]}
+    scrum = {"stories": [{"points": p} for p in [5, 8, 13, 8, 5, 13]]}  # 52
+    issues = check_scope_against_wireframes(sb, scrum)
+    assert any("點" in i.detail and "52" in i.detail for i in issues)
+
+
+def test_scope_cap_catches_dual_inflation():
+    """Both timeline AND points inflated — old ratio check missed this case
+    (7 weeks * 5 = 35 expected vs 52 actual = 1.49x within ±50%)."""
+    from cross_check import check_scope_against_wireframes
+    sb = {"wireframes": [{}] * 6, "timeline": [{"duration_weeks": 7}]}
+    scrum = {"stories": [{"points": p} for p in [5, 8, 13, 8, 5, 13]]}  # 52
+    issues = check_scope_against_wireframes(sb, scrum)
+    assert len(issues) >= 2  # both timeline AND points flagged
+
+
 def test_resource_counts_no_counts_field_no_issue():
     """If spec-basic has no resource_counts, can't check — emit no issue
     (validation already enforces presence at production time)."""

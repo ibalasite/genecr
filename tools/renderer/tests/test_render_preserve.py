@@ -154,29 +154,79 @@ def test_docs_template_has_sidebar(repo_root):
 
 
 def test_docs_template_has_complete_wireframe_css(repo_root):
-    """Every wf-* class the wireframe DSL prompt allows must have a CSS rule
-    in docs.html.tmpl — otherwise AI-generated wireframes render as a
-    vertical pileup of overlapping divs (bug seen in checkin7v2 run)."""
+    """Every wf-* class the DSL declares must have a CSS rule in
+    docs.html.tmpl. AI uses these classes; missing CSS = layout collapses.
+    """
     tpl = (repo_root / "templates" / "docs.html.tmpl").read_text(encoding="utf-8")
     required_classes = [
-        ".wf-scope", ".wf-mobile", ".wf-modal", ".wf-panel", ".wf-frame",
+        # Containers
+        ".wf-scope", ".wf-frame", ".wf-panel", ".wf-mobile", ".wf-desktop",
         ".wf-statusbar", ".wf-appbar", ".wf-banner", ".wf-marquee",
-        ".wf-stage", ".wf-board", ".wf-info", ".wf-actionbar",
-        ".wf-shortcuts", ".wf-bottomnav",
-        ".wf-pill", ".wf-btn", ".wf-skeleton-line", ".wf-skeleton-block",
-        ".wf-skeleton-pill", ".wf-dot", ".wf-icon-slot", ".wf-badge",
-        ".wf-modal-icon", ".wf-modal-title", ".wf-modal-body",
-        ".wf-modal-meta", ".wf-modal-actions",
+        ".wf-stage", ".wf-info", ".wf-actionbar", ".wf-shortcuts",
+        ".wf-bottomnav", ".wf-sidebar", ".wf-sidenav-item",
+        ".wf-modal", ".wf-modal-icon", ".wf-modal-title", ".wf-modal-body",
+        ".wf-modal-meta", ".wf-modal-actions", ".wf-empty",
+        # 排版 / 列表 / 文字
+        ".wf-row", ".wf-list", ".wf-line", ".wf-text", ".wf-link",
+        ".wf-table", ".wf-tr", ".wf-td",
         ".wf-section-title", ".wf-helper", ".wf-divider",
-        ".wf-required", ".wf-countdown", ".wf-empty",
-        ".wf-wheel", ".wf-wheel-pointer", ".wf-wheel-hub",
+        # Form
+        ".wf-input", ".wf-input-date", ".wf-select", ".wf-textarea",
+        ".wf-check", ".wf-radio", ".wf-switch",
+        # 按鈕/標籤/角標
+        ".wf-btn", ".wf-btn-primary", ".wf-pill", ".wf-badge", ".wf-dot",
+        ".wf-required", ".wf-countdown", ".wf-icon-slot",
+        # 進階
+        ".wf-tabs", ".wf-tab", ".wf-accordion", ".wf-stepper", ".wf-step",
+        ".wf-toast",
+        # 進度/圖表/載入
+        ".wf-skeleton-line", ".wf-skeleton-pill", ".wf-skeleton-block",
+        ".wf-bar", ".wf-chart", ".wf-chart-bars", ".wf-kpi", ".wf-kpi-grid",
+        ".wf-card", ".wf-list-line", ".wf-line-row", ".wf-segment",
+        # 輪盤
+        ".wf-wheel", ".wf-wheel-pointer", ".wf-wheel-hub", ".wf-wheel-rim",
+        ".wf-board",
     ]
     missing = [c for c in required_classes if c not in tpl]
     assert not missing, (
         f"docs.html.tmpl missing CSS for: {missing}\n"
-        f"AI generates wireframes using these classes; without CSS the "
-        f"layout collapses to a vertical pileup."
+        f"AI uses these classes; without CSS the layout collapses."
     )
+
+
+def test_wireframe_styleguide_renders_all_primitives(repo_root):
+    """Living style guide must demo every DSL primitive (so AI/dev have
+    a visual reference to copy from)."""
+    sg = (repo_root / "templates" / "wireframe-styleguide.html").read_text(encoding="utf-8")
+    must_demo = [
+        "wf-row", "wf-list", "wf-line", "wf-text", "wf-link",
+        "wf-table", "wf-tr", "wf-td",
+        "wf-input", "wf-input-date", "wf-select", "wf-textarea",
+        "wf-check", "wf-radio", "wf-switch",
+        "wf-btn", "wf-pill", "wf-badge", "wf-dot",
+        "wf-tabs", "wf-tab", "wf-stepper", "wf-step",
+        "wf-accordion", "wf-toast",
+        "wf-skeleton-pill", "wf-skeleton-line", "wf-skeleton-block",
+        "wf-bar", "wf-chart", "wf-kpi", "wf-kpi-grid",
+        "wf-mobile", "wf-stage", "wf-board", "wf-actionbar",
+        "wf-desktop", "wf-sidebar", "wf-sidenav-item",
+        "wf-modal", "wf-modal-title",
+    ]
+    missing = [c for c in must_demo if c not in sg]
+    assert not missing, f"styleguide missing demo for: {missing}"
+
+
+def test_wireframe_dsl_doc_lists_all_primitives(repo_root):
+    """wireframe-dsl.md must register every primitive in section 3 tables."""
+    dsl = (repo_root / "templates" / "wireframe-dsl.md").read_text(encoding="utf-8")
+    must_register = [
+        ".wf-row", ".wf-list", ".wf-line", ".wf-text", ".wf-link",
+        ".wf-table", ".wf-input", ".wf-select", ".wf-check", ".wf-radio",
+        ".wf-switch", ".wf-tabs", ".wf-stepper", ".wf-toast", ".wf-kpi",
+        ".wf-bar", ".wf-desktop", ".wf-sidebar",
+    ]
+    missing = [c for c in must_register if c not in dsl]
+    assert not missing, f"wireframe-dsl.md missing primitive: {missing}"
 
 
 # ─── Jinja `| safe` filter preservation ────────────────────────────────────

@@ -73,41 +73,147 @@
 
 ## 3. Primitives（DSL 元件）
 
-每個 primitive 都是 1 個 class，**只允許**從這張表選用：
+**只允許**從以下表選用 wf-* class。每個 primitive 對應一個 HTML element 或 UI pattern，class 名稱字串必須與 docs.html.tmpl 的 CSS rule 完全對應（沒對到 = 沒樣式）。
+
+### 3.0 子排版規則（最重要）
+
+- **`.wf-panel` 預設兒童垂直 stack**（flex column gap 8px）。需要橫排請包進 `.wf-row`。
+- **`.wf-skeleton-{line,pill,block}` 是「空白占位」**，**禁止塞文字內容**。要文字行用 `.wf-line`；要段落用 `.wf-text`。違反此規則 reviewer R9 會擋。
+- `<span>` 子元素直接放 panel 不會自動橫排，必須包 `.wf-row`（reviewer R10 會擋）。
+
+### 3.1 Container 結構（外框 + Mobile 容器 + Modal）
 
 | Class | 用途 | 視覺 |
-|-------|------|------|
-| `.wf-frame` | 任何外框容器 | 2px solid --ink，圓角 16-20px |
-| `.wf-panel` | 內層白底卡 | 1.8px solid --line，圓角 12px |
-| `.wf-section-title` | 區塊標題 | 800 weight，14-18px |
-| `.wf-pill` | 標籤/狀態膠囊 | 圓角 999px，1.5px --line，inline-block |
-| `.wf-pill.is-active` | 強調膠囊 | 邊框換 --ink，font-weight 700 |
+|---|---|---|
+| `.wf-scope` | wireframe 最外層包裹（border-box 重置） | 必有 |
+| `.wf-frame` | 通用外框容器 | 2px solid --ink，圓角 20px |
+| `.wf-panel` | 白底卡片（默認垂直 stack） | 1.8px --line，圓角 12px，padding 12px |
+| `.wf-mobile` | 手機外框（375px wide） | 含 statusbar/appbar/...組合 |
+| `.wf-desktop` | 桌面外框 | 2px solid --ink，全寬 |
+| `.wf-statusbar / .wf-appbar / .wf-banner / .wf-marquee / .wf-stage / .wf-info / .wf-actionbar / .wf-shortcuts / .wf-bottomnav` | Mobile 內部各區塊（依 2.2 樹狀順序） | 各有預定 layout |
+| `.wf-sidebar / .wf-sidenav-item` | Desktop 左側導覽 + 項目 | aside 240px |
+| `.wf-modal` | 彈窗外框 | 300px，2px --ink |
+| `.wf-modal-icon / .wf-modal-title / .wf-modal-body / .wf-modal-meta / .wf-modal-actions` | 彈窗五件套 | 由上而下 |
+| `.wf-empty` | 空狀態 | 居中 muted 文字 |
+
+### 3.2 排版 / 列表 / 表格
+
+| Class | HTML 對應 | 用途 |
+|---|---|---|
+| `.wf-row` | flex row container | **顯式橫排容器**，包多個 inline items |
+| `.wf-list` | `<ul>/<ol>` | **列表容器**（flex column gap） |
+| `.wf-line` | `<li>` / list item | **文字行 item**（裝文字的單行條目） |
+| `.wf-text` | `<p>` | **純文字段落** |
+| `.wf-link` | `<a>` | 連結樣式文字 |
+| `.wf-table` | `<table>` | 表格容器 |
+| `.wf-tr` | `<tr>` | 表格列 |
+| `.wf-td` | `<td>` | 表格儲存格 |
+| `.wf-divider` | `<hr>` | 分隔線 |
+| `.wf-section-title` | `<h3>` | 區塊標題（800 weight 14-18px） |
+
+### 3.3 Form 元件（對標 HTML form inputs）
+
+| Class | HTML 對應 | 視覺 |
+|---|---|---|
+| `.wf-input` | `<input type="text/number/email">` | 圓角 8px，min-h 36px |
+| `.wf-input-date` | `<input type="date/time">` | input + 月曆 icon ▢ |
+| `.wf-select` | `<select>` | input + 下拉箭 ▾ |
+| `.wf-textarea` | `<textarea>` | 多行 input，min-h 80px |
+| `.wf-check` | `<input type="checkbox">` | 18×18 方框 ✓ |
+| `.wf-radio` | `<input type="radio">` | 18×18 圓圈 ● |
+| `.wf-switch` | toggle / switch | 36×20 軌道 + 圓鈕 |
+
+### 3.4 按鈕 + 標籤 + 角標
+
+| Class | 用途 | 視覺 |
+|---|---|---|
 | `.wf-btn` | 一般按鈕 | min-h 34px，圓角 999px，1.8px --line |
 | `.wf-btn-primary` | 主按鈕 | 邊框 --ink + 700 weight + 底 --soft |
-| `.wf-input` | 輸入框 | 1.5px --line，圓角 8px，min-h 36px，內顯 placeholder |
-| `.wf-skeleton-pill` | 載入中佔位 | 條紋背景（--soft / #fff repeating-linear-gradient 10px） |
-| `.wf-skeleton-line` | 一條占位線 | h 16px，邊框 1.5px --line |
-| `.wf-skeleton-block` | 塊狀占位 | --soft 底，1.8px --line，圓角 12px |
-| `.wf-dot` | 圓點 | 18×18，1.8px --ink，圓 |
-| `.wf-divider` | 分隔線 | 1.5px solid --line |
-| `.wf-icon-slot` | 圖示占位 | 虛線 1.5px --line，正方形，placeholder 文字「IMG」 |
-| `.wf-required` | 必填星號 | 紅色 *（唯一允許的非黑灰色） |
+| `.wf-pill` | 標籤/狀態膠囊 | 圓角 999px，1.5px --line |
+| `.wf-pill.is-active` | 強調膠囊 | 邊框 --ink，font-weight 700 |
+| `.wf-badge` | 數字 / 角標 / 短標籤 | 圓角 999px，可文字撐寬 |
+| `.wf-dot` | 圓點 | 18×18，1.8px --ink |
+| `.wf-required` | 必填星號 | 紅色 *（唯一允許的非黑灰） |
 | `.wf-helper` | 輔助文字 | --muted，12px |
-| `.wf-badge` | 數字 / 角標 | 圓 22×22，1.8px --ink，置中數字 |
-| `.wf-segment` | 輪盤 / 圓餅段 | 1.8px --ink，內含 .wf-icon-slot + 文字 |
-| `.wf-bar` | 直條圖長條 | 1.8px --ink，底 --soft，圓角頂 |
-| `.wf-line-row` | 列表單行 | display:flex，含 .wf-dot + 文字 + .wf-skeleton-line |
+| `.wf-countdown` | 倒數計時數字 | monospace，24px 800 weight |
+| `.wf-icon-slot` | 圖示占位 | 虛線方框，placeholder「IMG」 |
+
+### 3.5 進階 UI（Tab / Accordion / Stepper / Toast）
+
+| Class | 用途 |
+|---|---|
+| `.wf-tabs` | tab 容器（橫排，底邊框分隔） |
+| `.wf-tab` | 單一 tab，`.wf-tab.is-active` 加強 |
+| `.wf-accordion` | 展開／收合容器（含 title + body） |
+| `.wf-stepper` | 步驟條容器（橫排，含 N 個 .wf-step） |
+| `.wf-step` | 單一步驟（圓點 + 標籤），`.wf-step.is-active` 強調 |
+| `.wf-toast` | snackbar / toast 提示 |
+
+### 3.6 進度 / 載入占位 / 圖表
+
+| Class | 用途 | 注意 |
+|---|---|---|
+| `.wf-skeleton-pill` | 載入中膠囊占位 | **不可塞文字** |
+| `.wf-skeleton-line` | 載入中行占位 | **不可塞文字** |
+| `.wf-skeleton-block` | 載入中大塊占位 | **不可塞文字** |
+| `.wf-bar` | progress / 直條圖長條 | 1.8px --ink，底 --soft |
+| `.wf-chart` | 圖表外框容器 | |
+| `.wf-chart-bars` | 圖表內 bar group | flex row baseline |
+| `.wf-kpi` | KPI 卡片（數字 + 標籤） | |
+| `.wf-kpi-grid` | KPI 卡片群（4 欄 grid） | |
+| `.wf-card` | 通用卡片（介於 panel 與 frame） | |
+| `.wf-list-line` | Desktop list 單行（dot + 文字 + skeleton） | （舊版 line-row 別名） |
+| `.wf-line-row` | 同 `.wf-list-line` 別名（向後相容） | |
+
+### 3.7 輪盤專屬 primitives（每日幸運輪 / 大轉盤類）
+
+| Class | 用途 |
+|---|---|
+| `.wf-wheel` | 輪盤容器（外圓 1.8px --ink，內含 N 段 .wf-segment） |
+| `.wf-wheel-pointer` | 固定指針三角形（純線稿） |
+| `.wf-wheel-hub` | 中央 SPIN 按鈕（圓 + 內字） |
+| `.wf-wheel-rim` | 輪盤外圈裝飾點（N 個 .wf-dot 圍繞） |
+| `.wf-segment` | 輪盤 / 圓餅段 |
+| `.wf-board` | 卡牌/格子棋盤（auto-fit grid） |
 
 ---
 
-## 4. 輪盤專屬 primitives（每日幸運輪 / 大轉盤類功能）
+## 3.X HTML element → wf-* class 速查表（AI 必讀）
 
-| Class | 用途 |
-|-------|------|
-| `.wf-wheel` | 輪盤容器（外圓 1.8px --ink，內含 N 段 .wf-segment） |
-| `.wf-wheel-pointer` | 固定指針三角形（純線稿，--ink 邊框） |
-| `.wf-wheel-hub` | 中央 SPIN 按鈕（圓，--ink 邊框，內字 SPIN） |
-| `.wf-wheel-rim` | 輪盤外圈裝飾點（可選，N 個 .wf-dot 圍繞） |
+| 想畫的東西 | 用哪個 wf-* class |
+|---|---|
+| 標題文字 | `.wf-section-title`（區塊標題）/ `.wf-modal-title`（彈窗標題） |
+| 一段內文 | `.wf-text` |
+| 一條文字行（列表 item / 賣點 / FAQ 答案） | `.wf-line` |
+| 一群文字行 | `.wf-list` > `.wf-line × N` |
+| 連結 | `.wf-link` |
+| 提示文字（次要） | `.wf-helper` |
+| 輸入框（文字） | `.wf-input` |
+| 日期輸入 | `.wf-input-date` |
+| 下拉選單 | `.wf-select` |
+| 多行輸入 | `.wf-textarea` |
+| Checkbox | `.wf-check` |
+| Radio | `.wf-radio` |
+| Switch / Toggle | `.wf-switch` |
+| 按鈕（主） | `.wf-btn.wf-btn-primary` |
+| 按鈕（次） | `.wf-btn` |
+| 表格 | `.wf-table` > `.wf-tr` > `.wf-td` |
+| Tab 切換 | `.wf-tabs` > `.wf-tab × N` |
+| 展開收合 | `.wf-accordion` |
+| 步驟條 | `.wf-stepper` > `.wf-step × N` |
+| Toast 提示 | `.wf-toast` |
+| 標籤 / 狀態膠囊 | `.wf-pill` |
+| 數字角標 / 短標籤 | `.wf-badge` |
+| 必填星號 | `.wf-required` |
+| 圖示位置 | `.wf-icon-slot` |
+| 載入中骨架（空白） | `.wf-skeleton-{line,pill,block}` ← **不可塞文字** |
+| 進度條 / 直條 | `.wf-bar` |
+| 圖表 | `.wf-chart` > `.wf-chart-bars` > `.wf-bar × N` |
+| KPI 卡片 | `.wf-kpi-grid` > `.wf-kpi × N` |
+| **想橫排多元件** | 包進 `.wf-row` |
+| **想直排多元件** | 用 `.wf-panel`（默認 column）或 `.wf-list`（細列表） |
+
+---
 
 ---
 

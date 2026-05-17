@@ -131,6 +131,29 @@ For EACH competitor, fill these fields (not just `highlight`):
 
 ## WIREFRAMES — required output
 
+**畫線稿前必讀 `templates/wireframe-dsl.md` 第 3 節 + HTML 對照速查表**。
+照那張表選 class，不要憑印象。
+
+### 必踩注意點（reviewer 會擋）
+
+1. **`.wf-skeleton-{line,pill,block}` 是空白占位（LOADING 狀態用），絕不可塞文字內容**。
+   - ❌ `<div class="wf-skeleton-line">+100 點數</div>`
+   - ✅ `<div class="wf-line">+100 點數</div>`（用 .wf-line 裝文字行）
+   - 違反 → reviewer R9 `skeleton_with_text` 擋
+
+2. **`.wf-panel` 預設兒童垂直 stack**。要橫排請包進 `.wf-row`。
+   - ❌ `<div class="wf-panel"><span class="wf-pill">D1</span><span>…</span></div>`
+   - ✅ `<div class="wf-panel"><div class="wf-row"><span class="wf-pill">D1</span>…</div></div>`
+   - 違反 → reviewer R10 `inline_children_no_row` 擋
+
+3. **表單元素用對應 class**：`.wf-input` / `.wf-input-date` / `.wf-select` / `.wf-textarea` / `.wf-check` / `.wf-radio` / `.wf-switch`，不要拿 `.wf-skeleton-pill` 湊。
+
+4. **列表用 `.wf-list > .wf-line × N`**；表格用 `.wf-table > .wf-tr > .wf-td`；tab 用 `.wf-tabs > .wf-tab × N`；步驟用 `.wf-stepper > .wf-step × N`。
+
+5. 任何 wf-* class 必須出現在 wireframe-dsl.md 第 3 節登記表，不可自創。
+
+### Output 格式
+
 Output a `wireframes` array (3-6 entries) covering the major UI screens of this feature
 (e.g. 主畫面 / 領獎彈窗 / 排行榜 / 設定頁 / 空狀態，依功能性質挑選). Each entry:
 ```json

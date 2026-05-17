@@ -58,6 +58,28 @@ an upstream document.
 Path: any string that matches the ID patterns
 Fail when: ID appears but no definition is found.
 
+### R9 — `skeleton_with_text`
+Check: `.wf-skeleton-line` / `.wf-skeleton-pill` / `.wf-skeleton-block`
+must be **empty placeholders** (LOADING state) — never contain text
+content. Wireframe DSL section 3.6 is explicit.
+Path: `wireframes[*].html`
+Fail when: regex `class="[^"]*wf-skeleton-(line|pill|block)[^"]*"[^>]*>\s*[^<\s]` matches (skeleton tag has text content between open/close).
+Fix hint: replace `.wf-skeleton-line` with `.wf-line` (text line) or `.wf-text` (paragraph).
+
+### R10 — `inline_children_no_row`
+Check: `.wf-panel` may not contain `<span>` children directly — inline
+items must be wrapped in `.wf-row` for horizontal layout.
+Path: `wireframes[*].html`
+Fail when: regex `<div[^>]*class="[^"]*wf-panel[^"]*"[^>]*>\s*<span` matches.
+Fix hint: wrap the inline children in `<div class="wf-row">…</div>`.
+
+### R11 — `class_not_in_dsl`
+Check: every `wf-*` class used in wireframe HTML must be declared in
+`templates/wireframe-dsl.md` section 3 (no self-invented classes).
+Path: `wireframes[*].html`
+Fail when: a wf-* class string is not on the DSL allow-list.
+Fix hint: pick a real DSL primitive; do not invent classes.
+
 ## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
 - `template_noise`
@@ -68,3 +90,6 @@ Fail when: ID appears but no definition is found.
 - `i18n_missing`
 - `untestable_acceptance`
 - `unresolved_reference`
+- `skeleton_with_text`
+- `inline_children_no_row`
+- `class_not_in_dsl`

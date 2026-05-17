@@ -162,17 +162,19 @@
     },
     "resource_counts": {
       "type": "object",
-      "description": "Nested dict {大類: {子類: N}}. 不准只給整數總數 — 必須拆子類才能跟 assets.category 對齊。例：{image: {格子狀態圖: 21, 寶箱: 1}, sound: {簽到成功: 1}}",
-      "additionalProperties": {
-        "oneOf": [
-          {
-            "type": "object",
-            "additionalProperties": {"type": "integer", "minimum": 0},
-            "minProperties": 1
-          },
-          {"type": "integer", "minimum": 0, "description": "純整數只允許用於 modules/acceptance_criteria 等 bookkeeping 欄位"}
-        ]
-      }
+      "description": "資源（UI 素材檔）+ bookkeeping count。Top-level keys 限定 enum：6 種素材（nested {子類: N}）或 bookkeeping（整數）。文案/i18n 等屬 spec-basic.i18n，不在這。",
+      "properties": {
+        "image":     {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}, "minProperties": 1},
+        "animation": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}, "minProperties": 1},
+        "sound":     {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}, "minProperties": 1},
+        "video":     {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}, "minProperties": 1},
+        "font":      {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}, "minProperties": 1},
+        "particle":  {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}, "minProperties": 1},
+        "modules":             {"type": "integer", "minimum": 0},
+        "acceptance_criteria": {"type": "integer", "minimum": 0},
+        "api_endpoints":       {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
     },
     "resources": {
       "type": "object",

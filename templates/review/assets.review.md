@@ -11,10 +11,16 @@ Check: no field value is a placeholder string.
 Fail when: any string field equals or contains `<...>` / "TBD".
 
 ### R2 — `type_not_in_vocabulary`
-Check: every `assets[].type` matches a category key declared in
-`spec-basic.resource_counts` (case-insensitive, singular/plural tolerated).
-Path: `assets[*].type` ↔ upstream `resource_counts.*`
-Fail when: an asset's type has no matching upstream category.
+Check: every `assets[].type` ∈ {image, animation, sound, video, font, particle}。
+**只 6 種**：UI 實作要打包進 build 的素材檔。
+Path: `assets[*].type`
+Fail when:
+- type 是 copywriting / i18n_strings（文案屬 spec-basic.i18n，企畫寫的，不重複放這）
+- type 是 modules / acceptance_criteria / fields / competitors / axes / matrix_* /
+  user_journey_steps / ui_sections / wireframes / timeline_phases / help_* /
+  change_log / related_docs 等 spec 結構欄位（不是素材）
+- 任何其他不在 6 種白名單的值
+Fix hint: 刪除該 entry — 它本就不屬於 assets 範圍。文案改去 spec-basic.i18n，結構欄位本就在 spec-basic。
 
 ### R3 — `id_collision`
 Check: `assets[].id` is unique across the list.

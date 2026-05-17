@@ -1,50 +1,25 @@
 # {{ feature.name }} 資源清單與 AI Prompt
 
-共 {{ assets | length }} 個資源。
+共 {{ assets | length }} 個素材。
 
-## 按角色分組統計（程式自動）
+## 索引（Excel-style：每列在對應大類欄打 1，最底列加總）
 
-{% set role_counts = {} %}
-{%- for a in assets -%}
-{%- if a.owner_role in role_counts -%}
-{%- set _ = role_counts.update({a.owner_role: role_counts[a.owner_role] + 1}) -%}
-{%- else -%}
-{%- set _ = role_counts.update({a.owner_role: 1}) -%}
-{%- endif -%}
-{%- endfor %}
-| 負責角色 | 數量 |
-|----------|------|
-{% for role, n in role_counts.items() %}
-| `{{ role }}` | {{ n }} |
-{% endfor %}
-
-## 按子類分組統計（程式自動 — 對齊 spec-basic.resource_counts）
-
-{% set cat_counts = {} %}
-{%- for a in assets -%}
-{%- set key = a.type ~ '.' ~ (a.category | default('(無 category)')) -%}
-{%- if key in cat_counts -%}
-{%- set _ = cat_counts.update({key: cat_counts[key] + 1}) -%}
-{%- else -%}
-{%- set _ = cat_counts.update({key: 1}) -%}
-{%- endif -%}
-{%- endfor %}
-| 大類 . 子類 | 實際資產數 |
-|---|---|
-{% for key, n in cat_counts.items() %}
-| {{ key }} | {{ n }} |
-{% endfor %}
-
-> 上面數字由程式對 `assets[]` 跑 group-by 自動算出。cross_check 已驗證跟
-> `spec-basic.resource_counts` 對齊，若不一致 reviewer 會擋。
-
-## 索引
-
-| ID | 名稱 | 類型 | 子類 | 負責角色 | 輸出格式 | 建議檔名 |
-|----|------|------|------|----------|----------|----------|
+| ID | 名稱 | 類型 | 子類 | 負責角色 | 輸出格式 | 建議檔名 | image | animation | sound | video | font | particle |
+|----|------|------|------|----------|----------|----------|:-:|:-:|:-:|:-:|:-:|:-:|
 {% for a in assets %}
-| [`{{ a.id }}`](#{{ a.id }}) | {{ a.name }} | {{ a.type }} | {{ a.category | default('-') }} | `{{ a.owner_role | default('-') }}` | {{ a.output_format | default('-') }} | `{{ a.suggested_filename | default('-') }}` |
+| [`{{ a.id }}`](#{{ a.id }}) | {{ a.name }} | {{ a.type }} | {{ a.category | default('-') }} | `{{ a.owner_role | default('-') }}` | {{ a.output_format | default('-') }} | `{{ a.suggested_filename | default('-') }}` | {{ '1' if a.type == 'image' else '' }} | {{ '1' if a.type == 'animation' else '' }} | {{ '1' if a.type == 'sound' else '' }} | {{ '1' if a.type == 'video' else '' }} | {{ '1' if a.type == 'font' else '' }} | {{ '1' if a.type == 'particle' else '' }} |
 {% endfor %}
+{%- set t_img = 0 -%}{%- set t_anim = 0 -%}{%- set t_snd = 0 -%}
+{%- set t_vid = 0 -%}{%- set t_fnt = 0 -%}{%- set t_par = 0 -%}
+{%- for a in assets -%}
+{%- if a.type == 'image' -%}{%- set t_img = t_img + 1 -%}{%- endif -%}
+{%- if a.type == 'animation' -%}{%- set t_anim = t_anim + 1 -%}{%- endif -%}
+{%- if a.type == 'sound' -%}{%- set t_snd = t_snd + 1 -%}{%- endif -%}
+{%- if a.type == 'video' -%}{%- set t_vid = t_vid + 1 -%}{%- endif -%}
+{%- if a.type == 'font' -%}{%- set t_fnt = t_fnt + 1 -%}{%- endif -%}
+{%- if a.type == 'particle' -%}{%- set t_par = t_par + 1 -%}{%- endif -%}
+{%- endfor %}
+| **總計** | **{{ assets | length }} 個資源** | | | | | | **{{ t_img }}** | **{{ t_anim }}** | **{{ t_snd }}** | **{{ t_vid }}** | **{{ t_fnt }}** | **{{ t_par }}** |
 
 ---
 

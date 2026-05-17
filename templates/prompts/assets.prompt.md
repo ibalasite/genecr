@@ -69,7 +69,11 @@ The number of assets you list per category MUST EXACTLY MATCH
 ```
 id              # ASSET-NNN 或 kebab-case 唯一 id
 name            # 中文描述名（如「文案-連簽 7 日領大獎」）
-type            # 大類: image / animation / sound / video / font / particle / copywriting / i18n_strings
+type            # ★ ENUM 限定 6 種：image / animation / sound / video / font / particle
+                #   = UI 實作要打包進 build 的素材檔。**只此 6 種**，schema enum 擋
+                #   **禁列**：copywriting / i18n_strings（文案屬 spec-basic.i18n）
+                #            / modules / acceptance_criteria / fields / wireframes 等
+                #            spec 結構欄位（描述用，不是素材）
 category        # ★ 子類，必須對應 spec-basic.resource_counts[type] 的某個 key
                 #   例如 spec-basic 寫 image.格子狀態圖=21，這 21 張的 category 都填「格子狀態圖」
 owner_role      # ★ scrum team role 之一: server_engineer | client_engineer | planner | po | art
@@ -87,12 +91,10 @@ spec            # 字串陣列（推薦）或字串。一行一條規格。例�
 image_prompt    # 視覺類必填（image/animation/particle）：英文 prompt 含 subject + style + composition
 ```
 
-**owner_role 對照表**：
+**owner_role 對照表**（所有 6 種素材都歸 art — 同一角色用 AI 或手作）：
 - `image` / `animation` / `sound` / `video` / `font` / `particle` → **art**
-- `copywriting` / `i18n_strings` → **planner**
-- API mock 資料 / schema 樣本 → **server_engineer**
-- UI 元件範例 / 互動原型 sample → **client_engineer**
-- 驗收標準附件 / 流程圖確認文件 → **po**
+
+(其他角色 server / client / planner / po 在這 step 不應出現，他們的工作在 scrum stories 而非 assets)
 
 **category 規則**：上游 spec-basic.resource_counts 拆了哪些子類，這些 assets 的
 category 就必須是其中一個 key（reviewer R12 強制）。不可自創新子類，要新增請改 spec-basic。

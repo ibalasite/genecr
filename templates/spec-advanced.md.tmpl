@@ -23,6 +23,13 @@
 | {{ s.from }} | {{ s.trigger }} | {{ s.to }} |
 {% endfor %}
 
+```mermaid
+stateDiagram-v2
+{% for s in client.states %}
+    {{ s.from | replace(' ', '_') }} --> {{ s.to | replace(' ', '_') }}: {{ s.trigger }}
+{% endfor %}
+```
+
 - **資料更新**：{{ client.update_strategy }}
 - **效能考量**：{{ client.performance }}
 
@@ -108,16 +115,78 @@ erDiagram
 ### {{ m.name }}（{{ m.kind }}）
 {{ m.desc }}
 
+{% if m.fields %}
 | 欄位 | 型別 | 說明 |
 |------|------|------|
 {% for f in m.fields %}
 | `{{ f.name }}` | {{ f.type }} | {{ f.desc }} |
 {% endfor %}
+{% endif %}
 
-**索引**：{{ m.indexes | default('-') }}
+{% if m.create_table_sql %}
+**DDL — CREATE TABLE / INDEX：**
+
+```sql
+{{ m.create_table_sql }}
+```
+{% endif %}
+
+{% if m.indexes %}
+**索引清單**：
+{% if m.indexes is string %}
+- {{ m.indexes }}
+{% else %}
+{% for idx in m.indexes %}
+- {{ idx }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if m.redis_pattern %}
+**Redis key pattern**：`{{ m.redis_pattern }}`
+**value type**：`{{ m.value_type }}` / **TTL**：{{ m.ttl }}
+{% endif %}
+
+{% if m.apis %}
 **讀寫 API**：{% for a in m.apis %}`{{ a }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
 
 {% endfor %}
+
+{% if db_queries %}
+### 情境 SQL 範例（驗證 PK / index 設計是否夠用）
+
+{% for q in db_queries %}
+#### {{ loop.index }}. {{ q.scenario }}
+
+```sql
+{{ q.sql }}
+```
+
+{% if q.used_indexes %}
+**預期使用 index**：{% for idx in q.used_indexes %}`{{ idx }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if redis_ops %}
+### 情境 Redis 操作範例
+
+{% for op in redis_ops %}
+#### {{ loop.index }}. {{ op.scenario }}
+
+```
+{% for cmd in op.commands %}{{ cmd }}
+{% endfor %}
+```
+
+{% if op.accessed_keys %}
+**使用 keys**：{% for k in op.accessed_keys %}`{{ k }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
 
 ## 五、業務邏輯
 
@@ -138,6 +207,16 @@ erDiagram
 {% endfor %}
 
 ## 七、相關文件
-- 資源清單：[`{{ feature.slug }}-assets.md`](./{{ feature.slug }}-assets.md)
-- BDD 測試：[`{{ feature.slug }}-bdd.md`](./{{ feature.slug }}-bdd.md)
-- SCRUM：[`{{ feature.slug }}-scrum.md`](./{{ feature.slug }}-scrum.md)
+
+當在 docs.html（整合文件中心）瀏覽時，下列連結會切到對應 sidebar panel：
+
+- 📋 [企畫版（spec-basic）](#panel-0)
+- 🎨 [資源清單（assets）](#panel-2)
+- 🧪 [BDD 測試](#panel-3)
+- 📌 [SCRUM 故事卡](#panel-4)
+- 🎮 [互動原型](#panel-proto)
+
+獨立檔案路徑（直接開 .md 用）：
+- 資源清單：`{{ feature.slug }}-assets.md`
+- BDD 測試：`{{ feature.slug }}-bdd.md`
+- SCRUM：`{{ feature.slug }}-scrum.md`

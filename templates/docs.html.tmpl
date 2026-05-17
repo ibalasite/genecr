@@ -876,22 +876,26 @@ document.getElementById('lightbox').addEventListener('wheel', e => {
 // Init
 transformMermaid();
 renderMermaidIn(document.querySelector('.panel.active'));
-if (location.hash) {
+
+// Resolve location.hash → switch panel (also runs on hashchange so in-document
+// .md links like [...](#panel-2) jump to the correct sidebar panel).
+function _routeHash() {
+  if (!location.hash) return;
   const target = location.hash.slice(1);
   const link = document.querySelector(`.sidebar__link[data-target="${target}"]`);
-  if (link) link.click();
-  else {
-    const el = document.getElementById(target);
-    if (el) {
-      const panel = el.closest('.panel');
-      if (panel) {
-        const link2 = document.querySelector(`.sidebar__link[data-target="${panel.id}"]`);
-        if (link2) link2.click();
-        setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 300);
-      }
+  if (link) { link.click(); return; }
+  const el = document.getElementById(target);
+  if (el) {
+    const panel = el.closest('.panel');
+    if (panel) {
+      const link2 = document.querySelector(`.sidebar__link[data-target="${panel.id}"]`);
+      if (link2) link2.click();
+      setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 300);
     }
   }
 }
+_routeHash();
+window.addEventListener('hashchange', _routeHash);
 </script>
 </body>
 </html>

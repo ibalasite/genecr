@@ -39,49 +39,98 @@ stateDiagram-v2
 | ID | Method | Endpoint | 說明 | 認證 | 讀 | 寫 |
 |----|--------|----------|------|------|----|----|
 {% for a in apis %}
-| [`{{ a.id }}`](#{{ a.id }}) | {{ a.method }} | {{ a.path }} | {{ a.desc }} | {{ a.auth }} | {{ a.reads | default('-') }} | {{ a.writes | default('-') }} |
+| [`{{ a.id }}`](#{{ a.id }}) | {{ a.method }} | {{ a.path }} | {{ a.summary }} | {% if a.auth.required %}`{{ a.auth.type }}`{% else %}-{% endif %} | {{ a.reads | default('-') }} | {{ a.writes | default('-') }} |
 {% endfor %}
 
 ### 各 API 詳細規格
 
 {% for a in apis %}
 #### <a id="{{ a.id }}"></a> [{{ a.id }}] {{ a.method }} {{ a.path }}
-- **說明**：{{ a.desc }}
-- **認證**：{{ a.auth }}
-{% if a.path_params %}
-- **Path Params**：
-{% for p in a.path_params %}
-  - `{{ p.name }}` {{ p.type }}{% if p.required %} required{% endif %} — {{ p.desc }}
+
+**{{ a.summary }}**
+
+{{ a.description }}
+
+##### Authentication
+{% if a.auth.required %}
+- **Required**：是
+- **Type**：`{{ a.auth.type }}`{% if a.auth.location %} | **Location**：`{{ a.auth.location }}`{% endif %}{% if a.auth.name %} | **Name**：`{{ a.auth.name }}`{% endif %}
+{% if a.auth.format %}- **Format**：`{{ a.auth.format }}`
+{% endif %}{% if a.auth.scopes %}- **Scopes**：{% for s in a.auth.scopes %}`{{ s }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+{% else %}
+- **Required**：否（公開端點）
+{% endif %}
+
+{% if a.parameters %}
+##### Parameters
+
+| in | name | type | required | default | example | description |
+|----|------|------|:--------:|---------|---------|-------------|
+{% for p in a.parameters %}| `{{ p.in }}` | `{{ p.name }}` | {{ p.type }} | {% if p.required %}✓{% else %}-{% endif %} | {% if 'default' in p %}`{{ p.default }}`{% else %}-{% endif %} | {% if 'example' in p %}`{{ p.example }}`{% else %}-{% endif %} | {{ p.description | default('-') }}{% if p.enum %} (enum: {% for v in p.enum %}`{{ v }}`{% if not loop.last %}, {% endif %}{% endfor %}){% endif %} |
 {% endfor %}
 {% endif %}
-{% if a.query_params %}
-- **Query Params**：
-{% for p in a.query_params %}
-  - `{{ p.name }}` {{ p.type }}{% if 'default' in p %} default={{ p.default }}{% endif %} — {{ p.desc }}
-{% endfor %}
-{% endif %}
+
 {% if a.request_body %}
-- **Request Body**：
+##### Request Body
+
+- **Content-Type**：`{{ a.request_body.content_type }}`
+- **Required**：{% if a.request_body.required %}是{% else %}否{% endif %}
+
+**Schema**：
+
+| field | type | required | description |
+|-------|------|:--------:|-------------|
+{% for fname, fspec in (a.request_body.schema.properties or {}).items() %}| `{{ fname }}` | {{ fspec.type | default('-') }} | {% if fname in (a.request_body.schema.required or []) %}✓{% else %}-{% endif %} | {{ fspec.description | default('-') }}{% if fspec.enum %} (enum: {% for v in fspec.enum %}`{{ v }}`{% if not loop.last %}, {% endif %}{% endfor %}){% endif %} |
+{% endfor %}
+
+**Example**：
+
 ```json
-{{ a.request_body }}
+{{ a.request_body.example | tojson(indent=2) }}
 ```
 {% endif %}
-- **Response 200**：
-```json
-{{ a.response_200 }}
-```
-{% if a.response_errors %}
-- **Errors**：
-{% for e in a.response_errors %}
-  - `{{ e.code }}` {{ e.desc }}
+
+##### Responses
+
+{% for code, resp in a.responses.items() %}
+**`{{ code }}` — {{ resp.description }}**
+
+{% if resp.schema and resp.schema.properties %}
+| field | type | required | description |
+|-------|------|:--------:|-------------|
+{% for fname, fspec in resp.schema.properties.items() %}| `{{ fname }}` | {{ fspec.type | default('-') }} | {% if fname in (resp.schema.required or []) %}✓{% else %}-{% endif %} | {{ fspec.description | default('-') }} |
 {% endfor %}
 {% endif %}
-- **後端流程**：
-{% for step in a.flow %}
-  {{ loop.index }}. {{ step }}
+
+```json
+{{ resp.example | tojson(indent=2) }}
+```
+
 {% endfor %}
-- **效能要求**：{{ a.perf }}
-- **相關 BDD**：{% for b in a.related_bdd %}[`{{ b }}`](./{{ feature.slug }}-bdd.md#{{ b }}){% if not loop.last %}, {% endif %}{% endfor %}
+
+{% if a.rate_limit %}
+##### Rate Limit
+- **Per Minute**：{{ a.rate_limit.per_minute }}{% if a.rate_limit.per_user %}（per user）{% endif %}
+{% endif %}
+
+{% if a.idempotency %}
+##### Idempotency
+- **Required**：{% if a.idempotency.required %}是{% else %}否（建議帶 `{{ a.idempotency.header }}` header）{% endif %}
+{% endif %}
+
+{% if a.deprecated %}
+> ⚠️ **此端點已棄用**
+{% endif %}
+
+##### 實作備註
+{% if a.reads %}- **Reads**：{{ a.reads }}
+{% endif %}{% if a.writes %}- **Writes**：{{ a.writes }}
+{% endif %}{% if a.flow %}- **後端流程**：
+{% for step in a.flow %}  {{ loop.index }}. {{ step }}
+{% endfor %}{% endif %}{% if a.perf %}- **效能要求**：{{ a.perf }}
+{% endif %}{% if a.related_bdd %}- **相關 BDD**：{% for b in a.related_bdd %}[`{{ b }}`](./{{ feature.slug }}-bdd.md#{{ b }}){% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
 
 {% endfor %}
 
@@ -151,22 +200,27 @@ erDiagram
 **讀寫 API**：{% for a in m.apis %}`{{ a }}`{% if not loop.last %}, {% endif %}{% endfor %}
 {% endif %}
 
+{% if m._related_queries %}
+**用到本表 + index 的情境 SQL（驗證 PK / index 是否夠用）**：
+
+{% for q in m._related_queries %}
+- **scenario**：{{ q.scenario }}{% if q.used_indexes %} · 用到 index：{% for idx in q.used_indexes %}`{{ idx }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+  ```sql
+  {{ q.sql }}
+  ```
 {% endfor %}
-
-{% if db_queries %}
-### 情境 SQL 範例（驗證 PK / index 設計是否夠用）
-
-{% for q in db_queries %}
-#### {{ loop.index }}. {{ q.scenario }}
-
-```sql
-{{ q.sql }}
-```
-
-{% if q.used_indexes %}
-**預期使用 index**：{% for idx in q.used_indexes %}`{{ idx }}`{% if not loop.last %}, {% endif %}{% endfor %}
 {% endif %}
 
+{% endfor %}
+
+{% if _orphan_queries %}
+### 跨表 / 未綁定 table 的情境 SQL
+
+{% for q in _orphan_queries %}
+- **scenario**：{{ q.scenario }}
+  ```sql
+  {{ q.sql }}
+  ```
 {% endfor %}
 {% endif %}
 
@@ -210,11 +264,11 @@ erDiagram
 
 當在 docs.html（整合文件中心）瀏覽時，下列連結會切到對應 sidebar panel：
 
-- 📋 [企畫版（spec-basic）](#panel-0)
-- 🎨 [資源清單（assets）](#panel-2)
-- 🧪 [BDD 測試](#panel-3)
-- 📌 [SCRUM 故事卡](#panel-4)
-- 🎮 [互動原型](#panel-proto)
+- 📋 [企畫版（spec-basic）](#spec-basic)
+- 🎨 [資源清單（assets）](#assets)
+- 🧪 [BDD 測試](#bdd)
+- 📌 [SCRUM 故事卡](#scrum)
+- 🎮 [互動原型](#prototype)
 
 獨立檔案路徑（直接開 .md 用）：
 - 資源清單：`{{ feature.slug }}-assets.md`

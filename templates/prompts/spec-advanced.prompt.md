@@ -78,6 +78,38 @@ features outside spec-basic.
 
 Beyond the base schema, include:
 
+- **`apis[]` — Postman/OpenAPI-grade per endpoint**. Each entry MUST have:
+  - `summary` (one-line title) + `description` (long form). 不能只有 `desc`.
+  - `auth` is an **object** (never a string). Shape:
+    ```
+    "auth": {
+      "required": true,
+      "type": "bearer",                  // enum: none / bearer / api_key / cookie / basic
+      "location": "header",              // for api_key / cookie: header / cookie / query
+      "name": "Authorization",           // header / cookie / query param name
+      "format": "Bearer {token}",        // value format hint
+      "scopes": ["resource.read"]        // optional
+    }
+    ```
+    `auth.type` MUST come from the enum above.
+  - `parameters` is a flat array. Each entry has `in` (enum `path`/`query`/`header`,
+    **never `body`** — body goes to `request_body`), `name`, `type`, `required`,
+    `description`. Optionally `example`, `default`, `enum`, `pattern`, `minimum`, `maximum`.
+  - `request_body` is REQUIRED for POST/PUT/PATCH. Contains `required` (bool),
+    `content_type` (enum: `application/json` etc), `schema` (simplified JSON
+    schema with `type`, `properties` keyed by field with type/description/example,
+    `required` array of field names), and `example` (a complete example object).
+    **Never** just an example without schema — engineers need to know fields,
+    types, required-ness without reverse-engineering the example.
+  - `responses` is an object keyed by status code string. MUST contain `"200"`
+    (or `"201"` for create endpoints) **and at least one 4xx** (`"400"`/`"401"`/
+    `"403"`/`"404"`). Each response has `description`, `schema` (same simplified
+    schema shape), `example`. Optionally `headers`.
+  - Operational: `rate_limit` (`per_minute`, `per_user`), `idempotency`
+    (`required`, `header`) — required for POST/PATCH if non-idempotent.
+  - Use ONLY the structured fields above for API specs. Older free-text /
+    split-array shapes are no longer accepted by the schema.
+
 - `data_models[]` with `kind` ∈ {mysql, redis}. For mysql kind: provide
   `fields` (name/type/nullable/desc), `indexes` (PRIMARY/UNIQUE/INDEX
   declarations), and `create_table_sql` (full CREATE TABLE matching the

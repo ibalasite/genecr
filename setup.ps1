@@ -153,6 +153,17 @@ function Deploy-Tools($runtime) {
     }
 }
 
+function Install-PythonDeps($runtime) {
+    $req = Join-Path $runtime "tools\renderer\requirements.txt"
+    if (-not (Test-Path $req)) { return }
+    $py = Find-Python
+    if (-not $py) { Log "[deps] Python 3 not found - skip pip install"; return }
+    Log "[deps] pip install -r tools/renderer/requirements.txt"
+    try { & $py -m pip install --quiet -r $req } catch { Log "[deps] WARN pip install failed - run manually: $py -m pip install -r $req"; return }
+    Log "[deps] playwright install chromium (~150MB, one-time, may take 1-2 min)"
+    try { & $py -m playwright install chromium } catch { Log "[deps] WARN chromium download failed - prototype layout audit will skip. Retry: $py -m playwright install chromium" }
+}
+
 function Install-One($hostName) {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Error "git required"; exit 1 }
     $runtime  = Get-HostDir $hostName
@@ -167,6 +178,7 @@ function Install-One($hostName) {
     git clone $RepoUrl $runtime
     Deploy-Skills $runtime $skillsDst
     Deploy-Tools $runtime
+    Install-PythonDeps $runtime
     Log ""
     Log "[install:$hostName] done. Restart $hostName to activate skills."
 }
@@ -190,6 +202,7 @@ function Post-Upgrade($hostName) {
     $skillsDst = Get-HostSkillsDir $hostName
     Deploy-Skills $runtime $skillsDst
     Deploy-Tools $runtime
+    Install-PythonDeps $runtime
     Log "[upgrade:$hostName] done."
 }
 

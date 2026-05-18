@@ -9,17 +9,7 @@
 {% for a in assets %}
 | [`{{ a.id }}`](#{{ a.id }}) | {{ a.name }} | {{ a.type }} | {{ a.category | default('-') }} | `{{ a.owner_role | default('-') }}` | {{ a.output_format | default('-') }} | `{{ a.suggested_filename | default('-') }}` | {{ '1' if a.type == 'image' else '' }} | {{ '1' if a.type == 'animation' else '' }} | {{ '1' if a.type == 'sound' else '' }} | {{ '1' if a.type == 'video' else '' }} | {{ '1' if a.type == 'font' else '' }} | {{ '1' if a.type == 'particle' else '' }} |
 {% endfor %}
-{%- set t_img = 0 -%}{%- set t_anim = 0 -%}{%- set t_snd = 0 -%}
-{%- set t_vid = 0 -%}{%- set t_fnt = 0 -%}{%- set t_par = 0 -%}
-{%- for a in assets -%}
-{%- if a.type == 'image' -%}{%- set t_img = t_img + 1 -%}{%- endif -%}
-{%- if a.type == 'animation' -%}{%- set t_anim = t_anim + 1 -%}{%- endif -%}
-{%- if a.type == 'sound' -%}{%- set t_snd = t_snd + 1 -%}{%- endif -%}
-{%- if a.type == 'video' -%}{%- set t_vid = t_vid + 1 -%}{%- endif -%}
-{%- if a.type == 'font' -%}{%- set t_fnt = t_fnt + 1 -%}{%- endif -%}
-{%- if a.type == 'particle' -%}{%- set t_par = t_par + 1 -%}{%- endif -%}
-{%- endfor %}
-| **總計** | **{{ assets | length }} 個資源** | | | | | | **{{ t_img }}** | **{{ t_anim }}** | **{{ t_snd }}** | **{{ t_vid }}** | **{{ t_fnt }}** | **{{ t_par }}** |
+| **總計** | **{{ resource_summary.total }} 個資源** | | | | | | **{{ resource_summary.image }}** | **{{ resource_summary.animation }}** | **{{ resource_summary.sound }}** | **{{ resource_summary.video }}** | **{{ resource_summary.font }}** | **{{ resource_summary.particle }}** |
 
 ---
 
@@ -41,15 +31,12 @@
   - {{ s }}
 {% endfor %}
 {% endif %}
-{% if a.image_prompt %}
-- **AI 圖像 Prompt**（英文）：
-  > {{ a.image_prompt }}
-
-  **Negative**：{{ a.image_negative | default('low quality, blurry, watermark') }}
+{% if a.production_prompt %}
+- **AI 產出指引**：
+  > {{ a.production_prompt }}
+{% if a.type in ['image', 'animation', 'particle', 'video'] %}
+  **Negative**：{{ a.negative_prompt | default('low quality, blurry, watermark') }}
 {% endif %}
-{% if a.audio_prompt %}
-- **AI 音效 Prompt**：
-  > {{ a.audio_prompt }}
 {% endif %}
 {% if a.reference %}
 - **參考競業**：[{{ a.reference.platform | default('參考') }}]({{ a.reference.url | default(a.reference) }})

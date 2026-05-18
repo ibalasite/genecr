@@ -103,28 +103,29 @@ def test_resource_counts_nested_dict_sums():
     assert check_resource_counts(sb, assets) == []
 
 
-def test_nested_subcategory_count_mismatch_per_sub():
-    """Nested dict: each sub-category checked independently."""
-    sb = _spec_basic_with_counts({"images": {"background": 2, "ui": 5}})
+def test_nested_per_type_total_mismatch_flagged():
+    """Per-type total mismatch (sum of subkey values vs actual type count) flagged.
+    Sub-key naming convention is intentionally loose — only type total matters."""
+    sb = _spec_basic_with_counts({"images": {"background": 2, "ui": 5}})  # sum = 7
     assets = _assets_with([
-        {"id": "1", "name": "x", "type": "image", "category": "background"},
-        {"id": "2", "name": "y", "type": "image", "category": "background"},
-        {"id": "3", "name": "z", "type": "image", "category": "ui"},
-    ])
+        {"id": "1", "name": "x", "type": "image", "category": "anything"},
+        {"id": "2", "name": "y", "type": "image", "category": "anything"},
+        {"id": "3", "name": "z", "type": "image", "category": "anything"},
+    ])  # actual = 3
     issues = check_resource_counts(sb, assets)
-    assert any("'images.ui'" in i.detail and "declares 5" in i.detail and "has 1" in i.detail
+    assert any("'images'" in i.detail and "declares 7" in i.detail and "has 3" in i.detail
                for i in issues)
 
 
-def test_nested_undeclared_subcategory_flagged():
-    """assets has a sub-category that spec-basic didn't declare → issue."""
-    sb = _spec_basic_with_counts({"images": {"background": 1}})
+def test_nested_subcategory_naming_loose():
+    """Sub-category names in assets are NOT required to match sb's subkeys —
+    only per-type totals matter (baseline pattern: sb uses 'spec list' names,
+    assets uses 'instance group' names)."""
+    sb = _spec_basic_with_counts({"images": {"background": 1}})  # sum = 1
     assets = _assets_with([
-        {"id": "1", "name": "x", "type": "image", "category": "background"},
-        {"id": "2", "name": "y", "type": "image", "category": "rogue_sub"},
-    ])
-    issues = check_resource_counts(sb, assets)
-    assert any("rogue_sub" in i.detail and "not declared" in i.detail for i in issues)
+        {"id": "1", "name": "x", "type": "image", "category": "any_name"},
+    ])  # actual = 1, names don't match — should still PASS
+    assert check_resource_counts(sb, assets) == []
 
 
 def test_timeline_vs_scrum_points_aligned():
@@ -209,63 +210,37 @@ def _make_inputs(wf=6, api=8, tables=7, sub_cats=30, story_points=None,
     return sb, sa, scrum
 
 
+@pytest.mark.skip(reason="Obsolete: old total-points formula replaced by epic/per-role cap structure. See test_scrum_epic_structure.py for new behavior.")
 def test_role_workload_anchor_calibration():
-    """6/8/7/30 → ≈10.6 days. Distributed in scrum ≤ 13.8 (×1.3) should pass."""
-    from cross_check import check_role_workload_against_formula
-    sb, sa, _ = _make_inputs()
-    scrum = {"stories": [
-        # 3 client + 5 server + 1 art + 1 planner + 1 po = 11 (within 10.6 × 1.3 = 13.8)
-        *[{"owner_role": "client_engineer", "points": 1} for _ in range(3)],
-        *[{"owner_role": "server_engineer", "points": 1} for _ in range(5)],
-        {"owner_role": "art", "points": 1},
-        {"owner_role": "planner", "points": 1},
-        {"owner_role": "po", "points": 1},
-    ]}
-    issues = check_role_workload_against_formula(sb, sa, None, scrum)
-    assert issues == [], f"expected pass for ~11-point distribution, got: {[i.detail for i in issues]}"
+    pass
 
 
 def test_role_workload_flags_server_overestimate():
-    """server budget = 8×0.4 + 7×0.2 = 4.6 d. 23 pts → 5x over → flag."""
-    from cross_check import check_role_workload_against_formula
-    sb, sa, _ = _make_inputs()
+    """server budget = 1.0 × api_endpoints. With api=8 → 8d budget; 23 pts >> 10 cap → flag."""
+    from cross_check import check_scrum_workload
+    sb, _sa, _ = _make_inputs()
     scrum = {"stories": [{"owner_role": "server_engineer", "points": p} for p in [5, 8, 5, 5]]}  # 23
-    issues = check_role_workload_against_formula(sb, sa, None, scrum)
+    issues = check_scrum_workload(sb, scrum)
     assert any("server_engineer" in i.detail and "23" in i.detail for i in issues)
 
 
 def test_role_workload_flags_client_overestimate():
-    """client budget = 6×0.5 = 3 d. 19 pts → 6x over."""
-    from cross_check import check_role_workload_against_formula
-    sb, sa, _ = _make_inputs()
+    """client budget = 0.67 × wireframes. With wf=6 → ~4d budget; 19 pts >> 10 cap → flag."""
+    from cross_check import check_scrum_workload
+    sb, _sa, _ = _make_inputs()
     scrum = {"stories": [{"owner_role": "client_engineer", "points": p} for p in [5, 8, 3, 3]]}  # 19
-    issues = check_role_workload_against_formula(sb, sa, None, scrum)
+    issues = check_scrum_workload(sb, scrum)
     assert any("client_engineer" in i.detail and "19" in i.detail for i in issues)
 
 
+@pytest.mark.skip(reason="Obsolete: total-points threshold replaced by per-role cap (≤ 10) + per-story cap (≤ 5). See test_scrum_epic_structure.")
 def test_role_workload_flags_total_overestimate():
-    """Total formula = 10.6 d. 52 pts → flag total + several roles."""
-    from cross_check import check_role_workload_against_formula
-    sb, sa, _ = _make_inputs()
-    scrum = {"stories": [
-        *[{"owner_role": "client_engineer", "points": p} for p in [5, 8, 3, 3]],     # 19
-        *[{"owner_role": "server_engineer", "points": p} for p in [5, 8, 5, 5]],     # 23
-        *[{"owner_role": "art", "points": p} for p in [2, 2, 2]],                    # 6
-        {"owner_role": "planner", "points": 4},
-    ]}  # total 52
-    issues = check_role_workload_against_formula(sb, sa, None, scrum)
-    assert any("52" in i.detail and ("總" in i.detail or "total" in i.detail.lower())
-               for i in issues)
+    pass
 
 
+@pytest.mark.skip(reason="Obsolete: po removed from role enum; empty stories now correctly flag epic_role_missing per new structure.")
 def test_role_workload_tiny_budgets_dont_block_zero_points():
-    """planner/po budget ≤ 1 day. 0 points should NOT flag (just under-spec)."""
-    from cross_check import check_role_workload_against_formula
-    sb, sa, _ = _make_inputs()
-    scrum = {"stories": []}  # no stories at all
-    issues = check_role_workload_against_formula(sb, sa, None, scrum)
-    # No over-budget issue when actual = 0
-    assert all("planner" not in i.detail and "po" not in i.detail for i in issues)
+    pass
 
 
 def test_resource_counts_no_counts_field_no_issue():

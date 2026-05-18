@@ -51,18 +51,101 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "method", "path", "desc"],
+        "required": ["id", "method", "path", "summary", "description", "auth", "parameters", "responses"],
         "properties": {
           "id": {"type": "string"},
-          "method": {"type": "string"},
+          "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]},
           "path": {"type": "string"},
-          "desc": {"type": "string"},
-          "auth": {"type": "string"},
+          "summary": {"type": "string", "description": "one-line title for listings"},
+          "description": {"type": "string", "description": "long-form description"},
+          "auth": {
+            "type": "object",
+            "required": ["required", "type"],
+            "properties": {
+              "required": {"type": "boolean"},
+              "type": {"type": "string", "enum": ["none", "bearer", "api_key", "cookie", "basic"]},
+              "location": {"type": "string", "enum": ["header", "cookie", "query"], "description": "for api_key/cookie: where the credential travels"},
+              "name": {"type": "string", "description": "header/cookie/query param name (e.g. Authorization / X-API-Key)"},
+              "format": {"type": "string", "description": "value format hint (e.g. 'Bearer {token}')"},
+              "scopes": {"type": "array", "items": {"type": "string"}}
+            }
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["in", "name", "type", "required"],
+              "properties": {
+                "in": {"type": "string", "enum": ["path", "query", "header"]},
+                "name": {"type": "string"},
+                "type": {"type": "string"},
+                "required": {"type": "boolean"},
+                "description": {"type": "string"},
+                "example": {},
+                "default": {},
+                "enum": {"type": "array"},
+                "pattern": {"type": "string"},
+                "minimum": {"type": "number"},
+                "maximum": {"type": "number"}
+              }
+            }
+          },
+          "request_body": {
+            "type": "object",
+            "required": ["required", "content_type", "schema", "example"],
+            "properties": {
+              "required": {"type": "boolean"},
+              "content_type": {"type": "string", "enum": ["application/json", "application/x-www-form-urlencoded", "multipart/form-data"]},
+              "schema": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                  "type": {"type": "string"},
+                  "properties": {"type": "object"},
+                  "required": {"type": "array", "items": {"type": "string"}}
+                }
+              },
+              "example": {}
+            }
+          },
+          "responses": {
+            "type": "object",
+            "minProperties": 2,
+            "patternProperties": {
+              "^[1-5][0-9][0-9]$": {
+                "type": "object",
+                "required": ["description", "schema", "example"],
+                "properties": {
+                  "description": {"type": "string"},
+                  "schema": {"type": "object"},
+                  "example": {},
+                  "headers": {"type": "object"}
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "rate_limit": {
+            "type": "object",
+            "properties": {
+              "per_minute": {"type": "integer"},
+              "per_user": {"type": "boolean"}
+            }
+          },
+          "idempotency": {
+            "type": "object",
+            "properties": {
+              "required": {"type": "boolean"},
+              "header": {"type": "string"}
+            }
+          },
+          "deprecated": {"type": "boolean"},
+          "version_added": {"type": "string"},
           "reads": {},
           "writes": {},
-          "params": {},
-          "request": {},
-          "response": {}
+          "flow": {"type": "array", "items": {"type": "string"}},
+          "perf": {"type": "string"},
+          "related_bdd": {"type": "array", "items": {"type": "string"}}
         }
       }
     },

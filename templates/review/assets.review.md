@@ -80,6 +80,12 @@ Path: `assets[*].category` ↔ upstream `spec-basic.resource_counts.<type>.*`
 Fail when: category 值不在 spec-basic 該 type 的子類列表中。
 Fix hint: 對齊上游子類命名，不要自創新子類。
 
+### R_sb_contract — `assets_visual_total_mismatch` / `assets_audio_total_mismatch`
+Check: Counter(assets[].type) 各類加總必須符合 sb.resource_counts.visual_total / audio_total。
+Path: `assets[*].type` ↔ `<spec-basic upstream>.resource_counts.{visual_total, audio_total}`
+Fail when: 加總不符（美術 = image+animation+particle+video+font；音效 = sound）。
+Fix hint: 補/減 assets 項目，或請 spec-basic 修 totals（取決於哪邊正確）。
+
 ## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
 - `template_noise`
@@ -94,3 +100,5 @@ Fix hint: 對齊上游子類命名，不要自創新子類。
 - `missing_suggested_filename`
 - `usage_too_brief`
 - `category_not_in_spec_basic`
+- `assets_visual_total_mismatch`
+- `assets_audio_total_mismatch`

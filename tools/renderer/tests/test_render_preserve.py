@@ -148,6 +148,31 @@ def test_docs_template_has_lightbox(repo_root):
     assert "lightbox" in tpl.lower(), "docs template missing lightbox"
 
 
+def test_docs_preprocess_skips_self_referential_docs_section(render_module, tmp_path):
+    """docs sections may contain type=docs (AI self-reference) or type=prototype.
+    Both have NO sibling .md (docs → .html aggregator, prototype → .html standalone).
+    preprocess MUST drop both — otherwise SystemExit("docs section missing file: ...").
+    Previously only prototype was skipped (render.py:86-87) — docs case missed.
+    """
+    # Create only spec-basic.md (so non-skipped sections pass)
+    (tmp_path / "feature.json").write_text('{"slug": "feat"}', encoding="utf-8")
+    (tmp_path / "feat-spec-basic.md").write_text("# spec-basic", encoding="utf-8")
+    data = {
+        "feature": {"name": "f", "slug": "feat"},
+        "sections": [
+            {"title": "企畫版", "type": "spec-basic"},
+            {"title": "原型",   "type": "prototype"},   # historically skipped
+            {"title": "文件",   "type": "docs"},         # self-ref — MUST also skip
+        ],
+    }
+    # preprocess must not raise on the self-referential docs entry
+    out = render_module.preprocess("docs", data, tmp_path)
+    types_remaining = [s["type"] for s in out["sections"]]
+    assert "prototype" not in types_remaining, "prototype section not skipped"
+    assert "docs" not in types_remaining, "self-referential docs section not skipped"
+    assert "spec-basic" in types_remaining, "non-self-ref section was dropped"
+
+
 def test_docs_template_has_sidebar(repo_root):
     tpl = (repo_root / "templates" / "docs.html.tmpl").read_text(encoding="utf-8")
     assert "sidebar" in tpl.lower(), "docs template missing sidebar"
@@ -216,17 +241,16 @@ def test_wireframe_styleguide_renders_all_primitives(repo_root):
     assert not missing, f"styleguide missing demo for: {missing}"
 
 
-def test_docs_template_has_unique_heading_id_logic(repo_root):
-    """markdown's toc extension slugifies Chinese headings to ASCII-only ids
-    like `_1` `_2` — multiple panels then have colliding ids, and
-    getElementById always returns the first hit (often in a hidden panel)
-    → TOC links appear broken. Template must prefix every heading id with
-    its panel.id at load time."""
+def test_docs_template_isolates_master_namespaces(repo_root):
+    """Each .panel is a master page (spec-basic / api-explorer / ...). All ids
+    inside MUST be scoped to `master.original-id` so cross-master collisions
+    can't happen — previously cost us the «sidebar API 試打 → jumps to 技術版»
+    regression because both panels had `<a id="api-checkin-config">`.
+    The covering tests live in test_docs_master_sub_anchors.py; this guards
+    the template-level presence of the mount function."""
     tpl = (repo_root / "templates" / "docs.html.tmpl").read_text(encoding="utf-8")
-    assert "uniquifyHeadingIds" in tpl, "docs template missing heading id uniquifier"
-    assert "panel.id + '__'" in tpl, "uniquifier must prefix with panel.id"
-    # also assert it's actually invoked on load
-    assert "uniquifyHeadingIds()" in tpl, "uniquifier defined but never called"
+    assert "mountSubDocIntoMaster" in tpl, "docs template missing master-namespace isolator"
+    assert "mountSubDocIntoMaster()" in tpl, "isolator defined but never invoked at load"
 
 
 def test_wireframe_containers_have_max_width(repo_root):

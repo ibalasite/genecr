@@ -23,6 +23,7 @@ from pipeline_orchestrated import (
 
 
 def test_load_upstream_collects_input_json_files(tmp_path):
+    """Backward-compat: depends_on=None loads all sibling input.json (legacy)."""
     (tmp_path / "spec-basic.input.json").write_text(
         json.dumps({"x": 1}), encoding="utf-8"
     )
@@ -33,6 +34,41 @@ def test_load_upstream_collects_input_json_files(tmp_path):
 
     data = _load_all_upstream("bdd", tmp_path)
     assert data == {"spec-basic": {"x": 1}, "assets": {"y": 2}}
+
+
+def test_load_upstream_respects_empty_depends_on(tmp_path):
+    """spec-basic has no upstream (depends_on=[]).
+    Loader must return {} even with sibling input.json present, to keep
+    fixer prompt small (claude CLI silently fails on >~50KB prompts).
+    """
+    for name in ("spec-basic", "assets", "bdd", "scrum", "spec-advanced"):
+        (tmp_path / f"{name}.input.json").write_text(
+            json.dumps({"big": "x" * 30000}), encoding="utf-8"
+        )
+    data = _load_all_upstream("spec-basic", tmp_path, depends_on=[])
+    assert data == {}, f"spec-basic should have no upstream; got {list(data.keys())}"
+
+
+def test_load_upstream_respects_depends_on_subset(tmp_path):
+    """assets depends only on spec-basic — must NOT load bdd/scrum/etc."""
+    for name in ("spec-basic", "assets", "bdd", "scrum", "spec-advanced", "prototype", "docs"):
+        (tmp_path / f"{name}.input.json").write_text(
+            json.dumps({"name": name}), encoding="utf-8"
+        )
+    data = _load_all_upstream("assets", tmp_path, depends_on=["spec-basic"])
+    assert set(data.keys()) == {"spec-basic"}, f"unexpected keys: {list(data.keys())}"
+    assert data["spec-basic"] == {"name": "spec-basic"}
+
+
+def test_load_upstream_depends_on_missing_file_silently_skipped(tmp_path):
+    """If a declared dep's input.json doesn't exist yet, just skip it
+    (don't raise) — generator may be running before downstream."""
+    (tmp_path / "spec-basic.input.json").write_text(
+        json.dumps({"ok": True}), encoding="utf-8"
+    )
+    # assets.input.json intentionally missing
+    data = _load_all_upstream("bdd", tmp_path, depends_on=["spec-basic", "assets"])
+    assert data == {"spec-basic": {"ok": True}}
 
 
 def test_schema_validator_returns_strings_on_error():

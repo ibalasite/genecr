@@ -44,3 +44,6 @@ gui/__pycache__/
 
 # Inno Setup build artifacts
 installer/dist/
+
+# Local debug screenshots (Playwright audit)
+screenshots/

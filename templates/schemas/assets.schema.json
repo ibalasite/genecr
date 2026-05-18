@@ -17,7 +17,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "name", "type", "category", "owner_role", "output_format", "suggested_filename", "usage"],
+        "required": ["id", "name", "type", "category", "owner_role", "output_format", "suggested_filename", "usage", "production_prompt"],
         "properties": {
           "id": {"type": "string"},
           "name": {"type": "string"},
@@ -51,6 +51,11 @@
           "spec": {
             "description": "規格 — 字串或字串陣列；一行一條",
             "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]
+          },
+          "production_prompt": {
+            "type": "string",
+            "minLength": 15,
+            "description": "給 AI 或美術人員產出這個資源的指引（統一一欄，不分類型）。視覺類（image/animation/particle/video）建議寫英文 T2I/T2V prompt 含 subject + style + composition；sound 寫音色/長度/情境；font 寫字型風格/字重/字符集。≥ 15 字。"
           },
           "image_prompt": {"type": "string"},
           "negative_prompt": {"type": "string"},

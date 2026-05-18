@@ -89,6 +89,28 @@ count of every asset category the feature needs. Downstream `assets` will
 be checked mechanically against these counts (program-side count, not AI
 self-report).
 
+### resource_counts.visual_total / audio_total（必填整數）
+
+`resource_counts` 必須包含 `visual_total` (整數) 與 `audio_total` (整數)。
+- `visual_total` = 美術實體總數（image + animation + particle + video + font 你預期會交付的個別檔案數，例如 7 個 D-day 格子圖算 7 不是 1 種規格）。
+- `audio_total` = 音效檔總數（sound 的個別檔案數）。
+
+這兩個數字下游 assets step 必須對齊（`Counter(assets[].type)` 美術類加總 == visual_total、sound 加總 == audio_total），不符會被 cross_check 擋下。
+
+### 6 大類自檢（不可整類遺漏，漏列等於沒思考過）
+
+對下列每一類明確判斷此 feature 是否需要。需要就列子類與數量，不需要才省略該 key：
+
+- **image**：所有靜態圖片（背景、按鈕、icon、卡片、橫幅、狀態圖、彈窗素材） — 幾乎所有 UI feature 都需要
+- **animation**：動畫（領取、慶祝、彈窗開啟、狀態切換等 Lottie/AE）
+- **sound**：音效（按鈕點擊、領獎、倒數、警示） — 有互動就需要
+- **video**：影片（教學、過場、宣傳） — 多數不需要
+- **font**：特殊字型（主視覺數字、品牌字）
+- **particle**：粒子特效（金幣、光點、煙火）
+
+思考順序：先想 UI 有哪些畫面 → 每個畫面有哪些圖、動畫、音效 → 彙整成子類計數。
+**禁止只給 animation/font/particle 卻漏 image/sound**（reviewer 會擋）。
+
 ### Format — 必為 nested dict 子類拆分（reviewer R12 強制）
 
 每個 asset 大類（image / animation / sound / video / font / particle /
@@ -128,30 +150,33 @@ Bookkeeping 欄位允許純整數：`modules` (功能模組數)、`acceptance_cr
 
 Write real integers — no `<N>` placeholders.
 
-## TIMELINE — 估時原則（有 AI 協助，往下調，reviewer R13 強制）
+## TIMELINE — 估時公式（純 spec-basic 自洽，不准依下游）
 
-每個 `timeline[]` phase 必填 `duration_weeks` (integer)。`duration` 是
-human-readable（"2 週"），`duration_weeks` 是 cross_check 對齊 scrum
-points 用的數字。
+每個 `timeline[]` phase 必填 `duration_weeks` (integer)。
 
-**估時公式**（reviewer R13 + cross_check 程式自動算）：
+**Per-role budget**（4 主要角色平行做，elapsed = max(per-role) / 5 無條件進位整數週）：
+
+| role | day/item coef | metric 來源（**全在 spec-basic 內部**） |
+|---|---|---|
+| `art` | 0.2 day | 加總 `resource_counts` 內 art types（image/animation/sound/video/font/particle nested dict 總值）|
+| `server_engineer` | 1.0 day | `resource_counts.api_endpoints`（**整數，AI 自報**）|
+| `client_engineer` | 0.67 day | `len(wireframes)` |
+| `planner` | 0.2 day | `len(user_journey) + len(admin_journey) + len(matrix.rows)` + 固定 5 |
+
+**total_weeks 算法**：
 
 ```
-total_days = wireframes × 0.5            # client
-           + apis × 0.4 + tables × 0.2   # server
-           + asset_sub_categories × 0.05  # art
-           + 1.5                          # planner + po
-total_weeks = total_days / 5
+total_weeks = ceil(max(art_days, server_days, client_days, planner_days) / 5)
 ```
 
-容差 ±30%。**不准用「小/中/大」主觀分類** — 用具體公式算。
+無條件進位成整數週（半週半天不能上線）。
+`timeline[*].duration_weeks` 加總必須**剛好等於** total_weeks（不可多、不可少）。
 
-範例對照（本 case 量級）：
-- 6 wf + 8 api + 7 tables + 30 sub-cats → total_days ≈ 10.6 → **total_weeks ≈ 2**
-- 12 wf + 15 api + 12 tables + 50 sub-cats → ≈ 23 days ≈ 4.6 週
-- 25 wf + 30 api + 25 tables + 100 sub-cats → ≈ 47 days ≈ 9.5 週
+範例：8 api → server 8 day；43 asset → art 8.6 day；7 wf → client 4.69 day；5 sect → planner 1 day → max 8 day → ceil(8/5) = **2 週**
 
-**有 AI 協助**，傳統「4 週 + 3 週」估時錯了 — 7 頁畫面該 ≤ 2 週。
+**有 AI 協助**，傳統「4 週 + 3 週」估時錯了 — 此公式是按 1 點 = 1 工作天校準。
+
+**為什麼公式只看 spec-basic 自己**：spec-basic 是 step 1，重生時下游（spec-advanced/assets/scrum）不存在或可能 stale。所以 `api_endpoints` 必須由 AI 在 spec-basic 就自報，不靠去讀 spec-advanced。下游 step 自己會驗 sa.apis 實際數 vs sb.api_endpoints 自報數是否對齊。
 
 ## TASK
 Print a single JSON object to STDOUT. **Nothing else.** No markdown fences,
@@ -205,13 +230,82 @@ For EACH competitor, fill these fields (not just `highlight`):
 
 5. 任何 wf-* class 必須出現在 wireframe-dsl.md 第 3 節登記表，不可自創。
 
+6. **wf-row 限制 (inline-only)**：wf-row 的直接 children 必須是 inline class
+   (`wf-pill` / `wf-tag` / `wf-btn` / `wf-link` / `wf-icon` / `wf-line` /
+   `wf-helper` 等)。禁止 `wf-panel` / `wf-card` / `wf-board` / `wf-banner` /
+   `wf-table` 等 block primitive 當 wf-row 直接 child — 會撐爆 mobile 寬度。
+   - ❌ `<div class="wf-row"><div class="wf-panel">D1</div><div class="wf-panel">D2</div></div>`
+   - ✅ 要做格子網格用 `wf-pill` 排成多個 `wf-row`：
+     `<div class="wf-stage"><div class="wf-row"><span class="wf-pill">D1</span><span class="wf-pill">D2</span></div><div class="wf-row">…</div></div>`
+   - ✅ 要堆 panel 改用 `wf-stage` 直接包多個 `wf-panel` 縱向疊放，不要塞進 wf-row。
+   - 例外：`wf-modal` 子樹內 wf-row 可放 wf-panel（modal 自有寬度，
+     side-by-side 選擇樣式合法）。
+   - 違反 → reviewer `wireframe_row_contains_block` + cross_check 擋。
+
 ### Output 格式
 
-Output a `wireframes` array (3-6 entries) covering the major UI screens of this feature
-(e.g. 主畫面 / 領獎彈窗 / 排行榜 / 設定頁 / 空狀態，依功能性質挑選). Each entry:
+## ADMIN JOURNEY — 有後台時必填
+
+`spec-basic.input.json` 必含 `admin_journey: []` — 跟 `user_journey` 結構同
+（action / detail / role optional），但描述**管理員**的後台操作流程：
+
+**Admin self-consistency 雙向強制**（cross_check 程式驗）：
+- 有任一 wireframe `name` 含「後台」/`admin` → `admin_journey` 必非空（reviewer `admin_journey_missing` 擋）
+- `admin_journey` 非空 → 必有對應 admin wireframe（reviewer `admin_wireframe_missing_for_journey` 擋）
+- 兩個都沒 → OK（純玩家 feature）
+- 沒 admin wireframe → 可省略 `admin_journey`
+
+**下游 prototype 規定**：proto-help「下一步」陣列長度 = `user_journey.length + admin_journey.length`（每步 1:1 對應），AI 不准取捨。這直接決定 prototype 演示有沒有走完整。
+
+範例見 canonical `spec-basic.input.json` `admin_journey`。
+
+## WIREFRAMES
+
+Output a `wireframes` array covering **every distinct UI screen** this
+feature touches. **No arbitrary upper cap** — list them all. Sources you
+MUST scan:
+
+- **每個 `user_journey` 步驟** → 對應一個玩家畫面（主畫面、彈窗、領獎成功 …）
+- **每個 `/admin/`、`/internal/`、`/dashboard/`、`/console/` API 路徑** → 對應一個後台畫面。後台不是「一張籠統管理頁」— 每個獨立功能（設定面板、玩家記錄列表、報表、權限管理 …）算**獨立 wireframe**
+- **每個錯誤狀態（401/403/404/空資料）** → 對應一個空狀態 / 錯誤頁
+- **每個 modal / 確認框 / 提示彈窗** → 算獨立 screen
+
+範例分類（依 feature 性質實際挑）：
+- 玩家：主畫面 / 領獎彈窗 / 排行榜 / 設定頁 / 空狀態 / 斷簽提示
+- **後台 (admin)**：活動設定面板 / 玩家記錄列表 / 後台儀表板 / 權限管理
+
+每筆 entry：
 ```json
 {"name":"主畫面","desc":"一句話描述","html":"<div class=\"wf-scope\">…</div>"}
+{"name":"後台 — 玩家記錄列表","desc":"管理員依活動查玩家簽到狀態","html":"<div class=\"wf-scope\">…</div>"}
 ```
+
+**禁止**：把後台壓成一條「後台管理頁」；admin / scrum admin story / `/admin/`
+API 沒對應的獨立 wireframe（reviewer 會用 `wireframe_admin_uncovered` 擋）。
+
+### 後台 wireframe — class 硬規定（程式檢查擋）
+
+後台 (name 含「後台」/`admin`) 必須用 **desktop primitives**，**禁用 mobile/loading 元件**：
+
+**容器**：
+- ✅ `wf-desktop`（單面後台）或 `wf-desktop-app` + `wf-sidebar`（含左側導覽）
+- ❌ `wf-frame`（mobile/通用窄欄，後台**禁用**）
+
+**頂部 / 導覽**：`wf-topbar` + `wf-breadcrumb`
+
+**主內容區**：`wf-main`
+
+**表單**（活動設定、編輯）：
+- ✅ `wf-form-grid` > `wf-form-row` > 標籤 `wf-line` + 輸入 `<input class="wf-input">` / `<input class="wf-input-date">` / `<select class="wf-select">` / `<textarea class="wf-textarea">`
+- ❌ `<div class="wf-skeleton-pill">` 當輸入框（**禁用** — 那是 shimmer 讀取佔位）
+
+**表格**（玩家記錄、報表）：
+- ✅ `wf-toolbar`（搜尋 + 按鈕）→ `<div class="wf-table">` > `<div class="wf-tr">` > `<div class="wf-td">` → `wf-pagination`
+- ❌ 一排 `<span class="wf-pill">` 當欄位標題 + 另一排 pills 當資料（**禁用** — pill 是 28px 小徽章不是儲存格）
+
+**KPI / 報表**：`wf-cards-grid` > 多個 `wf-stat-card`
+
+違反任一條 → cross_check 自動發 issue：`admin_wireframe_wrong_container` / `admin_form_uses_skeleton_pill` / `admin_table_uses_pills`，fixer 必修。完整速查見 `templates/wireframe-dsl.md` 第 7 節。
 
 ### Wireframe DSL (low-fidelity, line-art only — no color, no brand styling)
 

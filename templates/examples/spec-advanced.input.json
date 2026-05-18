@@ -18,23 +18,184 @@
   },
   "apis": [
     {
-      "id": "api-xxx",
+      "id": "api-resource-get",
       "method": "GET",
-      "path": "/api/v1/<resource>",
-      "desc": "<一句話>",
-      "auth": "Bearer Token",
-      "reads": "<例如 MySQL.<table_name> / Redis:<key-pattern>>",
-      "writes": "<例如 MySQL.<table_name> / Redis:<key-pattern>>",
-      "query_params": [
-        {"name": "<param>", "type": "string", "default": "<default>", "desc": "<說明>"}
+      "path": "/api/v1/resources/{resource_id}",
+      "summary": "取得指定資源",
+      "description": "依 resource_id 取得單筆資源的完整資料。",
+      "auth": {
+        "required": true,
+        "type": "bearer",
+        "location": "header",
+        "name": "Authorization",
+        "format": "Bearer {token}",
+        "scopes": ["resource.read"]
+      },
+      "parameters": [
+        {"in": "path", "name": "resource_id", "type": "string", "required": true,
+         "description": "資源 ID", "example": "res_001"},
+        {"in": "query", "name": "include", "type": "string", "required": false,
+         "description": "額外欄位，逗號分隔", "example": "owner,history",
+         "enum": ["owner", "history", "owner,history"]}
       ],
-      "response_200": "{\n  \"code\": 200,\n  \"data\": { }\n}",
-      "response_errors": [
-        {"code": "401", "desc": "<未登入>"}
-      ],
-      "flow": ["<步驟 1>", "<步驟 2>"],
-      "perf": "<p95 < Xms / QPS Y>",
+      "responses": {
+        "200": {
+          "description": "成功",
+          "schema": {
+            "type": "object",
+            "required": ["code", "data"],
+            "properties": {
+              "code": {"type": "integer"},
+              "data": {
+                "type": "object",
+                "required": ["id", "name"],
+                "properties": {
+                  "id": {"type": "string", "description": "資源 ID"},
+                  "name": {"type": "string", "description": "顯示名稱"}
+                }
+              }
+            }
+          },
+          "example": {"code": 200, "data": {"id": "res_001", "name": "範例資源"}}
+        },
+        "401": {
+          "description": "未提供或無效 token",
+          "schema": {"type": "object", "properties": {
+            "code": {"type": "integer"}, "message": {"type": "string"}
+          }},
+          "example": {"code": 401, "message": "unauthorized"}
+        },
+        "404": {
+          "description": "資源不存在",
+          "schema": {"type": "object", "properties": {
+            "code": {"type": "integer"}, "message": {"type": "string"}
+          }},
+          "example": {"code": 404, "message": "resource not found"}
+        }
+      },
+      "rate_limit": {"per_minute": 600, "per_user": true},
+      "reads": "MySQL.resources / Redis:resource:{id}",
+      "writes": "Redis:resource:{id} (cache fill)",
+      "flow": ["驗證 Bearer Token", "查 Redis cache", "miss 時查 MySQL", "回寫 cache 並回傳"],
+      "perf": "p95 < 50ms, QPS 500",
       "related_bdd": ["sc-001"]
+    },
+    {
+      "id": "api-resource-create",
+      "method": "POST",
+      "path": "/api/v1/resources",
+      "summary": "建立資源",
+      "description": "建立一筆新資源並回傳。",
+      "auth": {
+        "required": true,
+        "type": "bearer",
+        "location": "header",
+        "name": "Authorization",
+        "format": "Bearer {token}",
+        "scopes": ["resource.write"]
+      },
+      "parameters": [
+        {"in": "header", "name": "Idempotency-Key", "type": "string", "required": false,
+         "description": "重試識別碼，相同 key 確保只建立一次", "example": "req_abc123"}
+      ],
+      "request_body": {
+        "required": true,
+        "content_type": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["name", "kind"],
+          "properties": {
+            "name": {"type": "string", "description": "資源名稱"},
+            "kind": {"type": "string", "description": "資源類別", "enum": ["A", "B"]},
+            "owner_id": {"type": "string", "description": "持有人 ID（選填）"}
+          }
+        },
+        "example": {"name": "範例資源", "kind": "A", "owner_id": "user_001"}
+      },
+      "responses": {
+        "201": {
+          "description": "建立成功",
+          "schema": {"type": "object", "required": ["code", "data"], "properties": {
+            "code": {"type": "integer"},
+            "data": {"type": "object", "properties": {"id": {"type": "string"}}}
+          }},
+          "example": {"code": 201, "data": {"id": "res_002"}}
+        },
+        "400": {
+          "description": "參數錯誤",
+          "schema": {"type": "object", "properties": {
+            "code": {"type": "integer"}, "message": {"type": "string"}, "field": {"type": "string"}
+          }},
+          "example": {"code": 400, "message": "name is required", "field": "name"}
+        },
+        "401": {
+          "description": "未提供或無效 token",
+          "schema": {"type": "object", "properties": {
+            "code": {"type": "integer"}, "message": {"type": "string"}
+          }},
+          "example": {"code": 401, "message": "unauthorized"}
+        }
+      },
+      "idempotency": {"required": false, "header": "Idempotency-Key"},
+      "rate_limit": {"per_minute": 60, "per_user": true},
+      "reads": "-",
+      "writes": "MySQL.resources",
+      "flow": ["驗證 Bearer Token", "驗證 body schema", "INSERT MySQL", "回傳 id"],
+      "perf": "p95 < 100ms, QPS 50",
+      "related_bdd": ["sc-002"]
+    },
+    {
+      "id": "api-resource-update",
+      "method": "PATCH",
+      "path": "/api/v1/resources/{resource_id}",
+      "summary": "更新資源",
+      "description": "部分更新指定資源的欄位。",
+      "auth": {
+        "required": true,
+        "type": "bearer",
+        "location": "header",
+        "name": "Authorization",
+        "format": "Bearer {token}",
+        "scopes": ["resource.write"]
+      },
+      "parameters": [
+        {"in": "path", "name": "resource_id", "type": "string", "required": true,
+         "description": "資源 ID", "example": "res_001"}
+      ],
+      "request_body": {
+        "required": true,
+        "content_type": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "name": {"type": "string", "description": "新名稱"},
+            "kind": {"type": "string", "enum": ["A", "B"]}
+          }
+        },
+        "example": {"name": "更新後名稱"}
+      },
+      "responses": {
+        "200": {
+          "description": "更新成功",
+          "schema": {"type": "object", "required": ["code"], "properties": {
+            "code": {"type": "integer"}
+          }},
+          "example": {"code": 200}
+        },
+        "404": {
+          "description": "資源不存在",
+          "schema": {"type": "object", "properties": {
+            "code": {"type": "integer"}, "message": {"type": "string"}
+          }},
+          "example": {"code": 404, "message": "resource not found"}
+        }
+      },
+      "rate_limit": {"per_minute": 100, "per_user": true},
+      "reads": "MySQL.resources",
+      "writes": "MySQL.resources / Redis:resource:{id} (invalidate)",
+      "flow": ["驗證 Bearer Token", "查資源存在", "UPDATE MySQL", "DEL Redis key"],
+      "perf": "p95 < 80ms, QPS 100",
+      "related_bdd": ["sc-003"]
     }
   ],
   "data_models": [

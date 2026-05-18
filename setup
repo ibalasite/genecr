@@ -139,6 +139,26 @@ _deploy_tools() {
   done
 }
 
+# ── install Python deps (jinja2/jsonschema/markdown/playwright) ──────────
+# Runs `pip install -r requirements.txt` then `playwright install chromium`.
+# Soft-fails: warns but doesn't abort install if pip or chromium download fails.
+_install_python_deps() {
+  local runtime="$1"
+  local req="$runtime/tools/renderer/requirements.txt"
+  [[ -f "$req" ]] || return 0
+  local py; py="$(_find_python)" || { log "[deps] Python 3 not found — skip pip install"; return 0; }
+  log "[deps] pip install -r tools/renderer/requirements.txt"
+  if ! "$py" -m pip install --quiet -r "$req"; then
+    log "[deps] ⚠ pip install failed — run manually: $py -m pip install -r $req"
+    return 0
+  fi
+  log "[deps] playwright install chromium (≈150MB, one-time)"
+  if ! "$py" -m playwright install chromium 2>&1 | tail -5; then
+    log "[deps] ⚠ chromium download failed — prototype layout audit will skip."
+    log "       Retry: $py -m playwright install chromium"
+  fi
+}
+
 # ── install ───────────────────────────────────────────
 _install_one() {
   local host="$1"
@@ -158,6 +178,7 @@ _install_one() {
   git clone "$REPO_URL" "$runtime"
   _deploy_skills "$runtime" "$skills_dst"
   _deploy_tools "$runtime"
+  _install_python_deps "$runtime"
 
   log ""
   log "[install:$host] 完成。重啟 $host 讓 skills 生效。"
@@ -186,6 +207,7 @@ _post_upgrade() {
   local skills_dst; skills_dst="$(_host_skills_dir "$host")"
   _deploy_skills "$runtime" "$skills_dst"
   _deploy_tools "$runtime"
+  _install_python_deps "$runtime"
   log "[upgrade:$host] 完成。"
 }
 

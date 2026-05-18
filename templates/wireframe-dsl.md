@@ -77,6 +77,50 @@
 
 ### 3.0 子排版規則（最重要）
 
+#### wf-row 組合規則 — 直接 children 必須是 inline primitives
+
+`wf-row` 是橫排 flex container，**直接 child** 必須是 **inline 級** primitive
+（在小寬度也只佔一行寬度的元件）。**禁止**塞 **block 級** primitive (整列/整塊容器) 進 wf-row 的直接 child — 會撐爆 mobile/desktop frame 寬度。
+
+- **inline 可放** `[inline]`：`wf-pill` / `wf-tag` / `wf-btn` / `wf-link` /
+  `wf-icon` / `wf-icon-slot` / `wf-helper` / `wf-line` / `wf-dot` / `wf-input` /
+  `wf-select` / `wf-check` / `wf-radio` / `wf-switch` / `wf-countdown` /
+  `wf-section-title` / `wf-text` / `wf-skeleton-line` / `wf-skeleton-pill` /
+  `wf-required` / `wf-badge`
+- **block 禁放** `[block]`：`wf-panel` / `wf-card` / `wf-board` / `wf-stage` /
+  `wf-banner` / `wf-table` / `wf-tr` / `wf-td` / `wf-modal` / `wf-form-row` /
+  `wf-toolbar` / `wf-pagination` / `wf-cards-grid` / `wf-stat-card` /
+  `wf-desktop` / `wf-desktop-app` / `wf-mobile` / `wf-frame` / `wf-info` /
+  `wf-appbar` / `wf-statusbar` / `wf-actionbar` / `wf-breadcrumb` / `wf-main` /
+  `wf-skeleton-block`
+
+要堆 block（例：上下疊多個 `wf-panel`）→ 改用 `wf-stage` 直接包：
+
+```html
+<!-- ❌ 撐爆寬度 -->
+<div class="wf-row">
+  <div class="wf-panel">D1</div>
+  <div class="wf-panel">D2</div>
+</div>
+
+<!-- ✅ wf-stage 縱向疊 panel -->
+<div class="wf-stage">
+  <div class="wf-panel">D1</div>
+  <div class="wf-panel">D2</div>
+</div>
+
+<!-- ✅ 要做 7 天格子網格：每排用 wf-pill 排列 -->
+<div class="wf-board">
+  <div class="wf-row"><span class="wf-pill">D1</span><span class="wf-pill">D2</span>…</div>
+  <div class="wf-row"><span class="wf-pill">D5</span><span class="wf-pill">D6</span>…</div>
+</div>
+```
+
+**例外**：`wf-modal` 子樹內 `wf-row` 允許放 `wf-panel`（modal 自有寬度，
+side-by-side 二選一彈窗合法）。
+
+違反 → cross_check `wireframe_row_contains_block` 擋；fixer 補回 inline 或重組結構。
+
 - **`.wf-panel` 預設兒童垂直 stack**（flex column gap 8px）。需要橫排請包進 `.wf-row`。
 - **`.wf-skeleton-{line,pill,block}` 是「空白占位」**，**禁止塞文字內容**。要文字行用 `.wf-line`；要段落用 `.wf-text`。違反此規則 reviewer R9 會擋。
 - `<span>` 子元素直接放 panel 不會自動橫排，必須包 `.wf-row`（reviewer R10 會擋）。
@@ -95,9 +139,17 @@
 | `.wf-frame` | 通用外框容器 | 2px solid --ink，圓角 20px |
 | `.wf-panel` | 白底卡片（默認垂直 stack） | 1.8px --line，圓角 12px，padding 12px |
 | `.wf-mobile` | 手機外框（375px wide） | 含 statusbar/appbar/...組合 |
-| `.wf-desktop` | 桌面外框 | 2px solid --ink，全寬 |
+| `.wf-desktop` | 桌面外框（單面，無 sidebar） | 960px max，flex column |
+| `.wf-desktop-app` | 桌面外框（含 sidebar app 模式） | 960px max，grid 240 + 1fr |
 | `.wf-statusbar / .wf-appbar / .wf-banner / .wf-marquee / .wf-stage / .wf-info / .wf-actionbar / .wf-shortcuts / .wf-bottomnav` | Mobile 內部各區塊（依 2.2 樹狀順序） | 各有預定 layout |
-| `.wf-sidebar / .wf-sidenav-item` | Desktop 左側導覽 + 項目 | aside 240px |
+| `.wf-topbar / .wf-hero / .wf-notice-bar / .wf-main / .wf-toolbar` | Desktop 內部各區塊（對應 mobile 的 appbar/banner/marquee/stage/actionbar） | flex/grid layout |
+| `.wf-breadcrumb` | 麵包屑導覽 | flex，> 分隔 |
+| `.wf-pagination` | 分頁器 | flex center，每項 28px 方塊 |
+| `.wf-form-row` | label + input 對 | grid 140 + 1fr，配 wf-line label |
+| `.wf-form-grid` | 多欄表單 | grid repeat(2, 1fr) |
+| `.wf-stat-card` | KPI 卡片 | 含 wf-line title + 數值 |
+| `.wf-cards-grid` | 桌面卡片網格（對應 mobile wf-shortcuts） | grid auto-fit minmax(220px, 1fr) |
+| `.wf-sidebar / .wf-sidenav-item` | Desktop 左側導覽 + 項目（搭配 wf-desktop-app） | aside 240px |
 | `.wf-modal` | 彈窗外框 | 300px，2px --ink |
 | `.wf-modal-icon / .wf-modal-title / .wf-modal-body / .wf-modal-meta / .wf-modal-actions` | 彈窗五件套 | 由上而下 |
 | `.wf-empty` | 空狀態 | 居中 muted 文字 |
@@ -310,6 +362,27 @@
 ```
 
 > 寫法 B 需要在 docs.html 內嵌 wireframe CSS（見 `wireframe-snippets.html` 第 1 節）。
+
+---
+
+## 7. 後台 wireframe 選 class 速查（admin-only quick-pick）
+
+後台/管理員畫面**禁用** mobile primitive（`wf-frame` 通用窄欄 / `wf-skeleton-pill` 讀取佔位 / `wf-pill` 當儲存格 / `wf-bottomnav`）。對應該用：
+
+| 場景 | 選什麼 |
+|---|---|
+| 容器（單面） | `wf-desktop` |
+| 容器（含 sidebar 應用） | `wf-desktop-app` + `wf-sidebar` |
+| 頂部 header | `wf-topbar` |
+| 麵包屑 | `wf-breadcrumb` |
+| 主內容區 | `wf-main` |
+| 表單區（多欄） | `wf-form-grid` > `wf-form-row` |
+| 表單列（單對 label+input） | `wf-form-row` (label 在 wf-line，input 在 wf-input/wf-input-date/wf-select/wf-textarea) |
+| 表格資料 | `wf-toolbar`（上方搜尋）→ `wf-table` > `wf-tr` > `wf-td` → `wf-pagination` |
+| KPI 數據卡 | `wf-cards-grid` > 多個 `wf-stat-card` |
+| Table 變體 | `wf-table--zebra`（條紋）/ `wf-table--hover`（hover 高亮） |
+
+**配合 cross_check 程式檢查**：spec-basic.wireframes 中 name 含「後台」/`admin` 的條目會被自動掃描，違反上面任一條 → reviewer fail（`admin_wireframe_wrong_container` / `admin_form_uses_skeleton_pill` / `admin_table_uses_pills`）。
 
 ---
 

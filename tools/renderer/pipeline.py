@@ -364,6 +364,7 @@ def execute_one(step: StepState, ai_cfg: dict, done: set[str], brief_file: Path)
                 ai_cfg=ai_cfg,
                 brief_file=brief_file,
                 run_dir=step.input_path.parent,
+                depends_on=step.depends_on,
             )
             if result.success:
                 changed = True
@@ -551,6 +552,7 @@ def _revalidate_one_step(step_name: str, steps: list[StepState], ai_cfg: dict,
         brief_file=brief_file,
         run_dir=step.input_path.parent,
         initial_data=initial_data,
+        depends_on=step.depends_on,
     )
     if not result.success:
         print(f"   ✗ {step.name}: {len(result.final_issues)} issue(s) unresolved after {result.attempts} round(s)")

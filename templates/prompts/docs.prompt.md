@@ -52,7 +52,13 @@ user-facing strings unless the brief uses an English technical term.
 ## UPSTREAM — all 6 prior step outputs
 
 docs is the integration document — sections[] references the 6 core docs.
-api_explorer[] entries MUST match `spec-advanced.apis` by id/method/path.
+api_explorer[] entries MUST match `spec-advanced.apis` by id/method/path
+AND copy through every Postman-grade field: `summary`, `description`,
+`auth` (full object), `parameters` (full array), `request_body` (when
+spec-advanced has it), `responses` (full object), `rate_limit`,
+`idempotency`. Do not drop or restructure fields — the API explorer UI
+depends on the full structure for tabbed input forms, schema rendering,
+auth handling, and mock validation.
 
 ### spec-basic
 

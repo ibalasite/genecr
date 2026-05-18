@@ -62,6 +62,51 @@ Check: `counts.api_endpoints` (if present) equals `len(apis)`;
 Path: `counts.*` ↔ `apis` / `data_models`
 Fail when: declared count differs from actual.
 
+### R10 — `api_auth_not_object`
+Check: every `apis[].auth` is a structured object (not a free-text string).
+Path: `apis[*].auth`
+Fail when: `auth` is a string like `"Bearer Token"` instead of `{required, type, ...}`.
+Fix hint: convert to `{"required": true, "type": "bearer", "location": "header", "name": "Authorization", "format": "Bearer {token}"}`.
+
+### R11 — `api_auth_required_no_type`
+Check: when `apis[].auth.required` is true, `apis[].auth.type` MUST be one of
+`bearer` / `api_key` / `cookie` / `basic` (not `none`).
+Path: `apis[*].auth.{required, type}`
+Fail when: `required=true` but `type=none` or `type` missing.
+
+### R12 — `api_params_contains_body`
+Check: no entry in `apis[].parameters[]` has `in == "body"`. Body fields belong
+in `apis[].request_body.schema.properties`, not parameters.
+Path: `apis[*].parameters[*].in`
+Fail when: any parameter has `"in": "body"`.
+
+### R13 — `api_write_no_request_body`
+Check: every endpoint with `method` in {POST, PUT, PATCH} has `apis[].request_body`
+with `schema` (not just example).
+Path: `apis[*].{method, request_body.schema}`
+Fail when: a write endpoint lacks `request_body` or `request_body.schema`.
+
+### R14 — `api_responses_no_success_or_error`
+Check: every `apis[].responses` contains at least one 2xx (success) status code
+AND at least one 4xx (client error) status code.
+Path: `apis[*].responses`
+Fail when: only 200 listed (no error), or only errors listed (no success).
+Fix hint: minimum {200 OR 201, 400 OR 401 OR 404}.
+
+### R15 — `api_response_no_schema`
+Check: every response entry under `apis[].responses[code]` has a `schema` field
+(not only `example`). Engineers need to know fields/types/required-ness without
+reverse-engineering the example payload.
+Path: `apis[*].responses[*].schema`
+Fail when: a response entry has `example` but no `schema`.
+
+### R16 — `api_rate_limit_missing`
+Check: when `apis[].perf` mentions a throughput number (regex matches `QPS\s*\d+`
+or `req/s` or `/min`), the endpoint also declares structured `rate_limit`.
+Path: `apis[*].{perf, rate_limit}`
+Fail when: `perf` references QPS but `rate_limit` is absent.
+Fix hint: `"rate_limit": {"per_minute": <n>, "per_user": true|false}`.
+
 ## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
 - `template_noise`
@@ -73,3 +118,10 @@ Fail when: declared count differs from actual.
 - `orphan_state`
 - `pseudocode_magic`
 - `count_inconsistent`
+- `api_auth_not_object`
+- `api_auth_required_no_type`
+- `api_params_contains_body`
+- `api_write_no_request_body`
+- `api_responses_no_success_or_error`
+- `api_response_no_schema`
+- `api_rate_limit_missing`

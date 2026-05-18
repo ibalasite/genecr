@@ -29,10 +29,28 @@ def _read(p: Path) -> str:
         return ""
 
 
-def _load_all_upstream(step_name: str, run_dir: Path) -> dict:
-    """Read every available *.input.json sibling so cross_check + reviewer
-    can see the full graph."""
+def _load_all_upstream(step_name: str, run_dir: Path, depends_on: list[str] | None = None) -> dict:
+    """Load upstream *.input.json siblings for cross_check + reviewer.
+
+    If `depends_on` is given, load ONLY those (declared dependency graph
+    from pipeline.json). This keeps fixer prompts small — claude CLI
+    silently fails (exit 0, empty stdout) on prompts > ~50KB, and
+    indiscriminately loading every sibling balloons the prompt to 165KB+.
+
+    If `depends_on` is None, falls back to legacy behavior (glob all
+    siblings) for backward compatibility with callers that don't know
+    the dependency graph.
+    """
     out = {}
+    if depends_on is not None:
+        for name in depends_on:
+            f = run_dir / f"{name}.input.json"
+            if f.exists():
+                try:
+                    out[name] = json.loads(f.read_text(encoding="utf-8"))
+                except Exception:
+                    pass
+        return out
     for f in run_dir.glob("*.input.json"):
         try:
             key = f.stem.replace(".input", "")
@@ -140,6 +158,23 @@ def make_subprocess_invoker(
     return invoke
 
 
+def _load_baseline_for_regression(step_name: str, run_dir: Path) -> dict | None:
+    """Read the previous {step}.input.json (if exists) and also fall back to
+    the most recent {step}.input.json.bak* — used as `baseline` so
+    check_no_regression can detect AI silently shrinking arrays during regen.
+    Returns None if no baseline available (first-time generation)."""
+    candidates = [run_dir / f"{step_name}.input.json"]
+    # Also check .bak* files (when forced regen has moved current input aside)
+    candidates.extend(sorted(run_dir.glob(f"{step_name}.input.json.bak*"), reverse=True))
+    for p in candidates:
+        if p.exists():
+            try:
+                return json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+    return None
+
+
 def orchestrated_call_ai_for_step(
     step_name: str,
     step_type: str,
@@ -148,26 +183,39 @@ def orchestrated_call_ai_for_step(
     run_dir: Path,
     max_rounds: int | None = None,
     initial_data: dict | None = None,
+    depends_on: list[str] | None = None,
 ) -> RunStepResult:
     """Run the program-orchestrated generate→review→fix loop for one step.
 
-    Reads existing upstream *.input.json files from run_dir.
+    `depends_on`: declared upstream step names (from pipeline.json). Only
+    those input.json files are loaded — prevents fixer prompt bloat past
+    claude CLI's ~50KB silent-fail threshold. If None, legacy glob-all
+    behavior is used.
+
     If `initial_data` is provided, generator is skipped — the loop starts
     by reviewing that data against current rules (revalidate mode).
     On success, writes the final accepted data to {step}.input.json.
     """
-    upstream = _load_all_upstream(step_name, run_dir)
+    upstream = _load_all_upstream(step_name, run_dir, depends_on=depends_on)
     ai_command = ai_cfg.get("command") or list(ai_cfg.get("commands", {}).values())[0]
+
+    # Snapshot baseline BEFORE regen — used by check_no_regression to detect
+    # AI silently shrinking arrays.
+    baseline = _load_baseline_for_regression(step_name, run_dir)
 
     invoker = make_subprocess_invoker(ai_command, step_type, brief_file, run_dir)
     schema_validate = _build_schema_validator(step_type)
+
+    # cross_check 嚴格用 depends_on 過濾後的 upstream — 禁止跨步驟偷下游 sibling.
+    def cross_check_with_baseline(step_name_arg, all_step_data):
+        return run_all_checks(step_name_arg, all_step_data, baseline=baseline)
 
     result = run_step(
         step_name=step_name,
         all_data=upstream,
         ai_invoker=invoker,
         schema_validate=schema_validate,
-        cross_check_fn=run_all_checks,
+        cross_check_fn=cross_check_with_baseline,
         max_rounds=max_rounds,
         initial_data=initial_data,
     )

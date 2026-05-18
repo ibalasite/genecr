@@ -34,17 +34,22 @@
     },
     "api_explorer": {
       "type": "array",
-      "description": "Interactive API Explorer config (preserved render feature)",
+      "description": "Interactive API Explorer config — Postman-grade per endpoint. Derived from spec-advanced.apis (pass through with same structured fields).",
       "items": {
         "type": "object",
-        "required": ["id", "method", "path"],
+        "required": ["id", "method", "path", "summary", "auth", "parameters", "responses"],
         "properties": {
           "id": {"type": "string"},
           "method": {"type": "string"},
           "path": {"type": "string"},
-          "desc": {"type": "string"},
-          "params": {},
-          "responses": {}
+          "summary": {"type": "string"},
+          "description": {"type": "string"},
+          "auth": {"type": "object"},
+          "parameters": {"type": "array"},
+          "request_body": {"type": "object"},
+          "responses": {"type": "object"},
+          "rate_limit": {"type": "object"},
+          "idempotency": {"type": "object"}
         }
       }
     }

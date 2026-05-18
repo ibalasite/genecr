@@ -137,15 +137,6 @@
 
 ## 十四、資源需求概覽
 
-{%- set visual_n = 0 -%}
-{%- set audio_n = 0 -%}
-{%- set rc = resource_counts | default({}) -%}
-{%- for t in ['image','animation','particle','video','font'] -%}
-{%- set subs = rc.get(t) -%}
-{%- if subs is mapping -%}{%- set visual_n = visual_n + (subs.values() | sum) -%}{%- endif -%}
-{%- endfor -%}
-{%- set snd = rc.get('sound') -%}
-{%- if snd is mapping -%}{%- set audio_n = (snd.values() | sum) -%}{%- endif %}
-- **美術資源**：約 {{ visual_n }} 個（image + animation + particle + video + font）
-- **音效資源**：約 {{ audio_n }} 個（sound）
+- **美術資源**：約 {{ resource_summary.visual_total }} 個（image + animation + particle + video + font）
+- **音效資源**：約 {{ resource_summary.audio_total }} 個（sound）
 - **工程複雜度**：{{ resources.engineering | default('參考 SCRUM 故事卡點數') }}

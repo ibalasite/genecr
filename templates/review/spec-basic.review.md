@@ -86,14 +86,84 @@ Path: `resource_counts.*`
 Fail when: 任一 asset 類別的值是 `int` 而非 `{子類: int}` dict。例外：`modules` / `acceptance_criteria` / `api_endpoints` 等 bookkeeping 欄位允許純整數。
 Fix hint: 拆子類別，例如 `"image": 24` → `"image": {"格子狀態圖": 21, "寶箱": 1, "二選一卡片": 2}`。
 
-### R13 — `timeline_overestimated`
-Check: `timeline[].duration_weeks` 總和 ≤ 公式預估週數 × 1.3。
-**公式**：total_days = wireframes×0.5 + apis×0.4 + tables×0.2 + asset_sub_cats×0.05 + 1.5 (planner+po)
-         total_weeks ≈ total_days / 5
-Path: `timeline[*].duration_weeks`
-Fail when: total_weeks > 公式預估週數 × 1.3
-Fix hint: 由 cross_check.check_role_workload_against_formula 程式算出，issue 含具體數字；縮短 phase 或合併。
-範例：6 wf + 8 api + 7 table + 30 sub-cats → total_days ≈ 10.6 → total_weeks ≈ 2.1 → max 2.7 週
+### R_visual_audio_totals — `resource_counts_total_missing`
+Check: `resource_counts.visual_total` 與 `resource_counts.audio_total` 必為整數且 >= 0。
+Path: `resource_counts.visual_total` / `resource_counts.audio_total`
+Fail when: 缺少或非整數。
+Fix hint: 補上 AI 自報的「美術實體總數」（image+animation+particle+video+font 個別檔案數）與「音效檔總數」。下游 assets step 的 Counter(assets[].type) 必須對齊這兩個數字。
+
+### R13 — `timeline_overestimated` / `timeline_underestimated`
+Check: spec-basic 純自洽（不讀任何下游 sibling）。
+**公式**（per-role budget，全從 sb 自有 bookkeeping）：
+- art = 0.2 × sum(resource_counts art types)
+- server = 1.0 × resource_counts.api_endpoints
+- client = 0.67 × len(wireframes)
+- planner = 0.2 × (len(user_journey) + len(admin_journey) + matrix.rows + 5)
+- **total_weeks = ceil(max(per-role-days) / 5)**（無條件進位整數週）
+
+Path: `timeline[*].duration_weeks` 總和
+Fail when: total != expected（overestimated 標 `timeline_overestimated`、underestimated 標 `timeline_underestimated`）
+Fix hint: cross_check.check_timeline_against_formula 程式算出，issue 含具體數字；調 phase 至 expected。
+範例：8 api + 43 asset + 7 wf + 5 sect → max(8, 8.6, 4.69, 1)=8.6 day → ceil(8.6/5) = **2 週**
+
+### R14 — `wireframe_admin_uncovered`
+Check: every `/admin/`、`/internal/`、`/dashboard/`、`/console/` endpoint in
+spec-advanced.apis has a matching `wireframes[]` entry whose name/desc
+references the admin function (fuzzy match on the last path segment or
+summary keyword).
+Path: `wireframes[*].name/desc` ↔ `spec-advanced.apis[*].path`
+Fail when: an admin/internal endpoint exists but no wireframe mentions it.
+Fix hint: 加一條獨立 wireframe，name 包含「後台」或對應功能（如「後台 — 玩家記錄列表」）。
+**禁止**把多個 admin 功能壓成一條「後台管理頁」。
+
+### R15c — `admin_wireframe_missing_for_journey`
+Check: if `admin_journey` non-empty, `wireframes[]` must contain at least
+one entry whose name 含「後台」/`admin`.
+Path: `wireframes[*].name` ↔ `admin_journey`
+Fail when: admin_journey exists but no admin wireframe to demo it.
+Fix hint: 加一條 wireframe，name 含「後台」+ 對應功能。
+
+### R15b — `admin_journey_missing`
+Check: if any `wireframes[].name` contains 「後台」/`admin`, `admin_journey`
+must be a non-empty array.
+Path: `admin_journey` ↔ `wireframes[*].name`
+Fail when: admin wireframe exists but admin_journey is missing or empty.
+Fix hint: 加 `admin_journey: [{"action":"建立活動","detail":"…","role":"admin"}, …]`，
+每一步對應一個後台操作；下游 prototype 用 admin_journey.length + user_journey.length
+決定「下一步」總步數，不可省略。
+
+### R15 — `wireframe_scrum_story_uncovered`
+Check: every `scrum.stories[]` whose title/description contains UI keywords
+(「UI」/「介面」/「面板」/「列表」/「畫面」/「dashboard」/「console」) has
+at least one matching `wireframes[]` entry covering the same surface.
+Path: `wireframes[*].name` ↔ `scrum.stories[*].title`
+Fail when: a UI-implying story has no covering wireframe.
+
+### R16 — `admin_wireframe_wrong_container`
+Check: every wireframe with `name` containing 「後台」/`admin` must use
+`wf-desktop` (or `wf-desktop-app` with sidebar) as its container, NOT
+`wf-frame` (mobile/通用窄欄).
+Path: `wireframes[*].html`
+Fail when: admin wireframe html lacks `wf-desktop` keyword.
+Fix hint: 把 `<div class="wf-frame">` 換成 `<div class="wf-desktop">`，
+單面用 `wf-desktop`、含 sidebar 用 `wf-desktop-app`。
+
+### R17 — `admin_form_uses_skeleton_pill`
+Check: admin wireframe html must NOT contain `wf-skeleton-pill`. That class
+is a shimmer loading placeholder, not a form input.
+Path: `wireframes[*].html`
+Fail when: admin wireframe contains `wf-skeleton-pill`.
+Fix hint: 改用 `<input class="wf-input">` / `<input class="wf-input-date">` /
+`<select class="wf-select">` / `<textarea class="wf-textarea">`，配
+`wf-form-row` 標籤對。
+
+### R18 — `admin_table_uses_pills`
+Check: admin wireframe must use `wf-table > wf-tr > wf-td` for tabular data.
+Pill rows (≥ 4 `wf-pill` in one `wf-row`) faking tables are forbidden.
+Path: `wireframes[*].html`
+Fail when: admin wireframe has a wf-row with 4+ wf-pill children but no wf-table.
+Fix hint: 改用 `<div class="wf-table"><div class="wf-tr"><div class="wf-td">玩家ID</div>…</div>…</div>`，
+搭配 `wf-toolbar`（上方搜尋）跟 `wf-pagination`（分頁）。
 
 ## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
@@ -109,4 +179,30 @@ Fix hint: 由 cross_check.check_role_workload_against_formula 程式算出，iss
 - `inline_children_no_row`
 - `class_not_in_dsl`
 - `resource_counts_must_be_nested`
+- `resource_counts_total_missing`
 - `timeline_overestimated`
+- `timeline_underestimated`
+- `wireframe_admin_uncovered`
+- `wireframe_scrum_story_uncovered`
+- `admin_journey_missing`
+- `admin_wireframe_missing_for_journey`
+- `admin_wireframe_wrong_container`
+- `admin_form_uses_skeleton_pill`
+- `admin_table_uses_pills`
+- `wireframe_row_contains_block`
+
+### R_wf_row_inline — `wireframe_row_contains_block`
+Check: 任一 wireframe `wf-row` 的直接 children 必須是 inline DSL primitives
+(`wf-pill` / `wf-tag` / `wf-btn` / `wf-link` / `wf-icon` / `wf-line` /
+`wf-helper` / `wf-input` / `wf-select` / `wf-checkbox` / `wf-radio` /
+`wf-countdown` / `wf-section-title` / `wf-text` / `wf-skeleton-pill` /
+`wf-skeleton-line` / `wf-dot`)。
+**禁止** block primitive (`wf-panel` / `wf-card` / `wf-board` / `wf-stage` /
+`wf-banner` / `wf-table` / `wf-cards-grid` / `wf-stat-card` 等) 當 wf-row
+直接 child — 會撐爆 mobile/desktop frame 寬度。違規 emit
+`wireframe_row_contains_block`。
+Path: `wireframes[*].html`
+Fail when: 任一 wf-row 元素直接 child 帶有 block class（wf-modal 子樹除外，
+modal 自有寬度合法允許 side-by-side 選擇 wf-panel）。
+Fix hint: 想做格子網格用 `<span class="wf-pill">…</span>` 排成多個 wf-row；
+想堆 panel 用 `wf-stage` 直接包多個 `wf-panel` 縱向疊放，不要塞 wf-row。

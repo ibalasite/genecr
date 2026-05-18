@@ -59,6 +59,7 @@ The number of assets you list per category MUST EXACTLY MATCH
 - Counts off by even 1 → fail
 - A category in resource_counts with no assets listed → fail
 - An asset whose `type` is not a category in resource_counts → fail
+- `Counter(assets[].type)` 美術類（image+animation+particle+video+font）加總必須 == upstream `spec-basic.resource_counts.visual_total`；`sound` 加總必須 == `audio_total`。違反會被 cross_check 擋下（`assets_visual_total_mismatch` / `assets_audio_total_mismatch`）。
 
 ```json
 {spec_basic_content}
@@ -88,7 +89,11 @@ suggested_filename  # ★ snake_case + 副檔名，含 feature_slug 前綴
                     #   例如「checkin7_banner_main.png」「checkin7_sfx_claim_success.mp3」
 usage           # ★ ≥20 字，寫清 where（哪畫面）/ when（什麼時機）/ what for（用途）
 spec            # 字串陣列（推薦）或字串。一行一條規格。例如 ["主視覺橫幅", "支援 zh/en/es 三語文字疊圖"]
-image_prompt    # 視覺類必填（image/animation/particle）：英文 prompt 含 subject + style + composition
+production_prompt  # ★ 全類型必填，≥ 15 字。給 AI / 美術產出這資源的指引（統一一欄，不分類型）
+                #   image / animation / particle / video：建議英文 T2I/T2V prompt 含 subject + style + composition
+                #   sound：寫音色 + 長度 + 情境，例「short upbeat coin-collect chime, 0.8s, bright synth」
+                #   font：寫字型風格 + 字重 + 字符集需求，例「圓潤無襯線繁中字型, Bold, 數字 0-9 + 常用 1000 字」
+image_prompt    # （legacy / 可選）視覺類英文 prompt — 若已寫在 production_prompt 內可省略
 ```
 
 **owner_role 對照表**（所有 6 種素材都歸 art — 同一角色用 AI 或手作）：

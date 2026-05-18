@@ -60,11 +60,91 @@ def validate_input(type_: str, data: dict) -> None:
         sys.exit(2)
 
 
-def preprocess(type_: str, data: dict, base_dir: Path) -> dict:
-    """Type-specific preprocessing. For 'docs', read .md files into HTML chunks.
-    Section filenames are derived from feature.slug + section.type — AI does not
-    control filenames. AI provides {title, type} per section; we compute md.
+def _attach_db_queries_to_tables(data: dict) -> dict:
+    """For spec-advanced: map each db_queries[] entry to a data_models[] table
+    via used_indexes (preferred) or SQL FROM/JOIN regex (fallback). Mutates
+    each table dict with `_related_queries`; unmapped queries collected to
+    `data["_orphan_queries"]`.
     """
+    import re
+    models = data.get("data_models") or []
+    queries = data.get("db_queries") or []
+    if not (models and queries):
+        return data
+
+    # Build index→table_name map
+    idx_to_table: dict[str, str] = {}
+    for m in models:
+        for idx in (m.get("indexes") or []):
+            if isinstance(idx, dict) and idx.get("name"):
+                idx_to_table[idx["name"]] = m["name"]
+            elif isinstance(idx, str):
+                # string form like "INDEX foo (col)" — extract name
+                mm = re.search(r"(?:INDEX|UNIQUE|PRIMARY\s+KEY)\s+`?(\w+)`?", idx)
+                if mm:
+                    idx_to_table[mm.group(1)] = m["name"]
+
+    # Prepare buckets
+    for m in models:
+        m["_related_queries"] = []
+    orphans: list = []
+
+    for q in queries:
+        target_tables: set[str] = set()
+        # 1) used_indexes → table
+        for idx_name in (q.get("used_indexes") or []):
+            if idx_name in idx_to_table:
+                target_tables.add(idx_to_table[idx_name])
+        # 2) fallback: regex FROM/JOIN
+        if not target_tables:
+            sql = q.get("sql", "") or ""
+            for m in models:
+                if re.search(r"\b(?:FROM|JOIN|INTO|UPDATE)\s+`?" + re.escape(m["name"]) + r"`?\b", sql, re.I):
+                    target_tables.add(m["name"])
+        if not target_tables:
+            orphans.append(q)
+            continue
+        for m in models:
+            if m["name"] in target_tables:
+                m["_related_queries"].append(q)
+
+    if orphans:
+        data["_orphan_queries"] = orphans
+    return data
+
+
+def preprocess(type_: str, data: dict, base_dir: Path) -> dict:
+    """Type-specific preprocessing.
+
+    Step isolation rule: per-step preprocess must use ONLY that step's own data
+    (no sibling-step file reads). spec-basic gets visual_total/audio_total
+    as AI-self-reported integers in resource_counts (schema-required); assets
+    derives summary from its own assets[] list. cross_check enforces the
+    contract between the two.
+
+    docs IS the aggregator — reading sibling .md and feature.json is its job.
+    """
+    if type_ == "spec-basic":
+        rc = data.get("resource_counts", {}) or {}
+        visual = int(rc.get("visual_total", 0) or 0)
+        audio = int(rc.get("audio_total", 0) or 0)
+        data["resource_summary"] = {
+            "visual_total": visual,
+            "audio_total": audio,
+            "total": visual + audio,
+        }
+        return data
+    if type_ == "assets":
+        from collections import Counter
+        counts = Counter(a.get("type") for a in (data.get("assets") or []))
+        summary = {t: counts.get(t, 0) for t in ("image", "animation", "particle", "video", "font", "sound")}
+        summary["visual_total"] = sum(summary[t] for t in ("image", "animation", "particle", "video", "font"))
+        summary["audio_total"] = summary["sound"]
+        summary["total"] = summary["visual_total"] + summary["audio_total"]
+        data["resource_summary"] = summary
+        return data
+    if type_ == "spec-advanced":
+        return _attach_db_queries_to_tables(data)
     if type_ != "docs":
         return data
     import markdown as _md
@@ -81,10 +161,10 @@ def preprocess(type_: str, data: dict, base_dir: Path) -> dict:
         data["prototype_path"] = f"{slug}-prototype.html"
     md = _md.Markdown(extensions=["fenced_code", "tables", "toc", "attr_list"])
     # prototype is rendered as standalone .html and embedded via prototype_path
-    # (separate template block). Drop any prototype entry the AI included in
-    # sections[] — there is no sibling .md to read.
+    # (separate template block). docs is the aggregator itself (no sibling .md).
+    # Drop both from sections[] — neither has a .md to read.
     sections = [s for s in data.get("sections", [])
-                if s.get("type") != "prototype"]
+                if s.get("type") not in ("prototype", "docs")]
     data["sections"] = sections
     for s in sections:
         # Compute md filename deterministically: <slug>-<type>.md

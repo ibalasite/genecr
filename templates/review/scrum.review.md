@@ -66,7 +66,7 @@ Fail when:
 - 任一 owner_role 點數 > 公式預估 × 1.3（且超 1 點 slack）→ 切太細或估點高
 - 全部 stories 總點數 > total_days × 1.3
 - 任一 story points > 5 且描述含「+/與/整合/+ 測試」可分動詞 → 該拆
-Fix hint: 由 cross_check.check_role_workload_against_formula 程式計算，issue 內含實際數字差。
+Fix hint: 由 cross_check.check_scrum_workload + check_timeline_against_formula 程式計算，issue 內含實際數字差。
 
 ### R11 — `team_wording_used`
 Check: 文案中**不可**出現「團隊」/ 「Team」/ 「組」指代 owner。我們只有一個 scrum team。
@@ -83,6 +83,46 @@ Fail when:
 - 或任一邊偏離公式預估 total_days 超過 ±30%
 Fix hint: 由 cross_check 程式自動算出公式預估，issue 含具體數字；任一邊調整使對齊。
 
+### R `scrum_stories_have_legacy_teams_field`
+Check: stories[*] must NOT contain a `teams` field. We use `owner_role`
+(enum) only — single multi-role scrum team, no separate departments.
+Path: `stories[*].teams`
+Fail when: any story includes `teams` key.
+Fix hint: 移除 teams 欄位，全部資訊由 owner_role enum 表達。
+
+### R `role_points_exceeds_cap`
+Check: 任一 main role (server_engineer/client_engineer/planner/art) 加總
+points > 10 → fail.
+Path: stories[*].owner_role + points
+Fix hint: 拆 stories 或合併估點下降。
+
+### R `role_points_under_estimate`
+Check: 任一 main role 加總 < 公式預估 × 50% → 嚴重低估。
+Path: stories[*] vs cross_check `_role_budget_days`
+Fix hint: 補 stories 或調點。
+
+### R `story_too_large_split_needed`
+Check: 任一 story.points > 5 → 違反 INVEST Small。
+Path: stories[*].points
+Fix hint: 拆 2-3 個子 story（依 subtasks）。
+
+### R `epic_role_missing`
+Check: 4 主要 role (server_engineer/client_engineer/planner/art) 各必 1 epic。
+Path: epics[*].owner_role
+Fix hint: 補缺角色 epic。
+
+### R `story_no_epic_link`
+Check: 每 story.epic 必對應 epics[].id。
+Fix hint: 補 epic 或修 story.epic 指向。
+
+### R `po_owner_role_used`
+Check: 任一 story owner_role = po → PO 不開 work-item story。
+Fix hint: 該工作改歸 4 主要 role 之一；PO 工作體現於 epic.po_acceptance。
+
+### R `story_missing_subtasks`
+Check: 每 story 必含 subtasks list 子項目（min 1）。
+Fix hint: 列出實際 deliverable（1 API / 1 wireframe / 1 asset 等）。
+
 ## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
 - `template_noise`
@@ -97,3 +137,11 @@ Fix hint: 由 cross_check 程式自動算出公式預估，issue 含具體數字
 - `oversized_story`
 - `team_wording_used`
 - `timeline_scrum_mismatch`
+- `scrum_stories_have_legacy_teams_field`
+- `role_points_exceeds_cap`
+- `role_points_under_estimate`
+- `story_too_large_split_needed`
+- `epic_role_missing`
+- `story_no_epic_link`
+- `po_owner_role_used`
+- `story_missing_subtasks`

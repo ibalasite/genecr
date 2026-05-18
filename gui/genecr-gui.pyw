@@ -344,11 +344,26 @@ def deploy_genecr_python_native(host: str, log) -> bool:
                     log(f"  ⚠ pip 失敗：{r.stderr[:200]}")
             except Exception as e:
                 log(f"  ⚠ pip 例外：{e}")
-        for fname in ("render.py", "pipeline.py", "orchestrate.py"):
-            src = renderer / fname
-            if src.exists():
-                sh.copy2(src, bin_dir / fname)
-                log(f"  · tools/bin/{fname}")
+        # Copy ALL .py modules — pipeline.py imports cross_check / pipeline_orchestrated /
+        # review_loop. Hand-listed subset breaks at runtime (mirrors build.sh fix).
+        for src in renderer.glob("*.py"):
+            sh.copy2(src, bin_dir / src.name)
+            log(f"  · tools/bin/{src.name}")
+
+    # 3. playwright chromium download (~150MB, one-time, optional for prototype layout audit)
+    if req.exists():
+        log("[deploy] playwright install chromium (≈150MB, one-time)")
+        try:
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+            r = subprocess.run(
+                [sys.executable, "-m", "playwright", "install", "chromium"],
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                creationflags=creationflags, timeout=300,
+            )
+            if r.returncode != 0:
+                log(f"  ⚠ chromium 下載失敗（prototype layout audit 會跳過）：{r.stderr[:200]}")
+        except Exception as e:
+            log(f"  ⚠ playwright 例外（prototype layout audit 會跳過）：{e}")
 
     log(f"✅ deploy 完成")
     return True

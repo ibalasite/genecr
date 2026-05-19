@@ -27,7 +27,7 @@ GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.1.14"
+APP_VERSION = "0.1.15"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -120,20 +120,39 @@ def scan_history(root: Path) -> tuple[list[str], dict[str, Path]]:
     return order, seen
 
 
-def find_python() -> str:
-    """Find a real Python 3 (skip Microsoft Store stub)."""
+class SystemPythonMissing(RuntimeError):
+    """系統 Python 不在 PATH。Caller 必須觸發 ensure_system_python() 自動補齊。"""
+
+
+def embed_python() -> Path:
+    """安裝工具包 Python — genecr-gui.exe 旁邊的 python-embed/python.exe。
+
+    用途：pip install / playwright install / 協調安裝系統 Python / npm 裝 CLI / 部署 skills。
+    不負責跑 pipeline。檔不在就 raise（代表安裝工具包不完整，installer 出包）。
+    """
+    py = Path(sys.executable).parent / "python-embed" / "python.exe"
+    if not py.exists():
+        raise RuntimeError(f"安裝工具包不完整：{py} 不存在")
+    return py
+
+
+def find_python() -> Path:
+    """主程式環境 Python — PATH 上的系統 python.exe。
+
+    用途：跑 pipeline、跑 renderer。找不到就 raise SystemPythonMissing，
+    caller 必須呼叫 ensure_system_python() 自動補齊；禁止任何 fallback。
+    """
     for cand in ("python3", "python"):
         try:
-            r = subprocess.run([cand, "--version"], capture_output=True, text=True, timeout=3)
+            r = subprocess.run([cand, "--version"], capture_output=True,
+                               text=True, timeout=3)
             if r.returncode == 0 and r.stdout.startswith("Python 3"):
-                return cand
+                resolved = shutil.which(cand)
+                if resolved:
+                    return Path(resolved)
         except Exception:
             continue
-    # CRITICAL: don't fall back to sys.executable when frozen — it points to
-    # genecr-gui.exe itself, which causes infinite self-spawn loop.
-    if getattr(sys, "frozen", False):
-        return None  # caller must handle (show install-python prompt)
-    return sys.executable  # dev mode only — real python interpreter
+    raise SystemPythonMissing()
 
 
 # ─── Pure helpers (no UI; testable headless) ────────────────────
@@ -280,6 +299,100 @@ PREREQ_LABELS = {
 
 HOST_BIN = {"gemini": "gemini", "claude": "claude", "codex": "codex"}
 
+
+# ─── 系統 Python 自動修復 ────────────────────────────────────────
+# Wizard 第一次跑 prereq 走這個函式；runtime 抓到 SystemPythonMissing 也走這個函式。
+# 同一條路、同一份邏輯。協調動作由「安裝工具包」（embed Python）驅動 — 但實際呼叫
+# winget / 下載 / 跑 installer 都是 subprocess 系統指令，不需要 embed Python 解譯，
+# 所以可以直接執行（解雞生蛋：系統還沒 Python 時也能把系統 Python 裝起來）。
+
+def _refresh_path_from_registry() -> None:
+    """從 registry 讀新的 Path，merge 進當前 os.environ['PATH']。
+
+    安裝完 Python / Node 後 PATH 寫進 registry，但當前 process 的 env 是啟動 snapshot，
+    要重開才會生效。這函式手動讀 registry 把新值合進來，免 user 重開 GUI。
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import winreg
+        parts: list[str] = []
+        for hive, sub in [
+            (winreg.HKEY_LOCAL_MACHINE,
+             r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"),
+            (winreg.HKEY_CURRENT_USER, r"Environment"),
+        ]:
+            try:
+                with winreg.OpenKey(hive, sub) as k:
+                    val, _ = winreg.QueryValueEx(k, "Path")
+                    parts.append(os.path.expandvars(val))
+            except FileNotFoundError:
+                continue
+        if parts:
+            merged = os.pathsep.join(parts + [os.environ.get("PATH", "")])
+            # 去重保序
+            seen: set[str] = set()
+            dedup = []
+            for p in merged.split(os.pathsep):
+                if p and p not in seen:
+                    seen.add(p)
+                    dedup.append(p)
+            os.environ["PATH"] = os.pathsep.join(dedup)
+    except Exception:
+        pass
+
+
+def ensure_system_python(log=lambda m: None) -> bool:
+    """確保系統 PATH 上有 Python 3。回 True 代表完成、False 代表所有 fallback 都失敗。
+
+    Wizard prereq + runtime 自動修復共用入口。流程：
+      1. 已經有就直接 True
+      2. winget install Python.Python.3.13
+      3. 直接下載 python.org 官方 .exe 跑 /quiet PrependPath=1
+      4. 每步完都 refresh PATH，再 find_python() 驗證
+    """
+    try:
+        find_python()
+        return True
+    except SystemPythonMissing:
+        pass
+
+    methods = PREREQ_METHODS.get("python", [])
+    for i, method in enumerate(methods, 1):
+        kind = method[0]
+        log(f"--- 嘗試安裝 Python ({kind}) ---")
+        try:
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+            if kind == "winget":
+                if not shutil.which("winget"):
+                    continue
+                subprocess.run(method[1], capture_output=True, text=True,
+                               encoding="utf-8", errors="replace",
+                               creationflags=creationflags, timeout=600)
+            elif kind == "download":
+                import urllib.request, tempfile
+                url = method[1]; args = method[2]
+                fname = url.split("/")[-1]
+                tmp = Path(tempfile.gettempdir()) / fname
+                with urllib.request.urlopen(url, timeout=120) as r, open(tmp, "wb") as f:
+                    while chunk := r.read(65536):
+                        f.write(chunk)
+                subprocess.run([str(tmp)] + args, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace",
+                               creationflags=creationflags, timeout=600)
+        except Exception as e:
+            log(f"  例外：{e}")
+            continue
+
+        _refresh_path_from_registry()
+        try:
+            find_python()
+            return True
+        except SystemPythonMissing:
+            continue
+
+    return False
+
 # Local OAuth credential file paths (for zero-token login state check).
 # Verified by listing actual ~/.gemini/, ~/.codex/, ~/.claude/ — these are
 # the files each CLI creates after a successful login.
@@ -358,23 +471,20 @@ def deploy_genecr_python_native(host: str, log) -> bool:
             log(f"  · {child.name}")
 
     # 2. Deploy tools — pip install + copy py files
+    # 用「安裝工具包」（embed Python）跑 pip / playwright，跟系統 Python 完全脫鉤。
     renderer = runtime / "tools" / "renderer"
     bin_dir = runtime / "tools" / "bin"
-    # CRITICAL: use real system python, NOT sys.executable.
-    # In frozen PyInstaller mode sys.executable = genecr-gui.exe — calling it
-    # via subprocess.run would spawn a new GUI instance (infinite self-spawn loop).
-    py = find_python()
-    if py is None:
-        log("  ⚠ 找不到 system Python — 跳過 pip install / playwright chromium")
-        log("     請先安裝 Python 3 (https://python.org)，再 retry deploy")
-        py_ok = False
-    else:
-        py_ok = True
+    try:
+        py = str(embed_python())
+        tools_ok = True
+    except RuntimeError as e:
+        log(f"  ⚠ {e}")
+        tools_ok = False
 
     if renderer.exists():
         bin_dir.mkdir(parents=True, exist_ok=True)
         req = renderer / "requirements.txt"
-        if req.exists() and py_ok:
+        if req.exists() and tools_ok:
             log(f"[deploy] pip install -r {req}")
             try:
                 creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
@@ -394,7 +504,7 @@ def deploy_genecr_python_native(host: str, log) -> bool:
             log(f"  · tools/bin/{src.name}")
 
     # 3. playwright chromium download (~150MB, one-time, optional for prototype layout audit)
-    if req.exists() and py_ok:
+    if req.exists() and tools_ok:
         log("[deploy] playwright install chromium (≈150MB, one-time)")
         try:
             creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
@@ -516,7 +626,6 @@ class GenecrGUI(tk.Tk):
 
         self.genecr_dir = detect_genecr_dir()
         self.host = detect_host(self.genecr_dir) if self.genecr_dir else "unknown"
-        self.python = find_python()
         self.proc = None
         self.run_dir: Path | None = None
         self.history_map: dict[str, Path] = {}
@@ -1240,13 +1349,75 @@ class GenecrGUI(tk.Tk):
         pipeline_json = self.genecr_dir / "pipeline.json"
         pipeline_py = self.genecr_dir / "tools" / "bin" / "pipeline.py"
 
+        py = self._resolve_runtime_python_or_repair()
+        if py is None:
+            self._set_running_ui(False)
+            return
+
         cmd = [
-            self.python, "-u",  # unbuffered stdout for live progress
+            str(py), "-u",  # unbuffered stdout for live progress
             str(pipeline_py), str(pipeline_json),
             "--new", "--slug", slug, "--name", name, brief,
         ]
         # Run from outdir so output/ goes there
         threading.Thread(target=self._run_pipeline, args=(cmd, outdir, slug), daemon=True).start()
+
+    def _resolve_runtime_python_or_repair(self) -> Path | None:
+        """回主程式環境 Python 的絕對路徑。找不到就自動跑修復流程。
+
+        全自動，無任何「請 user 安裝」之類技術指引。修復成功回 Path，全失敗回 None
+        並彈「無法自動修復，請聯絡支援」+ 一鍵回報。
+        """
+        try:
+            return find_python()
+        except SystemPythonMissing:
+            pass
+
+        # 彈進度視窗 — 文字只准「準備中／修復中／完成／聯絡支援」四種狀態
+        win = tk.Toplevel(self)
+        win.title("準備中")
+        win.geometry("420x160")
+        win.transient(self)
+        try: win.grab_set()
+        except Exception: pass
+        win.update_idletasks()
+        x = (win.winfo_screenwidth() - 420) // 2
+        y = (win.winfo_screenheight() - 160) // 2
+        win.geometry(f"+{x}+{y}")
+        ttk.Label(win, text="正在準備執行環境…", font=("Microsoft JhengHei", 12, "bold")).pack(pady=(24, 8))
+        status = tk.StringVar(value="修復中…")
+        ttk.Label(win, textvariable=status, foreground="#555").pack(pady=4)
+        pb = ttk.Progressbar(win, mode="indeterminate", length=320)
+        pb.pack(pady=10)
+        pb.start(10)
+        win.update()
+
+        result_holder: dict = {"py": None}
+
+        def worker():
+            ok = ensure_system_python(log=lambda m: status.set("修復中…"))
+            if ok:
+                try:
+                    result_holder["py"] = find_python()
+                except SystemPythonMissing:
+                    pass
+            self.after(0, finish)
+
+        def finish():
+            pb.stop()
+            win.destroy()
+            if result_holder["py"] is None:
+                # 全失敗才彈友善 dialog
+                from tkinter import messagebox as mb
+                if mb.askyesno("聯絡支援",
+                               "目前無法自動修復執行環境。\n要回報問題嗎？",
+                               parent=self):
+                    try: self._report_bug()
+                    except Exception: pass
+
+        threading.Thread(target=worker, daemon=True).start()
+        self.wait_window(win)
+        return result_holder["py"]
 
     def _run_pipeline(self, cmd: list[str], cwd: Path, slug: str):
         try:
@@ -1493,10 +1664,15 @@ class GenecrGUI(tk.Tk):
     def _run_regen_sequence(self, steps: list[str], slug: str):
         total = len(steps)
         try:
+            # 主程式環境 Python — 在背景 thread 進前先解析（已有就直接拿，失敗則自動修復）
+            py = self._resolve_runtime_python_or_repair()
+            if py is None:
+                self.after(0, self._set_running_ui, False)
+                return
             for i, step in enumerate(steps, 1):
                 self.after(0, self._update_progress, f"{i}/{total} {step}")
                 cmd = [
-                    self.python, "-u",
+                    str(py), "-u",
                     str(self.genecr_dir / "tools" / "bin" / "pipeline.py"),
                     str(self.genecr_dir / "pipeline.json"),
                     step,
@@ -1607,6 +1783,10 @@ class GenecrGUI(tk.Tk):
                         return False
                 return deploy_genecr_python_native("gemini", log)
 
+            # 系統 Python 用 ensure_system_python — wizard 跟 runtime 自動修復共用同一條路
+            if name == "python":
+                return ensure_system_python(log)
+
             # Try each method in PREREQ_METHODS in order
             methods = PREREQ_METHODS.get(name, [])
             for i, method in enumerate(methods, 1):
@@ -1649,7 +1829,7 @@ class GenecrGUI(tk.Tk):
                     log(f"✓ {PREREQ_LABELS[name]} 完成")
                 else:
                     set_status(name, "❌", "  安裝失敗")
-                    log(f"✗ {PREREQ_LABELS[name]} 失敗，請看上面訊息")
+                    log(f"✗ {PREREQ_LABELS[name]} 失敗")
                     start_btn.configure(state="normal", text="🔁 重試")
                     return
             # All installed → enable login button
@@ -1745,11 +1925,16 @@ class GenecrGUI(tk.Tk):
             self.host = prev_host
 
     def _restart(self):
-        """Restart this app so the wizard's installs take effect."""
+        """Restart this app so the wizard's installs take effect.
+
+        重啟用 sys.executable — 這支必定是 GUI 自己（無論直接執行 .pyw 還是 .exe），
+        重新跑 main() 會重新讀 registry / env，不需要 user 重開。
+        """
         try:
             os.execv(sys.executable, [sys.executable] + sys.argv)
         except Exception:
-            messagebox.showinfo("請手動重開", "安裝完成。請關閉並重新開啟視窗。", parent=self)
+            # 極端失敗才用 dialog；訊息只述狀態，不指示 user 動作
+            messagebox.showinfo("完成", "準備完成。", parent=self)
             self.destroy()
 
     # ─── Startup update check ──────────────────────────────────

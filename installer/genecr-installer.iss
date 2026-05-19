@@ -1,18 +1,18 @@
 ; genecr-installer.iss — Inno Setup 6 script
 ;
 ; Builds: installer/dist/genecr-installer-{version}.exe
-; Bundles: gui/dist/genecr-gui.exe (must be built first via gui/build-exe.ps1)
+; Bundles: gui/dist/genecr-gui.exe + gui/dist/python-embed/ （安裝工具包）
+;          兩者皆由 `python installer/build.py` 一鍵產出
 ;
 ; Output is a single-file Windows installer that:
 ;  - Installs to %LOCALAPPDATA%\Programs\genecr (no admin needed)
 ;  - Creates Start menu + Desktop shortcuts
 ;  - Registers in Apps & Features (uninstall via Settings)
 ;
-; Build:  iscc installer\genecr-installer.iss
-;   or:   .\installer\build-installer.ps1
+; Build:  python installer\build.py
 
 #define AppName       "genecr"
-#define AppVersion    "0.3.1"
+#define AppVersion    "0.3.2"
 #define AppPublisher  "ibalasite"
 #define AppURL        "https://github.com/ibalasite/genecr"
 #define ExeName       "genecr-gui.exe"
@@ -48,6 +48,9 @@ Name: "desktopicon"; Description: "建立桌面捷徑"; GroupDescription: "額�
 
 [Files]
 Source: "{#ExeSource}"; DestDir: "{app}"; Flags: ignoreversion
+; 安裝工具包 — 整個 python-embed/ 一起進 {app}\python-embed
+Source: "..\gui\dist\python-embed\*"; DestDir: "{app}\python-embed"; \
+    Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#ExeName}"

@@ -119,6 +119,14 @@ def _format_role_prompt(role: str, step_type: str, payload: dict, brief_file: Pa
                 .replace("{issues}", json.dumps(payload["issues"], ensure_ascii=False, indent=2))
                 .replace("{upstream_outputs}", json.dumps(payload["upstream"], ensure_ascii=False, indent=2)))
 
+    if role == "gen_fixer":
+        # Type-level fixer：窄 prompt 只修 JSON 格式錯，不動內容
+        template = _read(TEMPLATES / "prompts" / "_gen_fixer.prompt.md")
+        return (template
+                .replace("{step_type}", step_type)
+                .replace("{raw_text}", payload["raw"])
+                .replace("{parse_error}", payload["parse_error"]))
+
     raise ValueError(f"unknown role: {role}")
 
 

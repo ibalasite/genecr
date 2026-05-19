@@ -46,6 +46,60 @@ def _parse_json(raw: str) -> dict:
     return json.loads(raw)
 
 
+def _ensure_valid_json(initial_raw: str,
+                        gen_fixer_invoker: Callable[[str, str], str]) -> dict:
+    """Type-level loop：把 raw 收斂成合法 JSON dict（無 iter cap）。
+
+    每輪：① 程式 parse → ② 程式 json_repair → ③ AI gen_fixer（窄 prompt）。
+    任一步 OK 就 return。
+
+    收斂理論：gen_fixer prompt 寫死「只動格式不動內容」，每輪只可能變更好或不變；
+    剎車條件 = AI 兩次輸出完全相同（卡在同輸出無進展時 break，避免無限呼叫）。
+    """
+    raw = initial_raw
+    last_err: Exception | None = None
+    iteration = 0
+    same_count = 0  # AI 回同樣輸出累計次數；達 3 次認輸（給 AI 兩次隨機性機會）
+    while True:
+        iteration += 1
+        # tier 1: 程式直接 parse（含 fenced-block 容忍）
+        try:
+            return _parse_json(raw)
+        except Exception as e:
+            last_err = e
+        # tier 2: 程式 json_repair（無 AI cost，補逗號/括號/單引號/全形/註解等）
+        try:
+            from json_repair import repair_json
+            repaired = repair_json(raw)
+            return json.loads(repaired)
+        except Exception:
+            pass
+        # tier 3: AI gen_fixer 窄 prompt（只看 raw 末段 + parse error，省 token）
+        new_raw = gen_fixer_invoker(_trim_for_fixer(raw), str(last_err))
+        # 剎車：AI 沒回 / 連續 3 次回同樣的東西 → break 避免無限呼叫
+        if not new_raw or new_raw == raw:
+            same_count += 1
+            if same_count >= 3:
+                raise ValueError(
+                    f"type-level convergence stalled at iter {iteration}: "
+                    f"AI fixer produced same output 3 times in a row. Last error: {last_err}"
+                )
+        else:
+            same_count = 0  # AI 出新東西，重置計數
+            raw = new_raw
+
+
+def _trim_for_fixer(raw: str, max_chars: int = 4000) -> str:
+    """Gen_fixer 不需要看整段 raw（可能 30K+ 字），只需要錯誤附近的局部。
+    保留前 1000 字（看開頭格式）+ 末 3000 字（錯誤通常在末段附近）。"""
+    if len(raw) <= max_chars:
+        return raw
+    head_n = 1000
+    tail_n = max_chars - head_n
+    return raw[:head_n] + "\n\n... [TRUNCATED FOR FIXER, original total " \
+        + str(len(raw)) + " chars] ...\n\n" + raw[-tail_n:]
+
+
 def _parse_review_issues(raw: str, step_name: str) -> list[Issue]:
     """Reviewer response shape: {"issues": [{"category": ..., "detail": ...}, ...]}"""
     try:
@@ -100,9 +154,16 @@ def run_step(
             "step": step_name,
             "upstream": all_data,
         })
+        # Type-level loop：gen → check → program fix → check → AI gen_fixer → check → loop
+        # 收斂前提：每輪只動格式不動內容；max_iter 防發散。
         try:
-            data = _parse_json(gen_raw)
-        except Exception as e:
+            data = _ensure_valid_json(
+                gen_raw,
+                gen_fixer_invoker=lambda raw, err: ai_invoker("gen_fixer", {
+                    "step": step_name, "raw": raw, "parse_error": err,
+                }),
+            )
+        except ValueError as e:
             return RunStepResult(
                 success=False, attempts=0,
                 final_issues=[Issue(step=step_name, category="generator_invalid_json",

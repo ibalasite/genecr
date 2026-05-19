@@ -178,6 +178,12 @@ def preprocess(type_: str, data: dict, base_dir: Path) -> dict:
         raw = md_path.read_text(encoding="utf-8")
         md.reset()
         s["html"] = md.convert(raw)
+
+    # 把 mermaid.min.js 內嵌進 data，template 用 {{ mermaid_js | safe }}
+    # 取代原本 docs.html.tmpl 用 CDN <script src="cdn.jsdelivr.net/..."> 的依賴
+    # （違反 offline 原則，user 無網路或防火牆擋 CDN 時 mermaid 圖完全不渲染）。
+    mermaid_js_path = TEMPLATES / "mermaid.min.js"
+    data["mermaid_js"] = mermaid_js_path.read_text(encoding="utf-8") if mermaid_js_path.exists() else ""
     return data
 
 

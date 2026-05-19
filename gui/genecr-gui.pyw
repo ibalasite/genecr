@@ -27,7 +27,7 @@ GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.3.3"
+APP_VERSION = "0.3.4"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -567,15 +567,28 @@ def deploy_genecr_python_native(host: str, log) -> bool:
             log(f"  · {child.name}")
 
     # 2. Deploy tools — pip install + copy py files
-    # 用「安裝工具包」（embed Python）跑 pip / playwright，跟系統 Python 完全脫鉤。
+    # CRITICAL: 用「系統 Python」跑 pip / playwright — 因為 pipeline 是用系統 Python 跑的，
+    # 套件必須裝進系統 Python 的 site-packages 才看得到。
+    # 之前 v0.3.2 誤用 embed_python 跑 pip → jinja2 等套件裝進 python-embed/ → pipeline
+    # 看不到 → ModuleNotFoundError（issue #4-#7）。
+    # 系統 Python 沒裝好的話先呼 ensure_system_python() 自動補齊（解雞生蛋）。
     renderer = runtime / "tools" / "renderer"
     bin_dir = runtime / "tools" / "bin"
     try:
-        py = str(embed_python())
+        py = str(find_python())
         tools_ok = True
-    except RuntimeError as e:
-        log(f"  ⚠ {e}")
-        tools_ok = False
+    except SystemPythonMissing:
+        log("  · 系統 Python 不在 PATH，先自動補齊…")
+        if ensure_system_python(log):
+            try:
+                py = str(find_python())
+                tools_ok = True
+            except SystemPythonMissing:
+                log("  ⚠ 自動補齊後仍找不到系統 Python，跳過 pip / playwright")
+                tools_ok = False
+        else:
+            log("  ⚠ 無法自動補齊系統 Python，跳過 pip / playwright")
+            tools_ok = False
 
     if renderer.exists():
         bin_dir.mkdir(parents=True, exist_ok=True)
@@ -1345,28 +1358,70 @@ class GenecrGUI(tk.Tk):
         messagebox.showinfo("已複製", "log 已複製到剪貼簿。")
 
     def _report_bug(self, extra_context: str = ""):
-        """One-click bug report: open GitHub new-issue page with environment
-        info + recent log pre-filled. User just hits GitHub's submit button.
+        """One-click bug report: 自動萃取病徵 → title + 結構化 body。
 
-        extra_context: optional dialog-specific error text. When the user
-        clicks 🐛 from inside an error sub-dialog, the dialog passes its
-        current err / detail text here so it appears as a dedicated section
-        in the issue body (separate from the running log)."""
-        import urllib.parse, platform
+        目標：未來維護者打開 issue 立刻看到「是什麼 + 哪一步觸發 + 一行根因」，
+        不用挖完整 log 才能診斷。User 不用填任何東西也能 submit 有用的 report。
+        """
+        import urllib.parse, platform, re as _re
         py_ver = sys.version.split()[0] if sys.version else "?"
         os_info = f"{platform.system()} {platform.release()} ({platform.version()})"
         log_text = "\n".join(self._log_buffer[-100:]) if self._log_buffer else "(無 log)"
         if len(log_text) > 4000:
             log_text = "...(已截斷，僅顯示最後 4000 字)\n" + log_text[-4000:]
-        # Optional: this-error section (only when caller provides extra_context)
+
+        # ─── 自動萃取病徵（給未來維護者一眼看懂）────────────────
+        full_text = log_text + "\n" + (extra_context or "")
+        # 1. 萃 traceback 最末行的 ErrorType: message（最常見的根因訊號）
+        error_line = ""
+        m = _re.search(r"^([A-Z][A-Za-z]+(?:Error|Exception)): .+$", full_text, _re.MULTILINE)
+        if m:
+            error_line = m.group(0).strip()
+        # 2. 萃觸發於哪個 step（pipeline 跑到哪一步炸的）
+        triggered_step = ""
+        m = _re.search(r"(?:step=|^=== 重新生成.*?|\[(\d+)/(\d+)\]\s*)([a-z][a-z\-]+)", full_text, _re.MULTILINE)
+        if m:
+            triggered_step = m.group(3) if m.lastindex >= 3 else m.group(0)
+        # 3. 萃 exit code
+        exit_code = ""
+        m = _re.search(r"exit code (\d+)|exited with code (\d+)", full_text)
+        if m:
+            exit_code = m.group(1) or m.group(2)
+
+        # ─── 組 title（智慧化，未來看 list 就能分類）──────────
+        title_bits = ["[Bug]"]
+        if error_line:
+            # 截前 80 字，避免 URL 過長
+            title_bits.append(error_line[:80])
+        elif extra_context:
+            # 沒 traceback 用 extra_context 第一行
+            first = extra_context.strip().split("\n", 1)[0][:60]
+            if first:
+                title_bits.append(first)
+        title = " ".join(title_bits)
+
+        # ─── 自動診斷區塊（讓 maintainer 不用挖 log）─────────
+        diag_section = ""
+        if error_line or triggered_step or exit_code:
+            lines = ["## 🔬 自動萃取（不用挖 log 也能看到）"]
+            if error_line:
+                lines.append(f"- **錯誤類型**：`{error_line}`")
+            if triggered_step:
+                lines.append(f"- **觸發於 step**：`{triggered_step}`")
+            if exit_code:
+                lines.append(f"- **退出碼**：`{exit_code}`")
+            diag_section = "\n".join(lines) + "\n\n"
+
+        # 對話框帶入的 context（有的話）
         ctx_section = ""
         if extra_context:
             ctx_trimmed = extra_context if len(extra_context) <= 2000 else extra_context[:2000] + "\n...(已截斷)"
             ctx_section = (
-                f"## 此次錯誤訊息（從錯誤對話框直接帶入）\n"
+                f"## 錯誤對話框內容\n"
                 f"```\n{ctx_trimmed}\n```\n\n"
             )
         body = (
+            diag_section +
             f"## 環境資訊\n"
             f"- **GUI 版本**: v{APP_VERSION}\n"
             f"- **作業系統**: {os_info}\n"
@@ -1374,14 +1429,16 @@ class GenecrGUI(tk.Tk):
             f"- **Python**: {py_ver}\n"
             f"- **genecr 路徑**: {self.genecr_dir or '未偵測到'}\n\n"
             + ctx_section +
-            f"## 問題描述\n"
-            f"<!-- 一句話講清楚發生什麼事（請填寫） -->\n\n\n"
-            f"## 重現步驟\n1.\n2.\n3.\n\n"
+            f"## 補充（可選 — 不填也能送，上面已自動帶診斷資訊）\n"
+            f"- **我在做什麼**：\n"
+            f"- **預期應該怎樣**：\n\n"
             f"## 完整 Log（自動帶入）\n"
+            f"<details><summary>展開最後 100 行</summary>\n\n"
             f"```\n{log_text}\n```\n"
+            f"</details>\n"
         )
         params = urllib.parse.urlencode({
-            "title": "[Bug] ",
+            "title": title,
             "body": body,
             "labels": "bug",
         })

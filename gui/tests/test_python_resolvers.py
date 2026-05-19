@@ -59,64 +59,89 @@ def test_embed_python_raises_when_missing(gui, tmp_path, monkeypatch):
         gui.embed_python()
 
 
-# ─── find_python() ──────────────────────────────────────────────
+# ─── find_python() 四層 detection ────────────────────────────────
 
-def test_find_python_returns_path_when_python3_on_path(gui, monkeypatch):
-    """PATH 上找到 python3 → 回絕對路徑。"""
-    def fake_run(cmd, **kwargs):
-        if cmd[0] == "python3":
-            r = types.SimpleNamespace()
-            r.returncode = 0
-            r.stdout = "Python 3.13.1\n"
-            return r
-        raise FileNotFoundError
-    monkeypatch.setattr(gui.subprocess, "run", fake_run)
-    monkeypatch.setattr(gui.shutil, "which", lambda c: "/usr/bin/python3" if c == "python3" else None)
-
-    result = gui.find_python()
-    assert result == Path("/usr/bin/python3")
+def _mock_all_layers_empty(gui, monkeypatch):
+    """把四層全 stub 成空，方便針對單一層測試。"""
+    monkeypatch.setattr(gui, "_find_python_known_paths", lambda: iter([]))
+    monkeypatch.setattr(gui, "_find_python_py_launcher", lambda: iter([]))
+    monkeypatch.setattr(gui, "_find_python_registry", lambda: iter([]))
+    monkeypatch.setattr(gui, "_find_python_path", lambda: iter([]))
 
 
-def test_find_python_falls_through_to_python_when_python3_missing(gui, monkeypatch):
-    """python3 沒有但 python 有 → 回 python 路徑。"""
-    def fake_run(cmd, **kwargs):
-        if cmd[0] == "python3":
-            raise FileNotFoundError
-        if cmd[0] == "python":
-            r = types.SimpleNamespace()
-            r.returncode = 0
-            r.stdout = "Python 3.13.1\n"
-            return r
-    monkeypatch.setattr(gui.subprocess, "run", fake_run)
-    monkeypatch.setattr(gui.shutil, "which", lambda c: "C:/Python313/python.exe" if c == "python" else None)
+def test_find_python_layer1_known_paths_wins_first(gui, tmp_path, monkeypatch):
+    """層 1 命中就直接回，後面層不會被叫到。"""
+    fake_py = tmp_path / "python.exe"
+    fake_py.touch()
+    _mock_all_layers_empty(gui, monkeypatch)
+    monkeypatch.setattr(gui, "_find_python_known_paths", lambda: iter([fake_py]))
+    monkeypatch.setattr(gui, "_verify_python3", lambda p: True)
 
     result = gui.find_python()
-    assert result == Path("C:/Python313/python.exe")
+    assert result.name == "python.exe"
 
 
-def test_find_python_raises_when_no_python_on_path(gui, monkeypatch):
-    """PATH 上完全沒 Python → raise SystemPythonMissing（caller 必須觸發 ensure_system_python）。"""
-    def fake_run(cmd, **kwargs):
-        raise FileNotFoundError
-    monkeypatch.setattr(gui.subprocess, "run", fake_run)
-    monkeypatch.setattr(gui.shutil, "which", lambda c: None)
+def test_find_python_layer4_path_when_others_empty(gui, tmp_path, monkeypatch):
+    """前 3 層全空、層 4 PATH 有 Python → 回 PATH 結果。"""
+    fake_py = tmp_path / "python3.exe"
+    fake_py.touch()
+    _mock_all_layers_empty(gui, monkeypatch)
+    monkeypatch.setattr(gui, "_find_python_path", lambda: iter([fake_py]))
+    monkeypatch.setattr(gui, "_verify_python3", lambda p: True)
 
+    result = gui.find_python()
+    assert result == fake_py.resolve()
+
+
+def test_find_python_raises_when_all_layers_miss(gui, monkeypatch):
+    """四層全空 → raise SystemPythonMissing。"""
+    _mock_all_layers_empty(gui, monkeypatch)
     with pytest.raises(gui.SystemPythonMissing):
         gui.find_python()
 
 
-def test_find_python_raises_when_python2_only(gui, monkeypatch):
-    """PATH 上只有 Python 2 → raise（不是 Python 3）。"""
+def test_find_python_skips_unverified_candidate(gui, tmp_path, monkeypatch):
+    """層 1 有候選但 _verify 失敗 → 繼續往下層找。"""
+    bad = tmp_path / "fake-python.exe"
+    bad.touch()
+    good = tmp_path / "real-python.exe"
+    good.touch()
+
+    _mock_all_layers_empty(gui, monkeypatch)
+    monkeypatch.setattr(gui, "_find_python_known_paths", lambda: iter([bad]))
+    monkeypatch.setattr(gui, "_find_python_path", lambda: iter([good]))
+    # 只有 good 路徑 verify 成功
+    monkeypatch.setattr(gui, "_verify_python3", lambda p: Path(str(p)).name == "real-python.exe")
+
+    result = gui.find_python()
+    assert result == good.resolve()
+
+
+def test_verify_python3_accepts_python3(gui, monkeypatch):
+    """_verify_python3 看到 'Python 3.X' 回 True。"""
+    def fake_run(cmd, **kwargs):
+        r = types.SimpleNamespace()
+        r.returncode = 0
+        r.stdout = "Python 3.13.1\n"
+        r.stderr = ""
+        return r
+    monkeypatch.setattr(gui.subprocess, "run", fake_run)
+    # path 必須通過 exists 檢查
+    monkeypatch.setattr(gui.Path, "exists", lambda self: True)
+    assert gui._verify_python3("python") is True
+
+
+def test_verify_python3_rejects_python2(gui, monkeypatch):
+    """Python 2 不算數。"""
     def fake_run(cmd, **kwargs):
         r = types.SimpleNamespace()
         r.returncode = 0
         r.stdout = "Python 2.7.18\n"
+        r.stderr = ""
         return r
     monkeypatch.setattr(gui.subprocess, "run", fake_run)
-    monkeypatch.setattr(gui.shutil, "which", lambda c: "/usr/bin/python")
-
-    with pytest.raises(gui.SystemPythonMissing):
-        gui.find_python()
+    monkeypatch.setattr(gui.Path, "exists", lambda self: True)
+    assert gui._verify_python3("python") is False
 
 
 # ─── SystemPythonMissing exception class ─────────────────────────
@@ -129,21 +154,13 @@ def test_system_python_missing_is_runtime_error(gui):
 # ─── 設計鐵則 ────────────────────────────────────────────────────
 
 def test_find_python_never_returns_sys_executable(gui, monkeypatch):
-    """禁止 fallback 回 sys.executable（這就是當初無限自我繁殖的元兇）。"""
-    def fake_run(cmd, **kwargs):
-        raise FileNotFoundError
-    monkeypatch.setattr(gui.subprocess, "run", fake_run)
-    monkeypatch.setattr(gui.shutil, "which", lambda c: None)
-
+    """四層全 miss 時必 raise，禁止 fallback 到 sys.executable。"""
+    _mock_all_layers_empty(gui, monkeypatch)
     fake_exe = "/path/to/genecr-gui.exe"
     monkeypatch.setattr(gui.sys, "executable", fake_exe)
 
-    try:
-        result = gui.find_python()
-    except gui.SystemPythonMissing:
-        return  # 正確行為
-    # 不該到這裡 — 如果走到，至少絕不能是 sys.executable
-    pytest.fail(f"find_python 在找不到時應 raise，但回了 {result}（fallback 是禁止的）")
+    with pytest.raises(gui.SystemPythonMissing):
+        gui.find_python()
 
 
 def test_embed_python_and_find_python_are_separate_concerns(gui):

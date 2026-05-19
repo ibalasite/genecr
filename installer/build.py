@@ -26,6 +26,7 @@ from pathlib import Path
 # 路徑（相對於 repo root，本檔案在 installer/build.py）
 REPO = Path(__file__).resolve().parent.parent
 GUI_DIR = REPO / "gui"
+GUI_PYW = GUI_DIR / "genecr-gui.pyw"
 GUI_DIST = GUI_DIR / "dist"
 GUI_BUILD = GUI_DIR / "build"
 EMBED_DIR = GUI_DIST / "python-embed"
@@ -99,8 +100,36 @@ def prepare_embed_python(skip_download: bool = False) -> None:
     log("  pip 已裝進 embed Python")
 
 
+def read_installer_version() -> str:
+    """從 .iss 讀 AppVersion — single source of truth。"""
+    import re
+    txt = ISS_FILE.read_text(encoding="utf-8")
+    m = re.search(r'#define\s+AppVersion\s+"([^"]+)"', txt)
+    if not m:
+        raise RuntimeError(f"找不到 AppVersion in {ISS_FILE}")
+    return m.group(1)
+
+
+def sync_gui_version(version: str) -> bool:
+    """把 .pyw 裡的 APP_VERSION 同步到指定版號。回 True 代表有改動。"""
+    import re
+    txt = GUI_PYW.read_text(encoding="utf-8")
+    new = re.sub(r'APP_VERSION\s*=\s*"[^"]+"', f'APP_VERSION = "{version}"', txt, count=1)
+    if new == txt:
+        return False
+    GUI_PYW.write_text(new, encoding="utf-8")
+    return True
+
+
 def build_gui_exe() -> None:
     """用系統 Python 跑 PyInstaller 把 GUI 打成 .exe。"""
+    # 同步版號 — .iss 是 single source of truth，APP_VERSION 跟它走
+    v = read_installer_version()
+    if sync_gui_version(v):
+        log(f"同步 APP_VERSION → {v}（.pyw 已更新）")
+    else:
+        log(f"APP_VERSION 已是 {v}")
+
     log("確保 PyInstaller / pillow 在系統 Python")
     r = subprocess.run(
         [sys.executable, "-m", "pip", "install", "-q", "pyinstaller", "pillow"],

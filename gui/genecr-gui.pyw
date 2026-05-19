@@ -27,7 +27,7 @@ GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.1.15"
+APP_VERSION = "0.3.3"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -136,22 +136,118 @@ def embed_python() -> Path:
     return py
 
 
-def find_python() -> Path:
-    """主程式環境 Python — PATH 上的系統 python.exe。
+def _verify_python3(path) -> bool:
+    """跑 `<path> --version`，stdout/stderr 開頭是 'Python 3' 才算數。"""
+    p = str(path)
+    if not Path(p).exists() and shutil.which(p) is None:
+        return False
+    try:
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+        r = subprocess.run([p, "--version"], capture_output=True, text=True,
+                           timeout=10, creationflags=creationflags)
+        return r.returncode == 0 and (r.stdout + r.stderr).strip().startswith("Python 3")
+    except Exception:
+        return False
 
-    用途：跑 pipeline、跑 renderer。找不到就 raise SystemPythonMissing，
-    caller 必須呼叫 ensure_system_python() 自動補齊；禁止任何 fallback。
-    """
-    for cand in ("python3", "python"):
+
+def _find_python_known_paths():
+    """層 1：已知檔案路徑（純 Path.exists()，0 subprocess、0 PATH 依賴）。"""
+    home = Path.home()
+    bases = [
+        home / "AppData/Local/Programs/Python",      # python.org per-user
+        Path("C:/Program Files"),                    # python.org system-wide
+        Path("C:/Program Files (x86)"),
+        Path("C:/"),
+        Path("C:/Program Files/WindowsApps"),        # Microsoft Store real binary
+    ]
+    for base in bases:
+        if not base.exists():
+            continue
+        for pat in ("Python3*/python.exe",
+                    "PythonSoftwareFoundation.Python.3.*/python3.*.exe"):
+            for p in base.glob(pat):
+                if "embed" in str(p).lower():
+                    continue  # 避開我們自己的 python-embed
+                yield p
+
+
+def _find_python_py_launcher():
+    """層 2：py launcher（Microsoft 官方）。"""
+    candidates = [
+        shutil.which("py"),
+        str(Path.home() / "AppData/Local/Programs/Python/Launcher/py.exe"),
+        "C:/Windows/py.exe",
+    ]
+    for c in candidates:
+        if not c or not Path(c).exists():
+            continue
         try:
-            r = subprocess.run([cand, "--version"], capture_output=True,
-                               text=True, timeout=3)
-            if r.returncode == 0 and r.stdout.startswith("Python 3"):
-                resolved = shutil.which(cand)
-                if resolved:
-                    return Path(resolved)
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+            r = subprocess.run([c, "-3", "-c", "import sys; print(sys.executable)"],
+                               capture_output=True, text=True,
+                               timeout=10, creationflags=creationflags)
+            if r.returncode == 0 and r.stdout.strip():
+                yield Path(r.stdout.strip())
         except Exception:
             continue
+
+
+def _find_python_registry():
+    """層 3：Registry HKCU/HKLM\\Software\\Python\\PythonCore\\*\\InstallPath。"""
+    if sys.platform != "win32":
+        return
+    try:
+        import winreg
+    except ImportError:
+        return
+    for hive in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+        try:
+            with winreg.OpenKey(hive, r"Software\Python\PythonCore") as core:
+                i = 0
+                while True:
+                    try:
+                        ver = winreg.EnumKey(core, i)
+                        i += 1
+                    except OSError:
+                        break
+                    if not ver.startswith("3."):
+                        continue
+                    try:
+                        with winreg.OpenKey(core, f"{ver}\\InstallPath") as ip:
+                            path, _ = winreg.QueryValueEx(ip, None)
+                            yield Path(path) / "python.exe"
+                    except FileNotFoundError:
+                        continue
+        except FileNotFoundError:
+            continue
+        except Exception:
+            continue
+
+
+def _find_python_path():
+    """層 4：PATH lookup。"""
+    for cand in ("python3", "python"):
+        p = shutil.which(cand)
+        if p:
+            yield Path(p)
+
+
+def find_python() -> Path:
+    """主程式環境 Python — 四層 detection，依可靠度排序。
+
+    層 1：已知檔案路徑（python.org / WindowsApps real binary）
+    層 2：py launcher (`py -3`)
+    層 3：Registry HKCU/HKLM\\Software\\Python\\PythonCore\\*\\InstallPath
+    層 4：PATH 上 python3 / python
+
+    任一層第一個能跑出 'Python 3.X' 的就贏。全 miss 才 raise SystemPythonMissing。
+    用途：跑 pipeline、跑 renderer。Caller 接 raise 觸發 ensure_system_python() 自動補齊。
+    """
+    for layer in (_find_python_known_paths, _find_python_py_launcher,
+                  _find_python_registry, _find_python_path):
+        for p in layer():
+            if _verify_python3(p):
+                return Path(p).resolve()
     raise SystemPythonMissing()
 
 

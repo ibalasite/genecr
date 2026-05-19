@@ -128,59 +128,8 @@ def test_nested_subcategory_naming_loose():
     assert check_resource_counts(sb, assets) == []
 
 
-def test_timeline_vs_scrum_points_aligned():
-    from cross_check import check_timeline_vs_scrum_points
-    sb = {"timeline": [{"duration_weeks": 2}]}
-    scrum = {"stories": [{"points": p} for p in [2, 3, 2, 3]]}  # total 10 ≈ 2*5
-    assert check_timeline_vs_scrum_points(sb, scrum) == []
-
-
-def test_timeline_vs_scrum_points_mismatch():
-    from cross_check import check_timeline_vs_scrum_points
-    sb = {"timeline": [{"duration_weeks": 7}]}  # expects ~35 points
-    scrum = {"stories": [{"points": 2}, {"points": 3}]}  # 5, way off
-    issues = check_timeline_vs_scrum_points(sb, scrum)
-    assert len(issues) == 1
-    assert issues[0].step == "scrum"
-    assert "timeline_scrum_mismatch" == issues[0].category
-
-
-# ─── wireframe-anchored scope cap (objective formula) ──────────────────────
-
-def test_scope_cap_passes_when_within_bounds():
-    """6 wireframes → max 3 weeks / 15 points. Actual 2 weeks / 10 points OK."""
-    from cross_check import check_scope_against_wireframes
-    sb = {"wireframes": [{}] * 6, "timeline": [{"duration_weeks": 2}]}
-    scrum = {"stories": [{"points": 2}] * 5}  # 10 points
-    assert check_scope_against_wireframes(sb, scrum) == []
-
-
-def test_scope_cap_flags_inflated_timeline():
-    """6 wireframes → max 3 weeks; 7 weeks overshoots."""
-    from cross_check import check_scope_against_wireframes
-    sb = {"wireframes": [{}] * 6, "timeline": [{"duration_weeks": 7}]}
-    scrum = {"stories": []}
-    issues = check_scope_against_wireframes(sb, scrum)
-    assert any("週" in i.detail and "7" in i.detail for i in issues)
-
-
-def test_scope_cap_flags_inflated_points():
-    """6 wireframes → max 15 points; 52 points overshoots."""
-    from cross_check import check_scope_against_wireframes
-    sb = {"wireframes": [{}] * 6, "timeline": [{"duration_weeks": 2}]}
-    scrum = {"stories": [{"points": p} for p in [5, 8, 13, 8, 5, 13]]}  # 52
-    issues = check_scope_against_wireframes(sb, scrum)
-    assert any("點" in i.detail and "52" in i.detail for i in issues)
-
-
-def test_scope_cap_catches_dual_inflation():
-    """Both timeline AND points inflated — old ratio check missed this case
-    (7 weeks * 5 = 35 expected vs 52 actual = 1.49x within ±50%)."""
-    from cross_check import check_scope_against_wireframes
-    sb = {"wireframes": [{}] * 6, "timeline": [{"duration_weeks": 7}]}
-    scrum = {"stories": [{"points": p} for p in [5, 8, 13, 8, 5, 13]]}  # 52
-    issues = check_scope_against_wireframes(sb, scrum)
-    assert len(issues) >= 2  # both timeline AND points flagged
+# 已刪除：test_timeline_vs_scrum_points_* （測舊 ratio ±50% rule，已被地板邏輯取代）
+# 已刪除：test_scope_cap_* 4 個（測舊 wireframe-only 上限，已被 anchor 公式取代）
 
 
 # ─── per-role workload formula (user-calibrated, 10-day anchor) ────────────
@@ -215,22 +164,14 @@ def test_role_workload_anchor_calibration():
     pass
 
 
+@pytest.mark.skip(reason="Obsolete: old 10-cap rule deleted. Floor-only logic — overshoot is allowed. See test_scrum_epic_structure.py::test_check_role_points_overshoot_allowed")
 def test_role_workload_flags_server_overestimate():
-    """server budget = 1.0 × api_endpoints. With api=8 → 8d budget; 23 pts >> 10 cap → flag."""
-    from cross_check import check_scrum_workload
-    sb, _sa, _ = _make_inputs()
-    scrum = {"stories": [{"owner_role": "server_engineer", "points": p} for p in [5, 8, 5, 5]]}  # 23
-    issues = check_scrum_workload(sb, scrum)
-    assert any("server_engineer" in i.detail and "23" in i.detail for i in issues)
+    pass
 
 
+@pytest.mark.skip(reason="Obsolete: 同 server_overestimate。")
 def test_role_workload_flags_client_overestimate():
-    """client budget = 0.67 × wireframes. With wf=6 → ~4d budget; 19 pts >> 10 cap → flag."""
-    from cross_check import check_scrum_workload
-    sb, _sa, _ = _make_inputs()
-    scrum = {"stories": [{"owner_role": "client_engineer", "points": p} for p in [5, 8, 3, 3]]}  # 19
-    issues = check_scrum_workload(sb, scrum)
-    assert any("client_engineer" in i.detail and "19" in i.detail for i in issues)
+    pass
 
 
 @pytest.mark.skip(reason="Obsolete: total-points threshold replaced by per-role cap (≤ 10) + per-story cap (≤ 5). See test_scrum_epic_structure.")

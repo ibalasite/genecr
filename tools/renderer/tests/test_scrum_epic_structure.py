@@ -112,26 +112,28 @@ def test_role_budget_uses_sb_bookkeeping_without_sibling():
 # ─── Per-role cap & per-story cap ────────────────────────────────────────
 
 
-def test_check_role_cap_flags_over_10():
-    from cross_check import check_per_role_points_cap
+def test_check_role_points_overshoot_allowed():
+    """地板邏輯：scrum 加總 > formula 地板 = 合法（Fibonacci 自然溢出）"""
+    from cross_check import check_per_role_points_floor
     scrum = {"stories": [
         {"id": "S1", "owner_role": "art", "points": 5},
         {"id": "S2", "owner_role": "art", "points": 5},
         {"id": "S3", "owner_role": "art", "points": 3},
-    ]}
-    budget = {"art": 10}
-    issues = check_per_role_points_cap(scrum, budget)
+    ]}  # 13 點，formula 地板 10 → 13 ≥ 10 通過
+    formula = {"server_engineer": 0, "art": 10, "client_engineer": 0, "planner": 0}
+    issues = check_per_role_points_floor(scrum, formula)
     cats = {i.category for i in issues}
-    assert "role_points_exceeds_cap" in cats
+    assert "role_points_below_floor" not in cats
 
 
-def test_check_role_cap_flags_under_half():
-    from cross_check import check_per_role_points_cap
+def test_check_role_points_below_floor_flags():
+    """scrum 加總 < formula 地板 → 報 role_points_below_floor"""
+    from cross_check import check_per_role_points_floor
     scrum = {"stories": [{"id": "S1", "owner_role": "art", "points": 1}]}
-    budget = {"art": 8}  # 1 < 8 × 0.5
-    issues = check_per_role_points_cap(scrum, budget)
+    formula = {"server_engineer": 0, "art": 8.0, "client_engineer": 0, "planner": 0}
+    issues = check_per_role_points_floor(scrum, formula)
     cats = {i.category for i in issues}
-    assert "role_points_under_estimate" in cats
+    assert "role_points_below_floor" in cats
 
 
 def test_check_story_size_flags_over_5():

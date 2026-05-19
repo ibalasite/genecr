@@ -90,16 +90,13 @@ Path: `stories[*].teams`
 Fail when: any story includes `teams` key.
 Fix hint: 移除 teams 欄位，全部資訊由 owner_role enum 表達。
 
-### R `role_points_exceeds_cap`
-Check: 任一 main role (server_engineer/client_engineer/planner/art) 加總
-points > 10 → fail.
-Path: stories[*].owner_role + points
-Fix hint: 拆 stories 或合併估點下降。
-
-### R `role_points_under_estimate`
-Check: 任一 main role 加總 < 公式預估 × 50% → 嚴重低估。
-Path: stories[*] vs cross_check `_role_budget_days`
-Fix hint: 補 stories 或調點。
+### R `role_points_below_floor`
+Check: 任一 main role 加總 points < 公式地板（`ceil(_per_role_points_anchor[role])`）。
+公式為單一基準：anchor 從 checkin7v2 baseline 固化（server 5/8api + 3/4mysql + 2/4redis、
+art 8/43、client 8/7、planner 3/12），所有新 feature 按量體比例縮放。
+**1 點 = 1 工作天**，**無 cap、無上限**，scrum 拆 Fibonacci 自然溢出允許。
+Path: stories[*].owner_role + points vs cross_check `_per_role_points_anchor`
+Fix hint: 補 stories 直到 role 加總 ≥ 地板（拆分允許 5+5+3=13 或 5+5+5=15 ≥ 13）。
 
 ### R `story_too_large_split_needed`
 Check: 任一 story.points > 5 → 違反 INVEST Small。
@@ -134,12 +131,9 @@ Fix hint: 列出實際 deliverable（1 API / 1 wireframe / 1 asset 等）。
 - `dangling_dependency`
 - `story_missing_owner`
 - `assets_owner_uncovered`
-- `oversized_story`
 - `team_wording_used`
-- `timeline_scrum_mismatch`
 - `scrum_stories_have_legacy_teams_field`
-- `role_points_exceeds_cap`
-- `role_points_under_estimate`
+- `role_points_below_floor`
 - `story_too_large_split_needed`
 - `epic_role_missing`
 - `story_no_epic_link`

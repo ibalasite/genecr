@@ -81,7 +81,7 @@ Assets stories should reference real asset ids from this list.
 {assets_content}
 ```
 
-## 結構：4 Epics + per-Epic 2-3 Stories（每 story ≤ 5 點，每 role 加總 ≤ 10 點）
+## 結構：4 Epics + per-Epic 2-3 Stories（每 story ≤ 5 點，每 role 加總 ≥ 公式地板）
 
 ### 4 Epics 對應 4 主要 role
 
@@ -107,19 +107,28 @@ PO 在 Scrum 負責對外溝通 + 排 backlog + 驗收，**不出實作工作**�
 
 `points` enum 只允許 `[1, 2, 3, 5]`（去掉 8 / 13）。超過 5 點必拆 2-3 子 story。
 
-### Per-role cap = 10 點 = 10 工作天
+### Per-role 地板 = 公式算的工作天（無 cap、無 fixed 上限）
 
-每 role 加總 ≤ 10 點（4 role 平行做，elapsed 看最慢 role）。違反 → reviewer `role_points_exceeds_cap`。
-低估 < budget × 50% → `role_points_under_estimate`。
+**1 點 = 1 工作天**。公式算出的是「地板」（最少要這麼多）。Scrum 拆 Fibonacci stories
+（1/2/3/5）時自然會 ≥ 地板，**允許溢出**。Team 週數從**公式**算（不從 scrum 加總算）：
+`team_weeks = ceil(max(formula_per_role) / 5)`。
 
-### 估點公式（per-role 工作天，cross_check 程式自動算）
+違反（加總 < 地板）→ reviewer `role_points_below_floor`。
 
-| role | metric | day/item coef | 例：本 case |
+### 估點公式（per-role 工作天，**單一基準** anchor，cross_check 程式自動算）
+
+Anchor 從 checkin7v2 baseline 固化，所有 feature 按量體比例縮放：
+
+| role | metric | anchor 比例 | 例：checkin7v2 baseline |
 |---|---|---|---|
-| `art` | `len(assets.assets)` | 0.2 day/asset | 43 × 0.2 = 8.6 |
-| `server_engineer` | `len(apis)` | 1.0 day/API | 8 × 1.0 = 8.0 |
-| `client_engineer` | `len(wireframes)` | 0.67 day/wf | 6 × 0.67 ≈ 4.0 |
-| `planner` | spec section count | 0.2 day/section | ~5 × 0.2 = 1.0 |
+| `server_engineer` | API + MySQL + Redis | API: 5/8、MySQL: 3/4、Redis: 2/4 | 8 API + 4 MySQL + 4 Redis = **10 點** |
+| `art` | visual_total + audio_total | 8/43 | 37 + 6 = 43 件 = **8 點** |
+| `client_engineer` | wireframes | 8/7 | 7 頁 = **8 點** |
+| `planner` | acceptance_criteria | 3/12 | 12 條 = **3 點** |
+
+新企畫範例：10 API + 5 MySQL + 6 Redis →
+`server_points = 10×5/8 + 5×3/4 + 6×2/4 = 6.25 + 3.75 + 3 = 13 點`（地板）。
+scrum 加總可拆 5+5+5=15 或 5+5+3=13，都 ≥ 13 都過。
 
 ### 每 story 必含 subtasks list
 

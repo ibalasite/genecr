@@ -103,6 +103,47 @@ def _spec_basic_section_count(spec_basic: dict) -> int:
     )
 
 
+# ─── ANCHOR：checkin7v2 baseline 固化的單一基準 ──────────────────
+# 所有新企畫按量體比例縮放。1 點 = 1 工作天。
+# 公式算出來是「地板」（最少要這麼多），scrum 拆 Fibonacci stories 自然 ≥ 地板，
+# team 週數 = ceil(max(formula) / 5)，從公式算，不從 scrum 算。
+_ANCHOR_SERVER_API   = (5, 8)   # 5 點 / 8 個 API endpoint
+_ANCHOR_SERVER_MYSQL = (3, 4)   # 3 點 / 4 個 MySQL table
+_ANCHOR_SERVER_REDIS = (2, 4)   # 2 點 / 4 個 Redis pattern
+_ANCHOR_ART          = (8, 43)  # 8 點 / 43 件資源（visual + audio）
+_ANCHOR_CLIENT       = (8, 7)   # 8 點 / 7 頁 wireframe
+_ANCHOR_PLANNER      = (3, 12)  # 3 點 / 12 條 acceptance_criteria
+
+
+def _per_role_points_anchor(spec_basic: dict, spec_advanced: dict | None = None) -> dict[str, float]:
+    """每 role 按 anchor 比例算出「地板點數」（= 工作天）。
+
+    spec-basic 步驟呼叫時 spec_advanced=None → server 只算 API（mysql/redis 計 0）。
+    scrum 步驟呼叫時帶 spec_advanced → server 算完整公式 API+MySQL+Redis。
+    formula 是同一份；不同步驟拿到的輸入資料量不同，輸出可能不同。
+    """
+    rc = spec_basic.get("resource_counts") or {}
+    models = (spec_advanced or {}).get("data_models") or []
+    n_api    = int(rc.get("api_endpoints", 0) or 0)
+    n_mysql  = sum(1 for m in models if isinstance(m, dict) and m.get("kind") != "redis")
+    n_redis  = sum(1 for m in models if isinstance(m, dict) and m.get("kind") == "redis")
+    n_asset  = int(rc.get("visual_total", 0) or 0) + int(rc.get("audio_total", 0) or 0)
+    n_wf     = len(spec_basic.get("wireframes") or [])
+    n_ac     = int(rc.get("acceptance_criteria", 0) or 0)
+
+    server = (
+        n_api   * _ANCHOR_SERVER_API[0]   / _ANCHOR_SERVER_API[1] +
+        n_mysql * _ANCHOR_SERVER_MYSQL[0] / _ANCHOR_SERVER_MYSQL[1] +
+        n_redis * _ANCHOR_SERVER_REDIS[0] / _ANCHOR_SERVER_REDIS[1]
+    )
+    return {
+        "server_engineer": server,
+        "art":             n_asset * _ANCHOR_ART[0]     / _ANCHOR_ART[1],
+        "client_engineer": n_wf    * _ANCHOR_CLIENT[0]  / _ANCHOR_CLIENT[1],
+        "planner":         n_ac    * _ANCHOR_PLANNER[0] / _ANCHOR_PLANNER[1],
+    }
+
+
 def _role_budget_days(spec_basic: dict) -> dict[str, float]:
     """Per-role work-day budget — **pure spec-basic self-contained**.
     Calibrated to checkin7v2 case as 1.0× anchor:
@@ -144,8 +185,14 @@ def _elapsed_weeks_from_role_budget(budget: dict[str, float]) -> int:
 _MAIN_ROLES = ("server_engineer", "client_engineer", "art", "planner")
 
 
-def check_per_role_points_cap(scrum_data: dict, budget: dict) -> list[Issue]:
-    """Per-role 加總 > 10 → exceeds cap; < budget × 0.5 → under_estimate."""
+def check_per_role_points_floor(scrum_data: dict, formula: dict) -> list[Issue]:
+    """Per-role 地板檢查：scrum 加總 >= ceil(formula).
+
+    地板邏輯：公式算出的點數 = 最少要這麼多。scrum 拆 Fibonacci stories（1/2/3/5/8）
+    時自然會 ≥ 地板（拆分只可能等於或溢出）。所以**沒有 cap、只有 floor**。
+    team 週數從 formula 算，不從 scrum 算，所以 Fibonacci 溢出不影響規劃週數。
+    """
+    import math
     issues: list[Issue] = []
     actual: dict[str, int] = {r: 0 for r in _MAIN_ROLES}
     for s in (scrum_data.get("stories") or []):
@@ -154,18 +201,16 @@ def check_per_role_points_cap(scrum_data: dict, budget: dict) -> list[Issue]:
             actual[r] += s.get("points", 0) or 0
     for role in _MAIN_ROLES:
         pts = actual[role]
-        if pts > 10:
+        floor = math.ceil(formula.get(role, 0))
+        if floor > 0 and pts < floor:
             issues.append(Issue(
                 step="scrum",
-                category="role_points_exceeds_cap",
-                detail=f"{role} 加總 {pts} 點 > 10 cap（4 role 平行做，每 role 最多 10 工作天）",
-            ))
-        exp = budget.get(role, 0)
-        if exp >= 1.0 and pts < exp * 0.5:
-            issues.append(Issue(
-                step="scrum",
-                category="role_points_under_estimate",
-                detail=f"{role} 加總 {pts} 點 < 公式預估 {exp:.1f} × 50% = {exp * 0.5:.1f}（嚴重低估，請補 stories）",
+                category="role_points_below_floor",
+                detail=(
+                    f"{role} 加總 {pts} 點 < 公式地板 {floor} 點 "
+                    f"（公式 {formula[role]:.2f} 工作天 ceil 取整）。"
+                    f"請補 stories 直到加總 ≥ {floor}（Fibonacci 拆分允許自然溢出）。"
+                ),
             ))
     return issues
 
@@ -237,13 +282,13 @@ def check_story_has_subtasks(scrum_data: dict) -> list[Issue]:
     return issues
 
 
-def check_timeline_against_formula(spec_basic: dict) -> list[Issue]:
-    """spec-basic 純自洽 timeline check：
-    - 公式 budget 從 sb.resource_counts.api_endpoints + sb.wireframes 等自報 metric
-    - timeline 總週數必須 == ceil(max(per-role-days)/5)
-    - 不讀任何下游 sibling（sa/assets/scrum/etc 都不准）
+def check_timeline_against_formula(spec_basic: dict, spec_advanced: dict | None = None) -> list[Issue]:
+    """spec-basic timeline check：用 anchor 公式算地板，必須等於 ceil(max/5)。
+
+    spec_advanced 缺則 mysql/redis 計 0（spec-basic 步驟單獨跑 timeline 時的 fallback）。
+    scrum 步驟做同樣檢查時會帶 spec_advanced 進來 → 完整公式。
     """
-    budget = _role_budget_days(spec_basic)
+    budget = _per_role_points_anchor(spec_basic, spec_advanced)
     expected_weeks = _elapsed_weeks_from_role_budget(budget)
     total_weeks = sum(t.get("duration_weeks", 0) or 0
                       for t in (spec_basic.get("timeline") or []) if isinstance(t, dict))
@@ -271,14 +316,16 @@ def check_timeline_against_formula(spec_basic: dict) -> list[Issue]:
     return []
 
 
-def check_scrum_workload(spec_basic: dict, scrum: dict | None) -> list[Issue]:
-    """For scrum step: bundle all the new structural checks.
-    Per-role cap, per-story cap, epic coverage, no-po, subtasks required."""
+def check_scrum_workload(spec_basic: dict, scrum: dict | None,
+                         spec_advanced: dict | None = None) -> list[Issue]:
+    """scrum step：per-role 地板 + 單 story cap + epic 覆蓋 + 不准 PO + subtasks 必填。
+
+    用 anchor 公式算 per-role 地板（含 mysql/redis 量，從 spec_advanced 取）。
+    """
     if not scrum:
         return []
-    # 用 spec-basic 自洽 budget（scrum 也讀 sb，但 sb 不能讀 sa/assets）
-    budget = _role_budget_days(spec_basic)
-    return (check_per_role_points_cap(scrum, budget)
+    formula = _per_role_points_anchor(spec_basic, spec_advanced)
+    return (check_per_role_points_floor(scrum, formula)
             + check_per_story_points_cap(scrum)
             + check_epic_role_coverage(scrum)
             + check_stories_belong_to_epic(scrum)
@@ -315,76 +362,10 @@ def check_assets_matches_sb_totals(spec_basic: dict, assets_data: dict) -> list[
     return issues
 
 
-def check_scope_against_wireframes(spec_basic_data: dict, scrum_data: dict) -> list[Issue]:
-    """Wireframe-anchored objective scope cap.
-
-    Cures the bug where LLM reviewer subjectively classifies a feature as
-    "medium" and lets 7-week / 52-point estimates through. wireframe count
-    is the concrete proxy for screen scope:
-      max_total_weeks  ≈ wireframe_count × 0.5
-      max_total_points ≈ wireframe_count × 2.5
-    Tolerance ±30% (narrower than the ±50% old timeline-vs-points ratio,
-    which permitted dual inflation on both sides).
-    """
-    wf_n = len(spec_basic_data.get("wireframes") or [])
-    if wf_n == 0:
-        return []
-    max_weeks = wf_n * 0.5 * 1.3   # +30% headroom
-    max_points = wf_n * 2.5 * 1.3
-
-    issues: list[Issue] = []
-
-    total_weeks = sum(t.get("duration_weeks", 0) or 0
-                      for t in (spec_basic_data.get("timeline") or [])
-                      if isinstance(t, dict))
-    if total_weeks > max_weeks:
-        issues.append(Issue(
-            step="spec-basic",
-            category="timeline_overestimated",
-            detail=(
-                f"timeline 總週數 {total_weeks} 超過 wireframes={wf_n} 的合理上限 "
-                f"{max_weeks:.1f} 週（公式: wireframes × 0.5 × 1.3 headroom）。"
-                f"有 AI 協助，{wf_n} 頁畫面應該 ≤ {max_weeks:.1f} 週。"
-            ),
-        ))
-
-    if scrum_data:
-        total_points = sum(s.get("points", 0) or 0
-                           for s in (scrum_data.get("stories") or [])
-                           if isinstance(s, dict))
-        if total_points > max_points:
-            issues.append(Issue(
-                step="scrum",
-                category="oversized_story",
-                detail=(
-                    f"scrum 總點數 {total_points} 超過 wireframes={wf_n} 的合理上限 "
-                    f"{max_points:.1f} 點（公式: wireframes × 2.5 × 1.3 headroom）。"
-                    f"{wf_n} 頁畫面活動應 ≤ {max_points:.1f} 點。檢查是否切太細或估點太高。"
-                ),
-            ))
-    return issues
-
-
-def check_timeline_vs_scrum_points(spec_basic_data: dict, scrum_data: dict) -> list[Issue]:
-    """1 週 ≈ 5 點 (1 點 = 1 工作天). 兩邊規模需匹配 (容差 ±50%)."""
-    timeline = spec_basic_data.get("timeline") or []
-    total_weeks = sum(t.get("duration_weeks", 0) or 0 for t in timeline if isinstance(t, dict))
-    stories = scrum_data.get("stories") or []
-    total_points = sum(s.get("points", 0) or 0 for s in stories if isinstance(s, dict))
-    if total_weeks <= 0 or total_points <= 0:
-        return []
-    expected_points = total_weeks * 5
-    ratio = total_points / expected_points
-    if ratio < 0.5 or ratio > 1.5:
-        return [Issue(
-            step="scrum",
-            category="timeline_scrum_mismatch",
-            detail=(
-                f"scrum 總點數 {total_points} 與 spec-basic.timeline 總週數 {total_weeks} "
-                f"× 5 = 期望 {expected_points} 點不符（容差 ±50%）；ratio={ratio:.2f}"
-            ),
-        )]
-    return []
+# 已刪除：check_scope_against_wireframes（wf-only `timeline_overestimated` + `oversized_story`）
+#   → 取代為 _per_role_points_anchor + check_timeline_against_formula 的單一基準邏輯
+# 已刪除：check_timeline_vs_scrum_points（`timeline_scrum_mismatch` ratio ±50%）
+#   → 取代為地板邏輯：team 週數從公式算、scrum 從 floor 算，兩者無需直接綁定
 
 
 # ─── scenario count ─────────────────────────────────────────────────────────
@@ -1573,11 +1554,11 @@ def run_all_checks(step_name: str, all_step_data: dict, baseline: dict | None = 
 
     if step_name == "scrum" and sb and scrum:
         # Scrum step owns per-role + total points checks + epic structure.
-        issues += check_scrum_workload(sb, scrum)
+        issues += check_scrum_workload(sb, scrum, sa)
         issues += check_scrum_no_teams_field(scrum)
     if step_name == "spec-basic" and sb:
         # spec-basic 純自洽（不跨 doc）— 全部從 sb 自有 bookkeeping 算。
-        issues += check_timeline_against_formula(sb)
+        issues += check_timeline_against_formula(sb, sa)
         issues += check_admin_wireframe_dsl(sb)
         issues += check_admin_wireframe_self_consistency(sb)
         issues += check_wireframe_row_inline_only(sb)

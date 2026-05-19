@@ -113,6 +113,29 @@ def _attach_db_queries_to_tables(data: dict) -> dict:
     return data
 
 
+def _escape_mermaid_semicolons(md_text: str) -> str:
+    """在 ```mermaid 區塊裡、箭頭行 `:` 之後的訊息文字段，把 `;` 換成 `#59;`。
+
+    Mermaid 把 `;` 當訊息分隔符（NL token），message label 含 `;` 後接 SQL keyword
+    會讓 parser 整張圖炸成 Syntax error。用官方 entity `#59;` 渲染後字面顯示 `;`。
+    只動「含箭頭符 `->` 且有 `: text`」的行 — flowchart 等其他結構不會誤動。
+    """
+    import re
+    in_block = False
+    out = []
+    pat = re.compile(r'(:\s*)(.+)$')
+    for line in md_text.split('\n'):
+        stripped = line.lstrip()
+        if stripped.startswith('```mermaid'):
+            in_block = True
+        elif in_block and stripped.startswith('```'):
+            in_block = False
+        elif in_block and '->' in line:
+            line = pat.sub(lambda m: m.group(1) + m.group(2).replace(';', '#59;'), line)
+        out.append(line)
+    return '\n'.join(out)
+
+
 def preprocess(type_: str, data: dict, base_dir: Path) -> dict:
     """Type-specific preprocessing.
 
@@ -176,6 +199,7 @@ def preprocess(type_: str, data: dict, base_dir: Path) -> dict:
         if not md_path.exists():
             raise SystemExit(f"docs section missing file: {md_path}")
         raw = md_path.read_text(encoding="utf-8")
+        raw = _escape_mermaid_semicolons(raw)
         md.reset()
         s["html"] = md.convert(raw)
 

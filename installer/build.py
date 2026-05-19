@@ -144,13 +144,20 @@ def build_gui_exe() -> None:
         log("生成 icon …")
         subprocess.run([sys.executable, str(GUI_DIR / "make-icon.py")], check=True)
 
-    log("PyInstaller 打包 GUI (--onedir：1 個 process、啟動快、無解壓延遲)")
+    # 確保 splash.png 存在（PyInstaller --splash bootloader 用）
+    splash = GUI_DIR / "splash.png"
+    if not splash.exists():
+        log("生成 splash.png …")
+        subprocess.run([sys.executable, str(GUI_DIR / "make-splash.py")], check=True)
+
+    log("PyInstaller 打包 GUI (--onedir + --splash：bootloader 30ms 內就秀 splash)")
     source = GUI_DIR / "genecr-gui.pyw"
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
         "--onedir",       # 1 process + 秒開（取代 --onefile 的 bootloader+解壓）
         "--windowed",
+        "--splash", str(splash),   # bootloader 層 splash，Python 起來前就顯示
         "--name", "genecr-gui",
         "--icon", str(ico),
         "--add-data", f"{ico}{os.pathsep}.",

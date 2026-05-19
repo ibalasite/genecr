@@ -23,11 +23,37 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+# PyInstaller bootloader splash hook — Python 起來時就 import 得到。
+# Dev 模式（直接 python genecr-gui.pyw）沒這 module，try/except 接住即可。
+try:
+    import pyi_splash  # type: ignore[import-not-found]
+except ImportError:
+    pyi_splash = None  # type: ignore[assignment]
+
+
+def close_bootloader_splash():
+    """關掉 PyInstaller bootloader 層的 splash（如果存在）。
+    呼叫點：主視窗 deiconify 那刻，splash → 主畫面接力沒有間隙。"""
+    if pyi_splash is not None:
+        try:
+            pyi_splash.close()
+        except Exception:
+            pass
+
+
+def update_bootloader_splash(text: str):
+    """更新 splash 文字（如果 bootloader splash 還在）。"""
+    if pyi_splash is not None:
+        try:
+            pyi_splash.update_text(text)
+        except Exception:
+            pass
+
 GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.3.8"
+APP_VERSION = "0.3.9"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -754,9 +780,12 @@ class GenecrGUI(tk.Tk):
         self.history_map: dict[str, Path] = {}
         self._suppress_brief_modified = False
 
+        update_bootloader_splash("載入介面…")
         self._build_ui()
 
         if not self.genecr_dir:
+            # Wizard 路徑：主視窗會直接顯示（沒 withdraw），可立刻關 splash
+            close_bootloader_splash()
             self.after(200, self._open_install_wizard)
         else:
             # Hide main window, show splash, check + apply updates, then re-show.
@@ -2182,6 +2211,7 @@ class GenecrGUI(tk.Tk):
             def finish():
                 bar.stop()
                 splash.destroy()
+                close_bootloader_splash()  # bootloader splash 跟主視窗 deiconify 同步交接
                 self.deiconify()
                 # Priority 1: missing components — block work until fixed
                 if missing_prereqs:
@@ -2255,45 +2285,14 @@ def _acquire_single_instance_lock():
         return None
 
 
-def _show_boot_splash() -> tk.Tk:
-    """立刻彈一個 splash 視窗，讓 user 看到「在啟動了」而不是黑屏等。
-
-    Tk 物件本身先 hidden 給 splash 用 root；GenecrGUI 後續 reuse 同一個 root 顯示主視窗。
-    """
-    root = tk.Tk()
-    root.title(APP_TITLE)
-    root.withdraw()  # 主視窗暫時藏起，等 GenecrGUI 接手再 deiconify
-    splash = tk.Toplevel(root)
-    splash.overrideredirect(True)
-    splash.configure(background="#1e293b")
-    w, h = 360, 160
-    sw, sh = splash.winfo_screenwidth(), splash.winfo_screenheight()
-    splash.geometry(f"{w}x{h}+{(sw-w)//2}+{(sh-h)//2}")
-    tk.Label(splash, text="genecr", fg="#ffffff", bg="#1e293b",
-             font=("Microsoft JhengHei", 18, "bold")).pack(pady=(28, 6))
-    tk.Label(splash, text="啟動中…", fg="#cbd5e1", bg="#1e293b",
-             font=("Microsoft JhengHei", 10)).pack()
-    bar = ttk.Progressbar(splash, mode="indeterminate", length=260)
-    bar.pack(pady=14)
-    bar.start(10)
-    splash.update()
-    return root, splash
-
-
 if __name__ == "__main__":
     # 1. 單一實例守門 — 已有 GUI 在跑就直接退，避免 user 多點幾下出現多支
     _lock = _acquire_single_instance_lock()
     if _lock is None:
         sys.exit(0)
 
-    # 2. 立刻彈 splash（即使後續 init 慢，user 也看得到「在啟動」）
-    _root, _splash = _show_boot_splash()
-
-    # 3. 真正建主 GUI（沿用 _root 為 Tk 主視窗，避免兩個 Tk root）
+    # 2. 建主 GUI — 只有一個 Tk root（= GenecrGUI 自己）。
+    #    splash 不由 Python 端建，改用 PyInstaller bootloader --splash 在 process 啟動
+    #    時就秀（t≈30ms），由 close_bootloader_splash() 在主視窗 ready 那刻收掉。
     app = GenecrGUI()
-    try:
-        _splash.destroy()
-        _root.destroy()  # splash 用的暫時 root 不再需要
-    except Exception:
-        pass
     app.mainloop()

@@ -27,7 +27,7 @@ GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.3.7"
+APP_VERSION = "0.3.8"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -677,6 +677,26 @@ def upgrade_runtime(genecr_dir: Path, log) -> bool:
     except Exception as e:
         log(f"❌ {e}")
         return False
+
+
+def upgrade_host_if_behind(host: str, log) -> str:
+    """檢查單一 host 的 genecr runtime 是否落後 origin，落後就 upgrade。
+
+    回傳：'ok'（已最新）/ 'updated'（剛拉新）/ 'failed'（pull/deploy 失敗）/
+          'no-runtime'（host 沒裝 genecr）
+    """
+    d = host_to_dir(host)
+    if d is None:
+        return 'no-runtime'
+    if not runtime_has_updates(d):
+        return 'ok'
+    return 'updated' if upgrade_runtime(d, log) else 'failed'
+
+
+def upgrade_all_installed_hosts(log) -> dict[str, str]:
+    """逐一檢查所有已安裝 host 的 genecr runtime — 解「裝多個 AI 但只有當前
+    host 被更新」的舊 bug。回傳 {host: status}。"""
+    return {h: upgrade_host_if_behind(h, log) for h in list_installed_hosts()}
     # Legacy bash fallback (kept for non-Windows compatibility)
     cmd = ["bash", str(genecr_dir / "setup"), "upgrade"]
     try:
@@ -959,6 +979,20 @@ class GenecrGUI(tk.Tk):
         self.host_combo.configure(values=list_installed_hosts() or ["(未裝)"])
         # Re-evaluate login state for the newly selected host (zero token)
         self._refresh_login_slot()
+        # 背景檢查切到的 host 的 runtime 是否落後 — 落後就自動拉新
+        # （解：user 切到一個沒被自動更新的 host，跑舊版的問題）
+        threading.Thread(target=self._check_host_runtime_async,
+                         args=(self.host,), daemon=True).start()
+
+    def _check_host_runtime_async(self, host: str):
+        try:
+            status = upgrade_host_if_behind(host, lambda l: None)
+            if status == "updated":
+                self.after(0, lambda: self._log(f"✓ {host} runtime 已更新到最新"))
+            elif status == "failed":
+                self.after(0, lambda: self._log(f"⚠ {host} runtime 更新失敗，仍可使用舊版"))
+        except Exception:
+            pass
 
     def _refresh_login_slot(self):
         """Render either a status label (logged in) or an active button (not
@@ -2115,15 +2149,16 @@ class GenecrGUI(tk.Tk):
             login_ok_status = "ok_locally"
             login_detail = ""
 
-            # 1. Check runtime updates (existing)
+            # 1. Check runtime updates — 跑遍所有已安裝 host（user 可能同時裝
+            #    gemini / claude / codex 三套，全部都該更新到最新）
             set_status("檢查 runtime 版本…")
-            if runtime_has_updates(self.genecr_dir):
-                set_status("正在更新 runtime（請稍候）…")
-                ok = upgrade_runtime(self.genecr_dir, lambda l: None)
-                if ok:
-                    set_status("runtime 已更新 ✓")
-                else:
-                    set_status("runtime 更新失敗，仍可使用舊版")
+            results = upgrade_all_installed_hosts(lambda l: None)
+            updated = [h for h, s in results.items() if s == "updated"]
+            failed = [h for h, s in results.items() if s == "failed"]
+            if updated:
+                set_status(f"已更新 {','.join(updated)} runtime ✓")
+            elif failed:
+                set_status(f"{','.join(failed)} runtime 更新失敗，仍可使用舊版")
 
             # 2. Component completeness check (every startup, not just first install)
             set_status("檢查必要元件是否完整…")

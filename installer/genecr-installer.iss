@@ -12,7 +12,7 @@
 ; Build:  python installer\build.py
 
 #define AppName       "genecr"
-#define AppVersion    "0.3.7"
+#define AppVersion    "0.3.8"
 #define AppPublisher  "ibalasite"
 #define AppURL        "https://github.com/ibalasite/genecr"
 #define ExeName       "genecr-gui.exe"

@@ -92,6 +92,34 @@ def default_outdir() -> Path:
     return home
 
 
+def scan_history(root: Path) -> tuple[list[str], dict[str, Path]]:
+    """Scan root/**/feature.json. Returns (names_by_mtime_desc, name->run_dir).
+    Dedups by name keeping the newest. Skips entries without sibling brief.txt
+    or without a non-empty `name` field. Pure logic; tested in test_history_loader.py."""
+    entries: list[tuple[float, str, Path]] = []
+    if not root or not root.exists():
+        return [], {}
+    for fj in root.rglob("feature.json"):
+        try:
+            data = json.loads(fj.read_text(encoding="utf-8"))
+            name = data.get("name") or ""
+            if not name:
+                continue
+            if not (fj.parent / "brief.txt").exists():
+                continue
+            entries.append((fj.stat().st_mtime, name, fj.parent))
+        except Exception:
+            continue
+    entries.sort(key=lambda x: x[0], reverse=True)
+    seen: dict[str, Path] = {}
+    order: list[str] = []
+    for _, n, d in entries:
+        if n not in seen:
+            seen[n] = d
+            order.append(n)
+    return order, seen
+
+
 def find_python() -> str:
     """Find a real Python 3 (skip Microsoft Store stub)."""
     for cand in ("python3", "python"):
@@ -476,6 +504,8 @@ class GenecrGUI(tk.Tk):
         self.python = find_python()
         self.proc = None
         self.run_dir: Path | None = None
+        self.history_map: dict[str, Path] = {}
+        self._suppress_brief_modified = False
 
         self._build_ui()
 
@@ -519,6 +549,21 @@ class GenecrGUI(tk.Tk):
         # Click-to-clear placeholder behavior
         self._brief_placeholder = True
         self.brief.bind("<FocusIn>", self._clear_placeholder)
+        # User manual edit clears history selection
+        self.brief.bind("<<Modified>>", self._on_brief_modified)
+
+        # History dropdown — load past runs from outdir/output
+        hist_row = ttk.Frame(self)
+        hist_row.pack(fill="x", **pad)
+        ttk.Label(hist_row, text="歷史專案：").pack(side="left")
+        self.history_var = tk.StringVar(value="")
+        self.history_combo = ttk.Combobox(hist_row, textvariable=self.history_var,
+                                          width=24, state="readonly", values=[])
+        self.history_combo.pack(side="left")
+        self.history_combo.bind("<<ComboboxSelected>>", self._on_history_selected)
+        # Global Ctrl-Up / Ctrl-Down — cycle history selection even when brief has focus
+        self.bind_all("<Control-Up>", lambda e: self._cycle_history(-1))
+        self.bind_all("<Control-Down>", lambda e: self._cycle_history(1))
 
         # slug + name (with auto-extract button)
         row = ttk.Frame(self)
@@ -597,10 +642,87 @@ class GenecrGUI(tk.Tk):
         self.results = ttk.Frame(self)
         self.results.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
+        # Initial history scan (after results panel is built)
+        self.after(100, self._load_history_options)
+
     def _clear_placeholder(self, _evt):
         if self._brief_placeholder:
             self.brief.delete("1.0", "end")
             self._brief_placeholder = False
+
+    # ─── History dropdown ───────────────────────────────────────
+    def _history_scan_root(self) -> Path:
+        try:
+            outdir = Path(self.outdir_var.get()).expanduser()
+        except Exception:
+            outdir = Path.home()
+        return outdir / "output"
+
+    def _load_history_options(self):
+        """Re-scan outdir/output and refresh combobox values + map."""
+        try:
+            names, mapping = scan_history(self._history_scan_root())
+        except Exception:
+            names, mapping = [], {}
+        self.history_map = mapping
+        # Preserve current selection text if still present
+        cur = self.history_var.get()
+        self.history_combo.configure(values=names)
+        if cur not in names:
+            self.history_var.set("")
+
+    def _cycle_history(self, delta: int):
+        names = list(self.history_combo["values"])
+        if not names:
+            return "break"
+        cur = self.history_var.get()
+        try:
+            idx = names.index(cur)
+        except ValueError:
+            idx = -1 if delta > 0 else 0
+        new_idx = (idx + delta) % len(names)
+        self.history_var.set(names[new_idx])
+        self._on_history_selected()
+        return "break"
+
+    def _on_history_selected(self, _evt=None):
+        name = self.history_var.get()
+        if not name or name not in self.history_map:
+            return
+        run_dir = self.history_map[name]
+        try:
+            brief_text = (run_dir / "brief.txt").read_text(encoding="utf-8")
+            feat = json.loads((run_dir / "feature.json").read_text(encoding="utf-8"))
+        except Exception as e:
+            messagebox.showerror("讀取失敗", f"無法讀取歷史專案 {name}：\n{e}")
+            return
+        # Replace brief without triggering history clear
+        self._suppress_brief_modified = True
+        try:
+            self.brief.delete("1.0", "end")
+            self.brief.insert("1.0", brief_text)
+            self._brief_placeholder = False
+            self.brief.edit_modified(False)
+        finally:
+            self.after_idle(lambda: setattr(self, "_suppress_brief_modified", False))
+        self.slug_var.set(feat.get("slug", ""))
+        self.name_var.set(feat.get("name", ""))
+        self.run_dir = run_dir
+        # Repaint file list for this run
+        for w in self.results.winfo_children():
+            w.destroy()
+        self._on_done(feat.get("slug", ""))
+
+    def _on_brief_modified(self, _evt=None):
+        # tk fires <<Modified>> once per state flip — we must reset the flag
+        if not self.brief.edit_modified():
+            return
+        self.brief.edit_modified(False)
+        if self._suppress_brief_modified:
+            return
+        # User manually edited — clear history selection
+        if self.history_var.get():
+            self.after_idle(lambda: self.history_var.set(""))
 
     def _on_host_change(self, _evt=None):
         self.host = self.host_var.get()
@@ -1221,6 +1343,9 @@ class GenecrGUI(tk.Tk):
         if not self.run_dir or not self.run_dir.exists():
             self._log("⚠ 找不到 run 目錄")
             return
+        # Clear stale rows (history switch / re-render)
+        for w in self.results.winfo_children():
+            w.destroy()
         # List the 7 deliverables
         files = sorted([
             p for p in self.run_dir.iterdir()
@@ -1230,6 +1355,8 @@ class GenecrGUI(tk.Tk):
         files.sort(key=lambda p: 0 if p.name.endswith("docs.html") else 1)
         for p in files:
             self._add_result_row(p)
+        # Refresh history so the just-finished run appears at the top
+        self._load_history_options()
 
     def _add_result_row(self, path: Path):
         row = ttk.Frame(self.results)
@@ -1245,6 +1372,143 @@ class GenecrGUI(tk.Tk):
                    command=lambda p=path: self._open_file(p)).pack(side="right", padx=2)
         ttk.Button(row, text="資料夾", width=8,
                    command=lambda p=path: self._open_folder(p)).pack(side="right", padx=2)
+        # Regen buttons — only meaningful for per-step .md/.html (not docs.html aggregate)
+        slug = self.slug_var.get()
+        step = self._infer_step_from_filename(path.name, slug)
+        is_docs = (step == "docs")
+        btn_one = ttk.Button(row, text="📝 更新本檔", width=12,
+                             command=lambda p=path: self._on_regen_step(p, cascade=False))
+        btn_cascade = ttk.Button(row, text="📝 更新本檔及後續所有文件", width=22,
+                                 command=lambda p=path: self._on_regen_step(p, cascade=True))
+        btn_cascade.pack(side="right", padx=2)
+        btn_one.pack(side="right", padx=2)
+        if is_docs:
+            btn_one.configure(state="disabled")
+            btn_cascade.configure(state="disabled")
+            # Tooltip-style label inline (tk has no native tooltip; reuse status text on hover)
+            def _hint(_e=None):
+                self._log("提示：docs.html 是彙整檔；請改對應子 .md / .html 後再回此頁更新")
+            btn_one.bind("<Enter>", _hint)
+            btn_cascade.bind("<Enter>", _hint)
+
+    # ─── Per-step regenerate (inverse → input.json → re-run) ────
+    def _infer_step_from_filename(self, filename: str, slug: str) -> str:
+        stem = filename
+        for ext in (".md", ".html"):
+            if stem.endswith(ext):
+                stem = stem[: -len(ext)]
+                break
+        prefix = f"{slug}-"
+        if slug and stem.startswith(prefix):
+            stem = stem[len(prefix):]
+        return stem
+
+    def _set_running_ui(self, running: bool):
+        state = "disabled" if running else "normal"
+        try:
+            self.run_btn.configure(state=state)
+        except Exception:
+            pass
+        # Lock regen buttons by disabling the whole results frame children? simpler: rely on dialog
+        if running:
+            self._spin_step = "docs"  # reuse spinner on docs row as a busy indicator
+            # Actually toggle a generic progress on docs label if exists
+        else:
+            self._spin_step = None
+
+    def _update_progress(self, text: str):
+        try:
+            self._log(f"… {text}")
+        except Exception:
+            pass
+
+    def _on_regen_step(self, file_path: Path, cascade: bool):
+        slug = self.slug_var.get()
+        step = self._infer_step_from_filename(file_path.name, slug)
+        if step == "docs":
+            return
+        if not self.run_dir:
+            messagebox.showerror("錯誤", "找不到 run 目錄。")
+            return
+        if not self.genecr_dir:
+            messagebox.showerror("錯誤", "未找到 genecr 安裝。")
+            return
+        # Locate template
+        if step == "prototype":
+            template_path = self.genecr_dir / "templates" / "prototype.html.tmpl"
+        else:
+            template_path = self.genecr_dir / "templates" / f"{step}.md.tmpl"
+        if not template_path.exists():
+            messagebox.showerror("錯誤", f"找不到 template：{template_path}")
+            return
+        # Inverse
+        try:
+            renderer_dir = str(self.genecr_dir / "tools" / "renderer")
+            if renderer_dir not in sys.path:
+                sys.path.insert(0, renderer_dir)
+            from inverse import md_to_input  # type: ignore
+            template_source = template_path.read_text(encoding="utf-8")
+            md_text = file_path.read_text(encoding="utf-8")
+            new_input = md_to_input(template_source, md_text)
+        except Exception as e:
+            messagebox.showerror("反向失敗",
+                                 f"無法把 {file_path.name} 反推回 input.json：\n{e}")
+            return
+        # Overwrite .input.json
+        input_path = self.run_dir / f"{step}.input.json"
+        try:
+            input_path.write_text(json.dumps(new_input, ensure_ascii=False, indent=2),
+                                  encoding="utf-8")
+        except Exception as e:
+            messagebox.showerror("寫入失敗", f"無法寫入 {input_path}：\n{e}")
+            return
+        # Compute steps to run
+        chain = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
+        try:
+            start_idx = chain.index(step)
+        except ValueError:
+            messagebox.showerror("錯誤", f"未知 step：{step}")
+            return
+        steps_to_run = chain[start_idx:] if cascade else [step]
+        self._set_running_ui(True)
+        self._log(f"=== 重新生成 {'+ 後續' if cascade else ''} {step} ===")
+        threading.Thread(target=self._run_regen_sequence,
+                         args=(steps_to_run, slug), daemon=True).start()
+
+    def _run_regen_sequence(self, steps: list[str], slug: str):
+        total = len(steps)
+        try:
+            for i, step in enumerate(steps, 1):
+                self.after(0, self._update_progress, f"{i}/{total} {step}")
+                cmd = [
+                    self.python, "-u",
+                    str(self.genecr_dir / "tools" / "bin" / "pipeline.py"),
+                    str(self.genecr_dir / "pipeline.json"),
+                    step,
+                    "--slug", slug,
+                ]
+                env = os.environ.copy()
+                env["PYTHONIOENCODING"] = "utf-8"
+                env["PYTHONUTF8"] = "1"
+                env["PYTHONUNBUFFERED"] = "1"
+                env["GENECR_HOST"] = self.host
+                creationflags = 0
+                if sys.platform == "win32":
+                    creationflags = subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]
+                # Run from run_dir.parent.parent (the outdir) so output/<slug> resolves
+                cwd = self.run_dir.parent.parent if self.run_dir else Path.cwd()
+                r = subprocess.run(cmd, cwd=str(cwd), env=env,
+                                   capture_output=True, text=True,
+                                   encoding="utf-8", errors="replace",
+                                   creationflags=creationflags)
+                if r.returncode != 0:
+                    err = (r.stderr or r.stdout or "")[-500:]
+                    self.after(0, lambda s=step, e=err: messagebox.showerror(
+                        f"{s} 失敗", f"step {s} 失敗：\n{e}"))
+                    return
+        finally:
+            self.after(0, lambda: self._set_running_ui(False))
+            self.after(0, self._on_done, slug)
 
     def _open_file(self, path: Path):
         try:

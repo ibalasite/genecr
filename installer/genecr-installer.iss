@@ -12,7 +12,7 @@
 ; Build:  python installer\build.py
 
 #define AppName       "genecr"
-#define AppVersion    "0.3.4"
+#define AppVersion    "0.3.5"
 #define AppPublisher  "ibalasite"
 #define AppURL        "https://github.com/ibalasite/genecr"
 #define ExeName       "genecr-gui.exe"
@@ -51,6 +51,8 @@ Source: "{#ExeSource}"; DestDir: "{app}"; Flags: ignoreversion
 ; 安裝工具包 — 整個 python-embed/ 一起進 {app}\python-embed
 Source: "..\gui\dist\python-embed\*"; DestDir: "{app}\python-embed"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
+; 協調腳本 — embed python 拿這支跑 pip install 到系統 Python
+Source: "install_deps.py"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#ExeName}"

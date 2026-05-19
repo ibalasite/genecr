@@ -27,7 +27,7 @@ GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.3.4"
+APP_VERSION = "0.3.5"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -233,18 +233,19 @@ def _find_python_path():
 
 
 def find_python() -> Path:
-    """主程式環境 Python — 四層 detection，依可靠度排序。
+    """主程式環境 Python — 四層 detection，**PATH 優先**（跟 user 認知對齊：
+    打 `python` 用的就是 PATH 上那支）。
 
-    層 1：已知檔案路徑（python.org / WindowsApps real binary）
-    層 2：py launcher (`py -3`)
-    層 3：Registry HKCU/HKLM\\Software\\Python\\PythonCore\\*\\InstallPath
-    層 4：PATH 上 python3 / python
+    層 1：PATH 上 python3 / python  ← user 打 `python` 用的同一支
+    層 2：已知檔案路徑（python.org / WindowsApps real binary）— PATH miss 時兜底
+    層 3：py launcher (`py -3`)
+    層 4：Registry HKCU/HKLM\\Software\\Python\\PythonCore\\*\\InstallPath
 
     任一層第一個能跑出 'Python 3.X' 的就贏。全 miss 才 raise SystemPythonMissing。
     用途：跑 pipeline、跑 renderer。Caller 接 raise 觸發 ensure_system_python() 自動補齊。
     """
-    for layer in (_find_python_known_paths, _find_python_py_launcher,
-                  _find_python_registry, _find_python_path):
+    for layer in (_find_python_path, _find_python_known_paths,
+                  _find_python_py_launcher, _find_python_registry):
         for p in layer():
             if _verify_python3(p):
                 return Path(p).resolve()
@@ -567,65 +568,58 @@ def deploy_genecr_python_native(host: str, log) -> bool:
             log(f"  · {child.name}")
 
     # 2. Deploy tools — pip install + copy py files
-    # CRITICAL: 用「系統 Python」跑 pip / playwright — 因為 pipeline 是用系統 Python 跑的，
-    # 套件必須裝進系統 Python 的 site-packages 才看得到。
-    # 之前 v0.3.2 誤用 embed_python 跑 pip → jinja2 等套件裝進 python-embed/ → pipeline
-    # 看不到 → ModuleNotFoundError（issue #4-#7）。
-    # 系統 Python 沒裝好的話先呼 ensure_system_python() 自動補齊（解雞生蛋）。
+    # 結構：embed_python（協調者，永遠在）→ 跑 install_deps.py → 對 system_python
+    # 執行 pip install / playwright install。套件落系統 Python 的 site-packages，
+    # pipeline 跑時看得到（v0.3.4 修 issue #4-#7）。
+    # 系統 Python 沒裝好的話先呼 ensure_system_python() 自動補齊。
     renderer = runtime / "tools" / "renderer"
     bin_dir = runtime / "tools" / "bin"
     try:
-        py = str(find_python())
+        sys_py = str(find_python())
         tools_ok = True
     except SystemPythonMissing:
         log("  · 系統 Python 不在 PATH，先自動補齊…")
         if ensure_system_python(log):
             try:
-                py = str(find_python())
+                sys_py = str(find_python())
                 tools_ok = True
             except SystemPythonMissing:
-                log("  ⚠ 自動補齊後仍找不到系統 Python，跳過 pip / playwright")
+                log("  ⚠ 自動補齊後仍找不到系統 Python，跳過套件安裝")
                 tools_ok = False
         else:
-            log("  ⚠ 無法自動補齊系統 Python，跳過 pip / playwright")
+            log("  ⚠ 無法自動補齊系統 Python，跳過套件安裝")
             tools_ok = False
 
     if renderer.exists():
         bin_dir.mkdir(parents=True, exist_ok=True)
         req = renderer / "requirements.txt"
         if req.exists() and tools_ok:
-            log(f"[deploy] pip install -r {req}")
-            try:
-                creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
-                r = subprocess.run(
-                    [py, "-m", "pip", "install", "-q", "-r", str(req)],
-                    capture_output=True, text=True, encoding="utf-8", errors="replace",
-                    creationflags=creationflags,
-                )
-                if r.returncode != 0:
-                    log(f"  ⚠ pip 失敗：{r.stderr[:200]}")
-            except Exception as e:
-                log(f"  ⚠ pip 例外：{e}")
+            # 找協調腳本 install_deps.py：跟 genecr-gui.exe 同層由 installer 部署
+            install_deps = Path(sys.executable).parent / "install_deps.py"
+            if not install_deps.exists():
+                log(f"  ⚠ 找不到 install_deps.py：{install_deps}")
+            else:
+                try:
+                    embed_py = str(embed_python())
+                    log(f"[deploy] embed → install_deps.py → {Path(sys_py).name} pip install")
+                    creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+                    r = subprocess.run(
+                        [embed_py, str(install_deps), sys_py, str(req)],
+                        capture_output=True, text=True, encoding="utf-8", errors="replace",
+                        creationflags=creationflags, timeout=600,
+                    )
+                    if r.stdout: log(r.stdout.strip())
+                    if r.returncode != 0:
+                        log(f"  ⚠ install_deps 失敗（rc={r.returncode}）：{r.stderr[:300]}")
+                except RuntimeError as e:
+                    log(f"  ⚠ embed_python 不存在：{e}")
+                except Exception as e:
+                    log(f"  ⚠ install_deps 例外：{e}")
         # Copy ALL .py modules — pipeline.py imports cross_check / pipeline_orchestrated /
         # review_loop. Hand-listed subset breaks at runtime (mirrors build.sh fix).
         for src in renderer.glob("*.py"):
             sh.copy2(src, bin_dir / src.name)
             log(f"  · tools/bin/{src.name}")
-
-    # 3. playwright chromium download (~150MB, one-time, optional for prototype layout audit)
-    if req.exists() and tools_ok:
-        log("[deploy] playwright install chromium (≈150MB, one-time)")
-        try:
-            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
-            r = subprocess.run(
-                [py, "-m", "playwright", "install", "chromium"],
-                capture_output=True, text=True, encoding="utf-8", errors="replace",
-                creationflags=creationflags, timeout=300,
-            )
-            if r.returncode != 0:
-                log(f"  ⚠ chromium 下載失敗（prototype layout audit 會跳過）：{r.stderr[:200]}")
-        except Exception as e:
-            log(f"  ⚠ playwright 例外（prototype layout audit 會跳過）：{e}")
 
     log(f"✅ deploy 完成")
     return True

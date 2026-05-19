@@ -69,21 +69,9 @@ def _mock_all_layers_empty(gui, monkeypatch):
     monkeypatch.setattr(gui, "_find_python_path", lambda: iter([]))
 
 
-def test_find_python_layer1_known_paths_wins_first(gui, tmp_path, monkeypatch):
-    """層 1 命中就直接回，後面層不會被叫到。"""
+def test_find_python_path_wins_first(gui, tmp_path, monkeypatch):
+    """PATH 層優先（user 打 python 用的同一支）— 命中就直接回，後面層不被叫到。"""
     fake_py = tmp_path / "python.exe"
-    fake_py.touch()
-    _mock_all_layers_empty(gui, monkeypatch)
-    monkeypatch.setattr(gui, "_find_python_known_paths", lambda: iter([fake_py]))
-    monkeypatch.setattr(gui, "_verify_python3", lambda p: True)
-
-    result = gui.find_python()
-    assert result.name == "python.exe"
-
-
-def test_find_python_layer4_path_when_others_empty(gui, tmp_path, monkeypatch):
-    """前 3 層全空、層 4 PATH 有 Python → 回 PATH 結果。"""
-    fake_py = tmp_path / "python3.exe"
     fake_py.touch()
     _mock_all_layers_empty(gui, monkeypatch)
     monkeypatch.setattr(gui, "_find_python_path", lambda: iter([fake_py]))
@@ -91,6 +79,31 @@ def test_find_python_layer4_path_when_others_empty(gui, tmp_path, monkeypatch):
 
     result = gui.find_python()
     assert result == fake_py.resolve()
+
+
+def test_find_python_falls_to_known_paths_when_path_miss(gui, tmp_path, monkeypatch):
+    """PATH 空（或全 verify 失敗）→ 退到已知檔案路徑層。"""
+    fake_py = tmp_path / "python3.exe"
+    fake_py.touch()
+    _mock_all_layers_empty(gui, monkeypatch)
+    monkeypatch.setattr(gui, "_find_python_known_paths", lambda: iter([fake_py]))
+    monkeypatch.setattr(gui, "_verify_python3", lambda p: True)
+
+    result = gui.find_python()
+    assert result == fake_py.resolve()
+
+
+def test_find_python_path_priority_over_known(gui, tmp_path, monkeypatch):
+    """PATH 跟 known paths 同時有 → 必選 PATH 那支（user 認知優先）。"""
+    path_py = tmp_path / "path-python.exe"; path_py.touch()
+    known_py = tmp_path / "known-python.exe"; known_py.touch()
+    _mock_all_layers_empty(gui, monkeypatch)
+    monkeypatch.setattr(gui, "_find_python_path", lambda: iter([path_py]))
+    monkeypatch.setattr(gui, "_find_python_known_paths", lambda: iter([known_py]))
+    monkeypatch.setattr(gui, "_verify_python3", lambda p: True)
+
+    result = gui.find_python()
+    assert result == path_py.resolve(), f"PATH 必須優先；實際回 {result}"
 
 
 def test_find_python_raises_when_all_layers_miss(gui, monkeypatch):

@@ -322,7 +322,7 @@
       <button class="sidebar__toggle" id="sidebarCollapseBtn" type="button" aria-label="收合 / 展開側欄" title="收合 / 展開">⇤</button><div class="sidebar__tabs" role="tablist"><button class="sidebar__tab active" data-tab="docs" type="button" role="tab" aria-selected="true">📁 文件</button><button class="sidebar__tab" data-tab="toc" type="button" role="tab" aria-selected="false">📑 本頁目錄</button></div><div class="sidebar__panel active" data-panel="docs" role="tabpanel"><div class="sidebar__section">
 <a class="sidebar__link active" href="index.html">🏠 首頁</a>
 <a class="sidebar__link" href="prd.html">📝 產品需求文件 (PRD)</a>
-</div></div><div class="sidebar__panel" data-panel="toc" role="tabpanel"><ul class="toc-list"><li><a class="toc__link" href="#架構">架構</a></li><li><a class="toc__link" href="#安裝">安裝</a></li><li><a class="toc__link toc__link--h3" href="#claude-code">🟣 Claude Code</a></li><li><a class="toc__link toc__link--h3" href="#codex-cli">🟢 Codex CLI</a></li><li><a class="toc__link toc__link--h3" href="#兩個都裝">🔁 兩個都裝</a></li><li><a class="toc__link toc__link--h3" href="#windows-powershell">Windows PowerShell</a></li><li><a class="toc__link" href="#使用">使用</a></li><li><a class="toc__link toc__link--h3" href="#一行觸發">一行觸發</a></li><li><a class="toc__link toc__link--h3" href="#流程內部程式控制不靠-ai-協調">流程內部（程式控制，不靠 AI 協調）</a></li><li><a class="toc__link toc__link--h3" href="#直接呼叫-pipelinepy進階">直接呼叫 pipeline.py（進階）</a></li><li><a class="toc__link" href="#使用手冊">使用手冊</a></li><li><a class="toc__link toc__link--h3" href="#1-如何寫好-brief">1. 如何寫好 brief</a></li><li><a class="toc__link toc__link--h3" href="#2-7-份文件導覽">2. 7 份文件導覽</a></li><li><a class="toc__link toc__link--h3" href="#3-常見指令對照">3. 常見指令對照</a></li><li><a class="toc__link toc__link--h3" href="#4-修改與重跑">4. 修改與重跑</a></li><li><a class="toc__link toc__link--h3" href="#5-故障排除">5. 故障排除</a></li><li><a class="toc__link toc__link--h3" href="#6-codex-cli-使用情境">6. Codex CLI 使用情境</a></li><li><a class="toc__link" href="#技術棧產出文件套用">技術棧（產出文件套用）</a></li><li><a class="toc__link" href="#升級">升級</a></li><li><a class="toc__link" href="#開發">開發</a></li><li><a class="toc__link" href="#解除安裝">解除安裝</a></li></ul></div>
+</div></div><div class="sidebar__panel" data-panel="toc" role="tabpanel"><ul class="toc-list"><li><a class="toc__link" href="#範例輸出">📦 範例輸出</a></li><li><a class="toc__link" href="#架構">架構</a></li><li><a class="toc__link" href="#安裝">安裝</a></li><li><a class="toc__link toc__link--h3" href="#windows-gui-installer最推薦給非開發者">🖥️ Windows GUI installer（最推薦給非開發者）</a></li><li><a class="toc__link toc__link--h3" href="#claude-code">🟣 Claude Code</a></li><li><a class="toc__link toc__link--h3" href="#codex-cli">🟢 Codex CLI</a></li><li><a class="toc__link toc__link--h3" href="#兩個都裝">🔁 兩個都裝</a></li><li><a class="toc__link toc__link--h3" href="#windows-powershell">Windows PowerShell</a></li><li><a class="toc__link" href="#使用">使用</a></li><li><a class="toc__link toc__link--h3" href="#一行觸發">一行觸發</a></li><li><a class="toc__link toc__link--h3" href="#流程內部程式控制不靠-ai-協調">流程內部（程式控制，不靠 AI 協調）</a></li><li><a class="toc__link toc__link--h3" href="#直接呼叫-pipelinepy進階">直接呼叫 pipeline.py（進階）</a></li><li><a class="toc__link" href="#使用手冊">使用手冊</a></li><li><a class="toc__link toc__link--h3" href="#1-如何寫好-brief">1. 如何寫好 brief</a></li><li><a class="toc__link toc__link--h3" href="#2-7-份文件導覽">2. 7 份文件導覽</a></li><li><a class="toc__link toc__link--h3" href="#3-常見指令對照">3. 常見指令對照</a></li><li><a class="toc__link toc__link--h3" href="#4-修改與重跑">4. 修改與重跑</a></li><li><a class="toc__link toc__link--h3" href="#5-故障排除">5. 故障排除</a></li><li><a class="toc__link toc__link--h3" href="#6-codex-cli-使用情境">6. Codex CLI 使用情境</a></li><li><a class="toc__link" href="#技術棧產出文件套用">技術棧（產出文件套用）</a></li><li><a class="toc__link" href="#升級">升級</a></li><li><a class="toc__link" href="#開發">開發</a></li><li><a class="toc__link" href="#解除安裝">解除安裝</a></li></ul></div>
     </aside>
     <div class="sidebar-resizer" id="sidebarResizer"></div>
     <main class="doc-content"><h1 id="genecr--igaming-功能需求文件自動生成器">genecr — iGaming 功能需求文件自動生成器</h1>
@@ -331,25 +331,27 @@
 <p>把一個 iGaming 功能需求，自動轉成完整文件套件：</p>
 <p>企畫版（含線框圖）、技術版（API + Mermaid）、資源清單＋AI Prompt、BDD、SCRUM、互動原型、整合 docs.html。</p>
 <p><strong>Host-neutral</strong>：同時支援 <a href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a> 與 <a href="https://github.com/openai/codex" target="_blank" rel="noopener">Codex CLI</a>。</p>
+<blockquote><p>🐛 <strong>找到問題？</strong> 開個 issue：<a href="https://github.com/ibalasite/genecr/issues/new?template=bug_report.md" target="_blank" rel="noopener">github.com/ibalasite/genecr/issues</a></p></blockquote>
+<blockquote><p>💡 <strong>想要新功能？</strong> 開個建議：<a href="https://github.com/ibalasite/genecr/issues/new?template=feature_request.md" target="_blank" rel="noopener">Feature request</a></p></blockquote>
+<blockquote><p>（GUI 內也有「🐛 回報問題」按鈕，會自動帶入環境與 log）</p></blockquote>
+<hr>
 <h2 id="範例輸出">📦 範例輸出</h2>
-<ul>
-<li><strong>刮刮券</strong>（scratch-card）—
-  <a href="scratch-card/scratch-card-docs.html">docs.html</a> ·
-  <a href="scratch-card/scratch-card-spec-basic.md">企畫版</a> ·
-  <a href="scratch-card/scratch-card-spec-advanced.md">技術版</a> ·
-  <a href="scratch-card/scratch-card-assets.md">資源</a> ·
-  <a href="scratch-card/scratch-card-bdd.md">BDD</a> ·
-  <a href="scratch-card/scratch-card-scrum.md">SCRUM</a> ·
-  <a href="scratch-card/scratch-card-prototype.html">原型</a></li>
-<li><strong>跨年活動</strong>（new-year-event）—
-  <a href="new-year-event/new-year-event-docs.html">docs.html</a> ·
-  <a href="new-year-event/new-year-event-spec-basic.md">企畫版</a> ·
-  <a href="new-year-event/new-year-event-spec-advanced.md">技術版</a> ·
-  <a href="new-year-event/new-year-event-assets.md">資源</a> ·
-  <a href="new-year-event/new-year-event-bdd.md">BDD</a> ·
-  <a href="new-year-event/new-year-event-scrum.md">SCRUM</a> ·
-  <a href="new-year-event/new-year-event-prototype.html">原型</a></li>
-</ul>
+<ul><li><strong>刮刮券</strong>（scratch-card）—</li></ul>
+<p><a href="scratch-card/scratch-card-docs.html" target="_blank" rel="noopener">docs.html</a> ·</p>
+<p>企畫版 ·</p>
+<p>技術版 ·</p>
+<p>資源 ·</p>
+<p>BDD ·</p>
+<p>SCRUM ·</p>
+<p><a href="scratch-card/scratch-card-prototype.html" target="_blank" rel="noopener">原型</a></p>
+<ul><li><strong>跨年活動</strong>（new-year-event）—</li></ul>
+<p><a href="new-year-event/new-year-event-docs.html" target="_blank" rel="noopener">docs.html</a> ·</p>
+<p>企畫版 ·</p>
+<p>技術版 ·</p>
+<p>資源 ·</p>
+<p>BDD ·</p>
+<p>SCRUM ·</p>
+<p><a href="new-year-event/new-year-event-prototype.html" target="_blank" rel="noopener">原型</a></p>
 <hr>
 <h2 id="架構">架構</h2>
 <pre><code class="">genecr/
@@ -392,9 +394,22 @@ output/&lt;feature-slug&gt;/&lt;YYYYMMDD-HHMMSS&gt;/
 <p><strong>鐵律</strong>：</p>
 <ul><li>runtime（<code>$GENECR_DIR</code>）只讀；不寫任何使用者資料進 runtime</li><li>所有產出寫到 user CWD 下的 <code>./output/&lt;slug&gt;/&lt;datetime&gt;/</code></li><li>skill 開頭一律 <code>source &quot;$GENECR_DIR/bin/genecr-env.sh&quot;</code></li></ul>
 <p><strong>離線</strong>：</p>
-<ul><li>❌ 不抓 CDN（mermaid.min.js 內附；docs.html 用內聯 mermaid）</li><li>✅ 唯一需要網路：跑時 AI 自己選擇是否用 web research（可斷網跳過）</li></ul>
+<ul><li>❌ 不抓 CDN（<code>templates/mermaid.min.js</code> 直接內嵌 docs.html）</li><li>❌ mermaid sequenceDiagram message label 含 SQL <code>;</code> 自動 escape 成 <code>#59;</code>（mermaid 渲染還原成 <code>;</code>，user 看不出差別）</li><li>✅ 唯一需要網路：跑時 AI 自己選擇是否用 web research（可斷網跳過）</li></ul>
 <hr>
 <h2 id="安裝">安裝</h2>
+<h3 id="windows-gui-installer最推薦給非開發者">🖥️ Windows GUI installer（<strong>最推薦給非開發者</strong>）</h3>
+<p>下載 <a href="https://github.com/ibalasite/genecr/releases/latest" target="_blank" rel="noopener">最新 release</a> 的 <code>.exe</code> 雙擊安裝。<strong>user 不用碰 Python / git / 任何 CLI</strong>。</p>
+<table>
+<tr><th>內建</th><th>自動處理</th></tr>
+<tr><td><strong>embed Python</strong>（python.org 官方 3.13）</td><td>installer 期協調 pip install / playwright install</td></tr>
+<tr><td><strong>System Python 自動補齊</strong></td><td>用 winget / 官方 .exe 靜默裝，user 完全感受不到</td></tr>
+<tr><td><strong>多 host 自動同步</strong></td><td>啟動時掃 <code>~/.gemini</code> / <code>~/.claude</code> / <code>~/.codex</code> 三個 host 的 genecr skill，逐個 <code>git pull</code> + redeploy</td></tr>
+<tr><td><strong>single-instance lock</strong></td><td>雙擊不會開出多隻；切換 host 自動背景更新該 host runtime</td></tr>
+<tr><td><strong>bootloader splash</strong></td><td>PyInstaller <code>--splash</code> ≈ 30ms 內就顯示，無黑屏等待</td></tr>
+<tr><td><strong>🐛 一鍵回報 bug</strong></td><td>dialog 自動帶 env + log + 智慧萃取 <code>ErrorType: message</code> 作 title</td></tr>
+<tr><td><strong>離線完備</strong></td><td>mermaid.min.js 內嵌（docs.html 沒網路也能渲染圖）</td></tr>
+</table>
+<p>升級：跑著開新版 installer，會自動關閉舊 GUI 再覆蓋。</p>
 <h3 id="claude-code">🟣 Claude Code</h3>
 <pre><code class="language-bash">git clone https://github.com/ibalasite/genecr.git ~/.claude/skills/genecr
 ~/.claude/skills/genecr/setup claude</code></pre>
@@ -416,15 +431,19 @@ output/&lt;feature-slug&gt;/&lt;YYYYMMDD-HHMMSS&gt;/
 <p>或自然語言「<strong>genecr 跑流程做 X 功能</strong>」。</p>
 <h3 id="流程內部程式控制不靠-ai-協調">流程內部（程式控制，不靠 AI 協調）</h3>
 <pre><code class="">1. AI 從 brief 萃取 SLUG + NAME → feature.json
-2. pipeline.py 依 pipeline.json 順序跑 7 step：
+2. pipeline.py 依 pipeline.json + depends_on 順序跑 7 step：
    spec-basic → spec-advanced → assets → bdd → scrum → prototype → docs
-   （prototype 依賴 spec-basic；docs 最後合併）
-3. 每個 step：
-   a. AI generate（讀 brief + schema + example，全部內嵌進 prompt）
-   b. jsonschema 驗證（程式判斷，AI 不參與）
-   c. 過 → renderer 用 Jinja2 template 渲染成 .md / .html
-   d. 不過 → AI fix（讀 errors + 上次 JSON），最多 3 次
-4. docs.html 最後集成所有 .md + API explorer（sidebar tab：📁 文件 / 📑 本頁目錄）</code></pre>
+3. 每個 step 用 program-orchestrated review_loop：
+   a. AI generator（獨立 subagent，讀 brief + schema + example 內嵌進 prompt）
+   b. 程式檢查：jsonschema validate + cross_check 跨步一致性
+   c. 過 → AI reviewer（獨立 subagent）做語義審查 → finding=0 收斂
+   d. 不過 → AI fixer（獨立 subagent，讀 issue list + 原 JSON）→ 重來 b
+   e. revalidate-by-step：既有 output 也會對新規則重檢
+4. renderer 用 Jinja2 template 渲染成 .md / .html
+5. docs.html 最後集成所有 .md + API explorer + 內嵌 mermaid.min.js（離線）</code></pre>
+<p><strong>三段獨立 subagent（generator / reviewer / fixer）</strong> = 程式編排，避免「同一 AI 自我審查」偏差。</p>
+<p><strong>cross_check 跨步驟一致性</strong>（檔案 <code>tools/renderer/cross_check.py</code>）：</p>
+<ul><li>timeline 週數 == <code>ceil(max(per-role 公式工作天) / 5)</code></li><li>scrum 各 role stories 加總 ≥ 公式地板（從 baseline anchor 比例縮放）</li><li>assets 件數對齊 spec-basic 自報的 visual_total / audio_total</li><li>spec-advanced 的 SQL WHERE 欄位有對應 index、Redis 鍵都先宣告</li><li>全部數值由程式計算（不交 AI 自報自核）</li></ul>
 <h3 id="直接呼叫-pipelinepy進階">直接呼叫 pipeline.py（進階）</h3>
 <pre><code class="language-bash"># 在自己專案目錄下，輸出寫到 ./output/
 python ~/.claude/skills/genecr/tools/bin/pipeline.py \
@@ -539,18 +558,29 @@ cat &quot;$RUN/&lt;step&gt;.input.json&quot;</code></pre>
 <tr><td><code>claude -p</code> 呼叫</td><td>Codex 內<strong>沒有</strong> <code>claude</code> CLI</td><td>改 <code>pipeline.json</code> 的 <code>ai.command</code> 為 Codex 自己的 CLI（例如 <code>codex exec</code>），或在 host 機器另裝 Claude CLI</td></tr>
 <tr><td><code>git pull</code>（升級時）</td><td>網路 + runtime 寫入</td><td>需要 approval；對話中明確說「升級 genecr」</td></tr>
 </table>
-<p><strong>Codex 改 ai.command 範例</strong>：</p>
+<p><strong>Codex 改 ai.command 範例</strong>（實測指令）：</p>
 <pre><code class="language-jsonc">// ~/.codex/skills/genecr/pipeline.json
 {
   &quot;ai&quot;: {
-    // 預設是 claude；如果你只有 codex CLI，改成：
-    &quot;command&quot;: &quot;codex exec --input-file {prompt} &gt; {output}&quot;,
+    // 預設給 Claude CLI 用：
+    // &quot;command&quot;: &quot;claude -p --output-format text &lt; {prompt} &gt; {output}&quot;,
+    //
+    // Codex 版（stdin 餵 prompt，-o 寫最終訊息到檔案）：
+    &quot;command&quot;: &quot;codex exec --skip-git-repo-check -o {output} &lt; {prompt}&quot;,
     &quot;stub_mode&quot;: false
   },
   ...
 }</code></pre>
+<blockquote><p>為何不用 stdout redirect？<code>codex exec</code> stdout 含 &quot;tokens used&quot; 統計行；<code>-o &lt;file&gt;</code> 只寫最終 agent message，剛好是我們要的 JSON。</p></blockquote>
+<p><strong>Sandbox 升級</strong>：預設 Codex 對 file write 嚴格，可能擋到 <code>output/</code> 目錄。需要時加：</p>
+<pre><code class="language-bash">codex exec -s workspace-write --skip-git-repo-check -o {output} &lt; {prompt}</code></pre>
+<p>或暫時：<code>codex exec --dangerously-bypass-approvals-and-sandbox ...</code>（<strong>不建議常用</strong>）。</p>
 <p><strong>多 host 切換</strong>：兩邊都裝後，<code>/genecr</code> skill 自動識別當前 host（看 skill base directory 路徑含 <code>.claude</code> / <code>.codex</code>），不會跨 host 干擾。</p>
 <p><strong>競業調查</strong>：若 Codex 在純離線 sandbox，AI 無法做 web research，會 fallback 用內建知識。產出仍可用但較少現役競品 URL。</p>
+<p><strong>驗證 Codex 環境 OK</strong>：</p>
+<pre><code class="language-bash">echo &quot;Reply with just the word OK&quot; | codex exec --skip-git-repo-check -o /tmp/codex-test.txt
+cat /tmp/codex-test.txt    # 應該看到「OK」</code></pre>
+<p>通過代表 Codex CLI 可被 pipeline 呼叫。</p>
 <hr>
 <h2 id="技術棧產出文件套用">技術棧（產出文件套用）</h2>
 <table>

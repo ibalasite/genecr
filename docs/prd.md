@@ -1,7 +1,7 @@
-<!-- Version: v2.0 -->
+<!-- Version: v2.1 -->
 # GeneCR — 完整產品需求文件（PRD）
 
-> 版本：v2.0 ｜ 日期：2026-05-14
+> 版本：v2.1 ｜ 日期：2026-05-20
 > 作者：Evans（sayyogames.com）
 
 ---
@@ -35,6 +35,33 @@ output/<slug>/<datetime>/<slug>-<type>.md|.html
 ```
 
 **關鍵**：流程由程式控制，AI 只做「內容生成」「修錯」兩件事；schema 由程式判斷對錯；檔名 / 路徑由程式產生（AI 不能干擾）。
+
+### 2.1.1 review_loop（program-orchestrated 三段獨立 subagent）
+
+v2.1 起每個 step 跑 **generator / reviewer / fixer 三段獨立 subagent**：
+
+```
+generator → 程式檢查（jsonschema + cross_check）→ reviewer → fixer → 重來
+（finding=0 才收斂；無 hard cap）
+```
+
+避免「同一 AI 自我審查」偏差。reviewer 只做語義審查、fixer 只負責修；schema / cross_check 由程式做不交給 AI。
+
+### 2.1.2 cross_check（跨步驟一致性）
+
+`tools/renderer/cross_check.py` 在每個 step 跑完後，由程式驗證跨步驟一致性：
+
+| 規則 | 程式檢查 |
+|---|---|
+| timeline weeks | == `ceil(max(per-role 公式工作天) / 5)` |
+| scrum per-role 加總點數 | ≥ 公式地板（**地板邏輯**：1 點=1 工作天，scrum 拆 Fibonacci 自然 ≥ 地板）|
+| 單 story 點數 | ≤ 5（INVEST 原則）|
+| assets type 件數 | == sb.resource_counts.{visual,audio}_total |
+| spec-advanced SQL WHERE 欄位 | 有對應 index |
+| spec-advanced Redis 鍵 | 都先在 data_models 宣告 |
+
+**單一基準 anchor**（從 checkin7v2 baseline 固化）：所有新企畫按量體比例縮放。Anchor 數字（5/8 API + 3/4 MySQL + 2/4 Redis + 8/43 asset + 8/7 wf + 3/12 AC）寫死在 code 中，改要單獨討論。
+
 
 ### 2.2 7 份產出
 
@@ -150,6 +177,23 @@ templates/
 | 寫產出 | `$CWD/output/<slug>/<datetime>/` | ✅ 唯一可寫 |
 | 寫 runtime | runtime 任何位置 | ❌ 絕不 |
 | 讀 dev tree（C:/Projects/genecr） | — | ❌ skill 不依賴 |
+| Step 隔離 | 各 step preprocess 只准讀本 step + upstream（depends_on）| ❌ 不准讀下游 sibling |
+
+## 五-1、GUI distribution（v0.3.x series）
+
+針對「非開發者」user，提供 Windows GUI installer（`gui/` + `installer/`）：
+
+| 組件 | 角色 |
+|---|---|
+| **安裝工具包**（embed Python，`{app}\python-embed\`）| 安裝期跑 pip / playwright / 協調系統 Python 安裝；user 完全不需碰 Python |
+| **主程式 Python**（PATH 上系統 python.exe）| pipeline / renderer 跑時用；找不到 → 自動 winget / .exe 靜默裝 |
+| **bootloader splash**（PyInstaller `--splash`）| ~30ms 內顯示，無黑屏等待 |
+| **single-instance lock**（socket bind 127.0.0.1:62731）| user 多點不會開多隻 |
+| **多 host 自動更新**（`upgrade_all_installed_hosts`）| 啟動時掃 gemini/claude/codex 三套 skill 並 `git pull` + redeploy |
+| **🐛 一鍵 bug 回報**（GUI 內按鈕）| 自動帶 env + log + 智慧萃取 `ErrorType: message` 當 GitHub issue title |
+
+build pipeline：`python installer/build.py` 一鍵 = 下載 embed zip + patch _pth + get-pip + PyInstaller `--onedir` + ISCC.exe。
+
 
 ---
 
@@ -157,6 +201,7 @@ templates/
 
 | 版本 | 日期 | 變更摘要 |
 |---|---|---|
+| **v2.1** | **2026-05-20** | **review_loop 三段獨立 subagent**（generator/reviewer/fixer，commit 05b5557 / d6ee31a）；**cross_check 跨步驟一致性**（302a5ac → 970f9d8 → 9abd2c2 → 836fc5a），最終定為**單一基準 anchor + 地板邏輯**（無 hard cap）；**revalidate-by-step**（dd5b15d）既有 output 對新規則重檢；**Step isolation 鐵律**（9abd2c2，step preprocess 禁讀下游 sibling）；**spec-basic 自洽合約**（visual_total / audio_total 必填，sb 不准讀 sa/assets）；**prompts 強化**（5f99fac STAKES + Final human gate、276bc1c PRE-FLIGHT + zh-TW、c9705d9 strict reviewer/fixer skeletons）；spec-advanced 加 stateDiagram + CREATE TABLE DDL + db_queries 渲染（94723c9 + 85e946e ER diagram）；assets 加 owner_role / output_format / suggested_filename / nested resource_counts（353f263 + 6ff40f5 6 production types + Excel pivot index）；**mermaid 完全離線**（23da401 內嵌 mermaid.min.js 取代 CDN、81b6374 sequenceDiagram `;` 自動 escape #59;）；**Windows GUI installer** 完整 release 系列（gui/ + installer/，含 embed Python bundle / 多 host 自動更新 / single-instance lock / bootloader splash / 一鍵 bug 回報 / 雙保險 taskkill 舊版） |
 | v2.0 | 2026-05-14 | **架構重寫**：pipeline.json + tools/renderer 為核心。新增 generate→validate→fix loop、brief 萃取 feature.json、wireframes（wf-* DSL）、6+ 競業深度欄位、gendoc-style docs.html（sidebar tabs + API explorer）、setup 對齊 gendoc 慣例（_deploy_tools / upgrade re-exec / _find_python）。Tech stack 從 Fastify+MongoDB → Express+MySQL。新增 `/genecr` skill。 |
 | v1.1 | 2026-05-13 | lucky-wheel 範例下記錄 8 個 P0/P1 issue（線框、寬度、雙語、原型連結、資源完整性、BDD 全展、prototype 響應、競業連結）|
 | v1.0 | 2026-05-12 | 初版，定義 7 份產出、Cocos + Node.js + Fastify + MongoDB tech stack |

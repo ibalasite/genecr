@@ -83,12 +83,29 @@ output/<feature-slug>/<YYYYMMDD-HHMMSS>/
 - skill 開頭一律 `source "$GENECR_DIR/bin/genecr-env.sh"`
 
 **離線**：
-- ❌ 不抓 CDN（mermaid.min.js 內附；docs.html 用內聯 mermaid）
+- ❌ 不抓 CDN（`templates/mermaid.min.js` 直接內嵌 docs.html）
+- ❌ mermaid sequenceDiagram message label 含 SQL `;` 自動 escape 成 `#59;`（mermaid 渲染還原成 `;`，user 看不出差別）
 - ✅ 唯一需要網路：跑時 AI 自己選擇是否用 web research（可斷網跳過）
 
 ---
 
 ## 安裝
+
+### 🖥️ Windows GUI installer（**最推薦給非開發者**）
+
+下載 [最新 release](https://github.com/ibalasite/genecr/releases/latest) 的 `.exe` 雙擊安裝。**user 不用碰 Python / git / 任何 CLI**。
+
+| 內建 | 自動處理 |
+|---|---|
+| **embed Python**（python.org 官方 3.13）| installer 期協調 pip install / playwright install |
+| **System Python 自動補齊** | 用 winget / 官方 .exe 靜默裝，user 完全感受不到 |
+| **多 host 自動同步** | 啟動時掃 `~/.gemini` / `~/.claude` / `~/.codex` 三個 host 的 genecr skill，逐個 `git pull` + redeploy |
+| **single-instance lock** | 雙擊不會開出多隻；切換 host 自動背景更新該 host runtime |
+| **bootloader splash** | PyInstaller `--splash` ≈ 30ms 內就顯示，無黑屏等待 |
+| **🐛 一鍵回報 bug** | dialog 自動帶 env + log + 智慧萃取 `ErrorType: message` 作 title |
+| **離線完備** | mermaid.min.js 內嵌（docs.html 沒網路也能渲染圖）|
+
+升級：跑著開新版 installer，會自動關閉舊 GUI 再覆蓋。
 
 ### 🟣 Claude Code
 
@@ -139,16 +156,26 @@ git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.claude\skil
 
 ```
 1. AI 從 brief 萃取 SLUG + NAME → feature.json
-2. pipeline.py 依 pipeline.json 順序跑 7 step：
+2. pipeline.py 依 pipeline.json + depends_on 順序跑 7 step：
    spec-basic → spec-advanced → assets → bdd → scrum → prototype → docs
-   （prototype 依賴 spec-basic；docs 最後合併）
-3. 每個 step：
-   a. AI generate（讀 brief + schema + example，全部內嵌進 prompt）
-   b. jsonschema 驗證（程式判斷，AI 不參與）
-   c. 過 → renderer 用 Jinja2 template 渲染成 .md / .html
-   d. 不過 → AI fix（讀 errors + 上次 JSON），最多 3 次
-4. docs.html 最後集成所有 .md + API explorer（sidebar tab：📁 文件 / 📑 本頁目錄）
+3. 每個 step 用 program-orchestrated review_loop：
+   a. AI generator（獨立 subagent，讀 brief + schema + example 內嵌進 prompt）
+   b. 程式檢查：jsonschema validate + cross_check 跨步一致性
+   c. 過 → AI reviewer（獨立 subagent）做語義審查 → finding=0 收斂
+   d. 不過 → AI fixer（獨立 subagent，讀 issue list + 原 JSON）→ 重來 b
+   e. revalidate-by-step：既有 output 也會對新規則重檢
+4. renderer 用 Jinja2 template 渲染成 .md / .html
+5. docs.html 最後集成所有 .md + API explorer + 內嵌 mermaid.min.js（離線）
 ```
+
+**三段獨立 subagent（generator / reviewer / fixer）** = 程式編排，避免「同一 AI 自我審查」偏差。
+
+**cross_check 跨步驟一致性**（檔案 `tools/renderer/cross_check.py`）：
+- timeline 週數 == `ceil(max(per-role 公式工作天) / 5)`
+- scrum 各 role stories 加總 ≥ 公式地板（從 baseline anchor 比例縮放）
+- assets 件數對齊 spec-basic 自報的 visual_total / audio_total
+- spec-advanced 的 SQL WHERE 欄位有對應 index、Redis 鍵都先宣告
+- 全部數值由程式計算（不交 AI 自報自核）
 
 ### 直接呼叫 pipeline.py（進階）
 

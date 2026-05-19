@@ -129,7 +129,11 @@ def find_python() -> str:
                 return cand
         except Exception:
             continue
-    return sys.executable  # fall back to current interpreter
+    # CRITICAL: don't fall back to sys.executable when frozen — it points to
+    # genecr-gui.exe itself, which causes infinite self-spawn loop.
+    if getattr(sys, "frozen", False):
+        return None  # caller must handle (show install-python prompt)
+    return sys.executable  # dev mode only — real python interpreter
 
 
 # ─── Pure helpers (no UI; testable headless) ────────────────────
@@ -356,15 +360,26 @@ def deploy_genecr_python_native(host: str, log) -> bool:
     # 2. Deploy tools — pip install + copy py files
     renderer = runtime / "tools" / "renderer"
     bin_dir = runtime / "tools" / "bin"
+    # CRITICAL: use real system python, NOT sys.executable.
+    # In frozen PyInstaller mode sys.executable = genecr-gui.exe — calling it
+    # via subprocess.run would spawn a new GUI instance (infinite self-spawn loop).
+    py = find_python()
+    if py is None:
+        log("  ⚠ 找不到 system Python — 跳過 pip install / playwright chromium")
+        log("     請先安裝 Python 3 (https://python.org)，再 retry deploy")
+        py_ok = False
+    else:
+        py_ok = True
+
     if renderer.exists():
         bin_dir.mkdir(parents=True, exist_ok=True)
         req = renderer / "requirements.txt"
-        if req.exists():
+        if req.exists() and py_ok:
             log(f"[deploy] pip install -r {req}")
             try:
                 creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
                 r = subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "-q", "-r", str(req)],
+                    [py, "-m", "pip", "install", "-q", "-r", str(req)],
                     capture_output=True, text=True, encoding="utf-8", errors="replace",
                     creationflags=creationflags,
                 )
@@ -379,12 +394,12 @@ def deploy_genecr_python_native(host: str, log) -> bool:
             log(f"  · tools/bin/{src.name}")
 
     # 3. playwright chromium download (~150MB, one-time, optional for prototype layout audit)
-    if req.exists():
+    if req.exists() and py_ok:
         log("[deploy] playwright install chromium (≈150MB, one-time)")
         try:
             creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
             r = subprocess.run(
-                [sys.executable, "-m", "playwright", "install", "chromium"],
+                [py, "-m", "playwright", "install", "chromium"],
                 capture_output=True, text=True, encoding="utf-8", errors="replace",
                 creationflags=creationflags, timeout=300,
             )

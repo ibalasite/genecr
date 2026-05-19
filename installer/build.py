@@ -144,12 +144,12 @@ def build_gui_exe() -> None:
         log("生成 icon …")
         subprocess.run([sys.executable, str(GUI_DIR / "make-icon.py")], check=True)
 
-    log("PyInstaller 打包 GUI")
+    log("PyInstaller 打包 GUI (--onedir：1 個 process、啟動快、無解壓延遲)")
     source = GUI_DIR / "genecr-gui.pyw"
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
-        "--onefile",
+        "--onedir",       # 1 process + 秒開（取代 --onefile 的 bootloader+解壓）
         "--windowed",
         "--name", "genecr-gui",
         "--icon", str(ico),
@@ -163,11 +163,13 @@ def build_gui_exe() -> None:
     r = subprocess.run(cmd, text=True)
     if r.returncode != 0:
         raise RuntimeError("PyInstaller 失敗")
-    exe = GUI_DIST / "genecr-gui.exe"
+    # --onedir 產出 gui/dist/genecr-gui/genecr-gui.exe + 同目錄 _internal/
+    onedir = GUI_DIST / "genecr-gui"
+    exe = onedir / "genecr-gui.exe"
     if not exe.exists():
         raise RuntimeError(f"未產出 {exe}")
     size_mb = exe.stat().st_size / (1024 * 1024)
-    log(f"  → {exe} ({size_mb:.1f} MB)")
+    log(f"  → {exe} ({size_mb:.1f} MB) + 整個 {onedir.name}/ 目錄")
 
 
 def compile_installer() -> None:

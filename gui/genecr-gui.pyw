@@ -27,7 +27,7 @@ GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.3.6"
+APP_VERSION = "0.3.7"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -2203,6 +2203,62 @@ class GenecrGUI(tk.Tk):
         ttk.Button(bar, text="稍後再說", command=win.destroy).pack(side="left", padx=4)
 
 
+def _acquire_single_instance_lock():
+    """單一實例守門 — bind localhost 固定 port，第二次點 GUI 會 bind 失敗 → 直接退場。
+
+    用 socket bind 而不是檔案 lock，因為 process crash 後 OS 自動釋放 port，
+    比殘留 .lock 檔健壯。回 socket 物件，必須在 process 整個生命週期內保持參考。
+    """
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE if sys.platform == "win32" else socket.SO_REUSEADDR, 1)
+    try:
+        s.bind(("127.0.0.1", 62731))  # 任意固定 port；佔住代表 GUI 在跑
+        s.listen(1)
+        return s
+    except OSError:
+        return None
+
+
+def _show_boot_splash() -> tk.Tk:
+    """立刻彈一個 splash 視窗，讓 user 看到「在啟動了」而不是黑屏等。
+
+    Tk 物件本身先 hidden 給 splash 用 root；GenecrGUI 後續 reuse 同一個 root 顯示主視窗。
+    """
+    root = tk.Tk()
+    root.title(APP_TITLE)
+    root.withdraw()  # 主視窗暫時藏起，等 GenecrGUI 接手再 deiconify
+    splash = tk.Toplevel(root)
+    splash.overrideredirect(True)
+    splash.configure(background="#1e293b")
+    w, h = 360, 160
+    sw, sh = splash.winfo_screenwidth(), splash.winfo_screenheight()
+    splash.geometry(f"{w}x{h}+{(sw-w)//2}+{(sh-h)//2}")
+    tk.Label(splash, text="genecr", fg="#ffffff", bg="#1e293b",
+             font=("Microsoft JhengHei", 18, "bold")).pack(pady=(28, 6))
+    tk.Label(splash, text="啟動中…", fg="#cbd5e1", bg="#1e293b",
+             font=("Microsoft JhengHei", 10)).pack()
+    bar = ttk.Progressbar(splash, mode="indeterminate", length=260)
+    bar.pack(pady=14)
+    bar.start(10)
+    splash.update()
+    return root, splash
+
+
 if __name__ == "__main__":
+    # 1. 單一實例守門 — 已有 GUI 在跑就直接退，避免 user 多點幾下出現多支
+    _lock = _acquire_single_instance_lock()
+    if _lock is None:
+        sys.exit(0)
+
+    # 2. 立刻彈 splash（即使後續 init 慢，user 也看得到「在啟動」）
+    _root, _splash = _show_boot_splash()
+
+    # 3. 真正建主 GUI（沿用 _root 為 Tk 主視窗，避免兩個 Tk root）
     app = GenecrGUI()
+    try:
+        _splash.destroy()
+        _root.destroy()  # splash 用的暫時 root 不再需要
+    except Exception:
+        pass
     app.mainloop()

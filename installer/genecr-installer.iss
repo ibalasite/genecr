@@ -12,11 +12,12 @@
 ; Build:  python installer\build.py
 
 #define AppName       "genecr"
-#define AppVersion    "0.3.6"
+#define AppVersion    "0.3.7"
 #define AppPublisher  "ibalasite"
 #define AppURL        "https://github.com/ibalasite/genecr"
 #define ExeName       "genecr-gui.exe"
-#define ExeSource     "..\gui\dist\genecr-gui.exe"
+; --onedir 輸出整個資料夾（含 _internal/）
+#define OnedirSource  "..\gui\dist\genecr-gui\*"
 
 [Setup]
 AppId={{B6A3F1C2-9E4D-4B7A-9F0E-3C8D1A5B7E29}
@@ -51,7 +52,9 @@ Name: "default"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "建立桌面捷徑"; GroupDescription: "額外捷徑："; Flags: checkedonce
 
 [Files]
-Source: "{#ExeSource}"; DestDir: "{app}"; Flags: ignoreversion
+; --onedir 產出：genecr-gui.exe + _internal/ 全部進 {app}
+Source: "{#OnedirSource}"; DestDir: "{app}"; \
+    Flags: ignoreversion recursesubdirs createallsubdirs
 ; 安裝工具包 — 整個 python-embed/ 一起進 {app}\python-embed
 Source: "..\gui\dist\python-embed\*"; DestDir: "{app}\python-embed"; \
     Flags: ignoreversion recursesubdirs createallsubdirs

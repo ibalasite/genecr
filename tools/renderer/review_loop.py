@@ -63,15 +63,28 @@ def _ensure_valid_json(initial_raw: str,
     while True:
         iteration += 1
         # tier 1: 程式直接 parse（含 fenced-block 容忍）
+        # 必須是 dict — 若 AI 寫成 list / scalar 視為 type error 進下一輪
         try:
-            return _parse_json(raw)
+            result = _parse_json(raw)
+            if isinstance(result, dict):
+                return result
+            last_err = TypeError(
+                f"expected JSON object (dict), got {type(result).__name__}"
+            )
         except Exception as e:
             last_err = e
         # tier 2: 程式 json_repair（無 AI cost，補逗號/括號/單引號/全形/註解等）
+        # 同樣要求 dict — json_repair 有時會把「多 dict 連著」修成 list，
+        # 那也不接受，繼續下一輪讓 AI gen_fixer 重新生成 dict。
         try:
             from json_repair import repair_json
             repaired = repair_json(raw)
-            return json.loads(repaired)
+            parsed = json.loads(repaired)
+            if isinstance(parsed, dict):
+                return parsed
+            last_err = TypeError(
+                f"json_repair produced {type(parsed).__name__}, expected dict"
+            )
         except Exception:
             pass
         # tier 3: AI gen_fixer 窄 prompt（只看 raw 末段 + parse error，省 token）

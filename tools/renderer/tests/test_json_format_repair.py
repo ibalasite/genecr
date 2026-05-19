@@ -127,6 +127,52 @@ def test_does_not_break_if_ai_eventually_outputs_different():
 
 # ─── User 真實案例 ──────────────────────────────────────────────
 
+def test_rejects_list_from_program_parse():
+    """parse 成功但回 list → 視為 type error，必須進 fixer 改成 dict。
+
+    對應 issue #12 場景：json_repair 把 '{...}{...}' 修成 '[{...},{...}]'，
+    list 應該被擋下、不能進下游 cross_check。
+    """
+    bad_raw = '[{"a": 1}, {"b": 2}]'   # 直接 parse 是 list
+    call_count = {"n": 0}
+    def fixer_returns_dict(raw, err):
+        call_count["n"] += 1
+        # fixer 應該把 list 改成 dict
+        assert "dict" in err.lower() or "object" in err.lower(), \
+            f"err message 應該提到要 dict，實際 {err!r}"
+        return '{"a": 1, "b": 2}'
+    result = _ensure_valid_json(bad_raw, fixer_returns_dict)
+    assert result == {"a": 1, "b": 2}
+    assert call_count["n"] == 1, "fixer 應被呼叫 1 次把 list 改成 dict"
+
+
+def test_rejects_list_from_json_repair():
+    """json_repair 把破損 dict 修成 list 的情境（issue #12 真實 case）。
+
+    AI 寫 '{...}{...}' 多 dict 連著 → json_repair 包成 [...]，但我們要 dict。
+    """
+    # 模擬 AI 寫了兩段 dict 連著（中間漏了東西、生成器分段失誤）
+    bad_raw = '{"a": 1}{"b": 2}'
+    # tier 1 parse 失敗，tier 2 json_repair 會修成 [...]，但被拒絕
+    # tier 3 fixer 應該被呼叫
+    fixer_called = {"yes": False}
+    def fixer(raw, err):
+        fixer_called["yes"] = True
+        return '{"a": 1, "b": 2}'   # 合法 dict
+    result = _ensure_valid_json(bad_raw, fixer)
+    assert result == {"a": 1, "b": 2}
+    assert fixer_called["yes"], "json_repair 修成 list 時 fixer 必須被呼叫"
+
+
+def test_rejects_scalar_from_program_parse():
+    """parse 成功但回 int / str / None → 同樣視為 type error。"""
+    bad_raw = '42'
+    def fixer_recovers(raw, err):
+        return '{"value": 42}'
+    result = _ensure_valid_json(bad_raw, fixer_recovers)
+    assert result == {"value": 42}
+
+
 def test_user_real_case_missing_comma_at_position():
     """模擬 issue #11 spec-basic 的 13332 字 JSON 漏逗號（縮小版）。"""
     # 模擬一段「中間漏逗號」的 JSON

@@ -11,9 +11,14 @@ syntax error and output a parseable JSON object.
 - Do NOT change the data shape / structure
 - Only fix the syntax (missing commas / brackets / quotes / escape)
 
-**Output format**：
-- Output a single JSON object directly (no markdown fences, no commentary)
-- Whole response = parseable JSON
+**Output format (CRITICAL)**：
+- Output MUST be a **JSON OBJECT** starting with `{` — **NEVER** an array starting with `[`
+- If the raw text has multiple top-level objects `{...}{...}`, MERGE them into ONE
+  `{...}` (do NOT wrap them as `[{...}, {...}]`)
+- If the raw text starts with prose / commentary / markdown fence before the JSON,
+  STRIP all of that and output ONLY the JSON object
+- No markdown fences, no commentary in your output
+- Whole response = single parseable JSON object
 
 ═══════════════════════════════════════════════════════════════════════════
 ## STEP TYPE

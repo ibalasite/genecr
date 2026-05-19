@@ -12,7 +12,7 @@
 ; Build:  python installer\build.py
 
 #define AppName       "genecr"
-#define AppVersion    "0.3.5"
+#define AppVersion    "0.3.6"
 #define AppPublisher  "ibalasite"
 #define AppURL        "https://github.com/ibalasite/genecr"
 #define ExeName       "genecr-gui.exe"
@@ -39,6 +39,10 @@ WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\{#ExeName}
 UninstallDisplayName={#AppName} {#AppVersion}
+; 安裝時若舊版 GUI 還在跑、自動關閉（不彈窗問 user）
+CloseApplications=force
+CloseApplicationsFilter=*.exe
+RestartApplications=no
 
 [Languages]
 Name: "default"; MessagesFile: "compiler:Default.isl"
@@ -61,3 +65,19 @@ Name: "{userdesktop}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: desktopic
 
 [Run]
 Filename: "{app}\{#ExeName}"; Description: "立刻啟動 {#AppName}"; Flags: nowait postinstall skipifsilent
+
+; ─────────────────────────────────────────────────────────────────
+; 防呆：installer 啟動前先 taskkill 任何還活著的 genecr-gui.exe
+; 這是 CloseApplications=force 的雙重保險（後者靠 Restart Manager，
+; 對於沒登記 RM 的 process 不一定攔得到；taskkill 是硬殺）。
+; ─────────────────────────────────────────────────────────────────
+[Code]
+function InitializeSetup(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  // /F 強制、/IM 依 image name 殺；訊息丟掉、不彈窗
+  Exec(ExpandConstant('{cmd}'), '/C taskkill /F /IM genecr-gui.exe >nul 2>&1',
+       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Result := True;
+end;

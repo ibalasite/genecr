@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ feature.name }} — 文件中心</title>
+<style>
+  /* ─── Tokens (gendoc-style: dark nav + light content) ─── */
+  :root {
+    --nav-bg: #1e293b;
+    --nav-fg: #f1f5f9;
+    --nav-accent: #60a5fa;
+    --nav-h: 56px;
+
+    --bg: #f8fafc;
+    --panel-bg: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --link: #2563eb;
+    --link-hover: #1d4ed8;
+    --code-bg: #f1f5f9;
+    --code-fg: #c7254e;
+    --pre-bg: #0f172a;
+    --pre-fg: #e2e8f0;
+    --th-bg: #f1f5f9;
+    --row-alt: #fafbfc;
+    --accent: #2563eb;
+
+    --content-max: 1400px;
+    --sidebar-w: 240px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+                 "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    line-height: 1.7; font-size: 15px;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+
+  /* ─── Top nav ─── */
+  .top-nav {
+    position: sticky; top: 0; z-index: 50;
+    height: var(--nav-h);
+    background: var(--nav-bg); color: var(--nav-fg);
+    display: flex; align-items: center;
+    padding: 0 24px; gap: 24px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.1);
+  }
+  .top-nav h1 { font-size: 16px; font-weight: 600; margin: 0; color: #fff; }
+  .top-nav .crumb { color: #94a3b8; font-size: 14px; }
+  .top-nav .spacer { flex: 1; }
+  .top-nav .lang { display: flex; gap: 4px; }
+  .top-nav .lang button {
+    padding: 4px 10px; font-size: 12px;
+    background: transparent; color: #cbd5e1;
+    border: 1px solid #475569; border-radius: 4px; cursor: pointer;
+  }
+  .top-nav .lang button.active { background: var(--nav-accent); color: #fff; border-color: var(--nav-accent); }
+  .top-nav .lang button:hover:not(.active) { background: #334155; color: #fff; }
+
+  /* ─── Layout: sidebar + content (full viewport, gendoc-style) ─── */
+  .page-wrapper {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    width: 100%;
+    min-height: calc(100vh - var(--nav-h));
+    transition: grid-template-columns .15s;
+  }
+  .page-wrapper.sidebar-collapsed {
+    grid-template-columns: 36px 1fr;
+  }
+  @media (max-width: 768px) {
+    .page-wrapper { grid-template-columns: 36px 1fr; }
+  }
+
+  /* ─── Sidebar (with tabs + collapse) ─── */
+  .sidebar {
+    position: sticky; top: var(--nav-h);
+    align-self: start;
+    height: calc(100vh - var(--nav-h));
+    background: var(--panel-bg);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: visible;
+  }
+  .sidebar__toggle {
+    position: absolute; top: 6px; right: 6px;
+    background: var(--code-bg); color: var(--text-muted);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    padding: 2px 8px; font-size: 13px; line-height: 1; cursor: pointer; z-index: 3;
+  }
+  .sidebar__toggle:hover { background: var(--border); color: var(--text); }
+  .page-wrapper.sidebar-collapsed .sidebar__tabs,
+  .page-wrapper.sidebar-collapsed .sidebar__panel { display: none; }
+  .page-wrapper.sidebar-collapsed .sidebar__toggle { left: 6px; right: auto; top: 6px; }
+
+  .sidebar__tabs {
+    display: flex; gap: 2px; padding: 6px 36px 0 6px;
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    flex: 0 0 auto;
+  }
+  .sidebar__tab {
+    flex: 1; padding: 6px 8px; font-size: 12px;
+    border: 1px solid transparent; border-bottom: none;
+    border-radius: 4px 4px 0 0; cursor: pointer; background: transparent;
+    color: var(--text-muted); font-family: inherit; text-align: center;
+    transition: background .15s, color .15s;
+  }
+  .sidebar__tab:hover { color: var(--text); background: var(--code-bg); }
+  .sidebar__tab.active {
+    background: var(--panel-bg); color: var(--link);
+    border-color: var(--border); font-weight: 600; margin-bottom: -1px;
+  }
+
+  .sidebar__panel {
+    display: none; flex: 1 1 auto;
+    overflow-y: auto; overflow-x: hidden;
+    padding: 8px 0; font-size: 14px;
+    scrollbar-width: thin;
+  }
+  .sidebar__panel.active { display: block; }
+  .sidebar__panel::-webkit-scrollbar { width: 6px; }
+  .sidebar__panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); border-radius: 3px; }
+
+  .sidebar__link {
+    display: block;
+    padding: 8px 16px;
+    color: var(--text); text-decoration: none;
+    border-left: 3px solid transparent;
+    font-size: 14px; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sidebar__link:hover { background: var(--code-bg); }
+  .sidebar__link.active {
+    background: #eff6ff; color: var(--link);
+    border-left-color: var(--accent); font-weight: 600;
+  }
+
+  /* TOC links — indent by heading depth */
+  .toc__link { display: block; padding: 4px 16px;
+    color: var(--text); text-decoration: none; font-size: 13px;
+    border-left: 2px solid transparent;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .toc__link:hover { background: var(--code-bg); color: var(--link); }
+  .toc__link.active { background: #eff6ff; color: var(--link); border-left-color: var(--accent); font-weight: 500; }
+  .toc__link--h2 { padding-left: 16px; font-weight: 600; }
+  .toc__link--h3 { padding-left: 32px; font-size: 12px; color: var(--text-muted); }
+  .toc__link--h4 { padding-left: 48px; font-size: 12px; color: var(--text-muted); }
+
+  /* ─── Main content area (full width, responsive) ─── */
+  main.content {
+    background: var(--panel-bg);
+    padding: 32px 48px 96px;
+    min-width: 0;
+    width: 100%;
+  }
+  @media (max-width: 768px) { main.content { padding: 20px 16px 64px; } }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .panel [id] { scroll-margin-top: calc(var(--nav-h) + 16px); }
+
+  /* ─── Typography ─── */
+  h1, h2, h3, h4, h5 { color: var(--text); font-weight: 700; line-height: 1.3; }
+  h1 { font-size: 28px; margin: 8px 0 24px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+  h2 { font-size: 22px; margin: 36px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 18px; margin: 28px 0 12px; }
+  h4 { font-size: 16px; margin: 20px 0 10px; }
+  p, ul, ol { margin: 12px 0; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+
+  a { color: var(--link); text-decoration: none; }
+  a:hover { color: var(--link-hover); text-decoration: underline; }
+
+  blockquote {
+    margin: 16px 0; padding: 12px 16px;
+    border-left: 4px solid var(--accent);
+    background: #eff6ff; color: var(--text);
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* ─── Code ─── */
+  code {
+    background: var(--code-bg); color: var(--code-fg);
+    padding: 2px 6px; border-radius: 3px;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular,
+                 Menlo, Consolas, monospace;
+    font-size: 0.88em;
+  }
+  pre {
+    background: var(--pre-bg); color: var(--pre-fg);
+    padding: 16px; border-radius: 8px; overflow-x: auto;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px; line-height: 1.55;
+    margin: 16px 0;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; font-size: inherit; }
+
+  /* ─── Tables (gendoc style: light theme, scroll if too wide) ─── */
+  .panel { max-width: 100%; }
+  .panel table {
+    border-collapse: collapse;
+    margin: 16px 0;
+    width: auto;
+    background: var(--panel-bg);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    border-radius: 6px;
+    overflow: hidden;
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .panel th, .panel td {
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    line-height: 1.6;
+    word-break: break-word;
+    max-width: 480px;
+    font-size: 14px;
+  }
+  .panel th {
+    background: var(--th-bg);
+    color: var(--text);
+    font-weight: 600;
+    white-space: nowrap;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  .panel tbody tr:nth-child(even) { background: var(--row-alt); }
+
+  /* ─── Mermaid diagrams ─── */
+  .diagram-container {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; margin: 16px 0;
+    cursor: zoom-in; transition: box-shadow .15s;
+  }
+  .diagram-container:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+
+  /* ─── Lightbox (mermaid zoom) ─── */
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(15,23,42,.92);
+    display: none; z-index: 1000;
+    justify-content: center; align-items: center;
+  }
+  .lightbox.show { display: flex; }
+  .lightbox-inner {
+    background: #fff; padding: 32px; border-radius: 8px;
+    max-width: 95vw; max-height: 90vh; overflow: auto;
+    transform-origin: center;
+  }
+  .lightbox-controls { position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; z-index: 1001; }
+  .lightbox-controls button {
+    background: #fff; color: var(--text); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 4px; font-weight: 600; cursor: pointer;
+  }
+  .lightbox-controls button:hover { background: var(--code-bg); }
+
+  /* ─── API try-it card ─── */
+  .api-card {
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 20px; margin: 20px 0;
+  }
+  .api-card.hidden { display: none; }
+  .api-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .method {
+    padding: 4px 10px; border-radius: 4px;
+    font-weight: 700; font-size: 11px; letter-spacing: 0.05em; color: #fff;
+  }
+  .method.GET { background: #16a34a; }
+  .method.POST { background: #2563eb; }
+  .method.PUT { background: #ea580c; }
+  .method.PATCH { background: #7c3aed; }
+  .method.DELETE { background: #dc2626; }
+  .api-path {
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    color: var(--text); font-size: 14px; font-weight: 600;
+  }
+  .api-card label { display: block; font-size: 12px; color: var(--text-muted); margin-top: 10px; font-weight: 600; }
+  .api-card input, .api-card textarea, .api-card select {
+    width: 100%; padding: 8px 10px;
+    background: #fff; color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: 4px;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 13px; margin-top: 4px;
+  }
+  .api-card textarea { min-height: 100px; resize: vertical; }
+  .api-card .btns { margin-top: 14px; display: flex; gap: 8px; }
+  .api-card button {
+    padding: 8px 16px; border: none; border-radius: 4px;
+    font-weight: 600; cursor: pointer; font-size: 13px;
+  }
+  .btn-try, .btn-curl {
+    padding: 10px 20px; border-radius: 4px;
+    font-weight: 600; font-size: 14px; cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-try { background: var(--accent); color: #fff; border: none; }
+  .btn-try:hover { background: var(--link-hover); }
+  .btn-curl { background: var(--code-bg); color: var(--text); border: 1px solid var(--border-strong); }
+  .btn-curl:hover { background: var(--border); }
+  .response {
+    margin-top: 12px; padding: 12px;
+    background: var(--pre-bg); color: var(--pre-fg);
+    border-radius: 4px;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px; white-space: pre-wrap; min-height: 30px;
+  }
+  .status-2xx { border-left: 3px solid #16a34a; }
+  .status-4xx { border-left: 3px solid #ea580c; }
+  .status-5xx { border-left: 3px solid #dc2626; }
+
+  /* ─── Wireframe DSL — low-fidelity line-art mockups ─── */
+  .wf-scope {
+    --ink:#1f2937; --muted:#6b7280; --line:#c7cdd6; --soft:#f6f7f9; --panel:#fff;
+    color: var(--ink); background: #fff; padding: 16px; border-radius: 8px; margin: 16px 0;
+    font-family: Inter, system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    border: 1px solid var(--border);
+  }
+  .wf-scope *, .wf-scope *::before, .wf-scope *::after { box-sizing: border-box; }
+  .wf-scope code { background: transparent; color: inherit; padding: 0; }
+  .wf-frame { max-width: 720px; margin: 16px auto; border: 2px solid var(--ink); border-radius: 20px; overflow: hidden; background: var(--panel); box-shadow: 0 18px 50px rgba(31,41,55,.12); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .wf-panel { border: 1.8px solid var(--line); border-radius: 12px; background: #fff; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .wf-section-title { font-weight: 800; font-size: 14px; color: var(--ink); margin-bottom: 8px; }
+  .wf-helper { color: var(--muted); font-size: 12px; }
+  .wf-divider { height: 0; border: none; border-top: 1.5px solid var(--line); margin: 12px 0; }
+  .wf-pill { display: inline-grid; place-items: center; min-width: 56px; height: 28px; padding: 0 10px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; color: var(--ink); }
+  .wf-pill.is-active { border-color: var(--ink); background: var(--soft); font-weight: 700; }
+  .wf-btn { min-height: 34px; padding: 0 14px; border: 1.8px solid var(--line); border-radius: 999px; background: #fff; font-size: 13px; cursor: pointer; }
+  .wf-btn-primary { border-color: var(--ink); font-weight: 700; background: var(--soft); }
+  .wf-skeleton-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 160px; min-height: 28px; padding: 4px 12px; border: 1.5px solid var(--line); border-radius: 999px; background: repeating-linear-gradient(90deg, #fff, #fff 10px, var(--soft) 10px, var(--soft) 20px); font-size: 12px; color: var(--muted); }
+  .wf-skeleton-line { display: flex; align-items: center; min-height: 22px; padding: 4px 10px; flex: 1 1 auto; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; line-height: 1.4; color: var(--muted); }
+  .wf-skeleton-block { background: var(--soft); border: 1.8px solid var(--line); border-radius: 12px; min-height: 40px; padding: 8px 12px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; }
+  .wf-dot { display: inline-block; width: 18px; height: 18px; border: 1.8px solid var(--ink); border-radius: 50%; background: var(--soft); }
+  .wf-icon-slot { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1.5px dashed var(--line); border-radius: 8px; color: var(--muted); font-size: 10px; }
+  .wf-required { color: #b91c1c; font-weight: 700; }
+  .wf-badge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 8px; border: 1.8px solid var(--ink); border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1; color: var(--ink); background: #fff; }
+  .wf-mobile { width: 360px; margin: 16px auto; background: #fff; border: 2px solid var(--ink); border-radius: 20px; overflow: hidden; }
+  .wf-statusbar { display: flex; justify-content: space-between; align-items: center; padding: 4px 16px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .wf-appbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid var(--line); background: #fbfbfc; }
+  .wf-appbar > .wf-section-title { flex: 1; margin: 0; font-size: 15px; }
+  .wf-banner { padding: 10px 16px; border-bottom: 1.5px solid var(--line); }
+  .wf-marquee { padding: 6px 16px; border-bottom: 1.5px solid var(--line); display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); overflow: hidden; }
+  .wf-stage { padding: 20px 16px; display: grid; place-items: center; min-height: 320px; gap: 12px; }
+  .wf-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); gap: 8px; width: 100%; }
+  .wf-info { display: flex; justify-content: space-around; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-actionbar { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-actionbar .wf-btn-primary { flex: 1; }
+  .wf-shortcuts { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-shortcuts .wf-btn { flex: 1; }
+  .wf-bottomnav { display: flex; justify-content: space-around; align-items: center; padding: 10px 16px; border-top: 2px solid var(--line); background: #fbfbfc; }
+  .wf-wheel { position: relative; width: 240px; height: 240px; border-radius: 50%; border: 2.5px solid var(--ink); overflow: hidden; background: conic-gradient(from -15deg, #fff 0 30deg, var(--soft) 30deg 60deg, #fff 60deg 90deg, var(--soft) 90deg 120deg, #fff 120deg 150deg, var(--soft) 150deg 180deg, #fff 180deg 210deg, var(--soft) 210deg 240deg, #fff 240deg 270deg, var(--soft) 270deg 300deg, #fff 300deg 330deg, var(--soft) 330deg 360deg); }
+  .wf-wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 20px solid var(--ink); z-index: 3; }
+  .wf-wheel-hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 70px; height: 70px; border-radius: 50%; border: 2.5px solid var(--ink); background: #fff; display: grid; place-items: center; font-weight: 800; font-size: 14px; z-index: 2; }
+  .wf-modal { width: 300px; margin: 16px auto; border: 2px solid var(--ink); border-radius: 16px; background: #fff; padding: 24px 20px; text-align: center; box-shadow: 0 18px 50px rgba(31,41,55,.12); }
+  .wf-modal-icon { width: 80px; height: 80px; margin: 0 auto 12px; border: 2px dashed var(--line); border-radius: 16px; display: grid; place-items: center; color: var(--muted); font-size: 11px; background: var(--soft); }
+  .wf-modal-title { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+  .wf-modal-body { font-size: 13px; color: var(--ink); margin-bottom: 4px; display: flex; flex-direction: column; gap: 12px; text-align: left; }
+  .wf-modal-meta { font-size: 11px; color: var(--muted); border: 1.5px dashed var(--line); border-radius: 8px; padding: 6px 8px; margin: 12px 0; }
+  .wf-modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .wf-empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+  .wf-countdown { font-family: monospace; font-size: 24px; font-weight: 800; letter-spacing: 2px; color: var(--ink); }
+
+  /* ─── DSL 對標 HTML — 補齊 primitives (一次到位，CSS ↔ DSL ↔ HTML 三邊對得上) ─── */
+
+  /* 3.2 排版 / 列表 / 文字 */
+  .wf-row     { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .wf-list    { display: flex; flex-direction: column; gap: 6px; }
+  .wf-line    { display: flex; align-items: center; min-height: 26px; padding: 4px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 12px; color: var(--ink); line-height: 1.5; }
+  .wf-text    { font-size: 13px; line-height: 1.6; color: var(--ink); margin: 4px 0; }
+  .wf-link    { color: var(--ink); text-decoration: underline; cursor: pointer; }
+  .wf-link:hover { color: var(--muted); }
+
+  /* 表格 */
+  .wf-table   { display: table; width: 100%; border-collapse: collapse; border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .wf-tr      { display: table-row; }
+  .wf-tr:nth-child(even) { background: var(--soft); }
+  .wf-td      { display: table-cell; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 12px; vertical-align: middle; }
+
+  /* 3.3 Form 元件（對標 HTML form inputs） */
+  .wf-input        { display: block; width: 100%; min-height: 36px; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; color: var(--ink); box-sizing: border-box; }
+  .wf-input-date   { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; color: var(--ink); }
+  .wf-input-date::before { content: "📅"; opacity: .6; }
+  .wf-select       { display: inline-flex; align-items: center; justify-content: space-between; min-width: 120px; min-height: 36px; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; color: var(--ink); }
+  .wf-select::after { content: "▾"; margin-left: 8px; opacity: .6; }
+  .wf-textarea     { display: block; width: 100%; min-height: 80px; padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; color: var(--ink); box-sizing: border-box; }
+  .wf-check        { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1.8px solid var(--ink); border-radius: 4px; background: #fff; font-size: 12px; line-height: 1; color: var(--ink); }
+  .wf-check.is-active::after { content: "✓"; font-weight: 800; }
+  .wf-radio        { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1.8px solid var(--ink); border-radius: 50%; background: #fff; }
+  .wf-radio.is-active::after { content: ""; width: 8px; height: 8px; background: var(--ink); border-radius: 50%; }
+  .wf-switch       { display: inline-block; position: relative; width: 36px; height: 20px; border: 1.8px solid var(--ink); border-radius: 999px; background: #fff; }
+  .wf-switch::after { content: ""; position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; border-radius: 50%; background: var(--line); transition: left .15s; }
+  .wf-switch.is-active::after { left: 17px; background: var(--ink); }
+
+  /* 3.5 進階 UI */
+  .wf-tabs       { display: flex; gap: 4px; border-bottom: 1.5px solid var(--line); padding: 0 8px; }
+  .wf-tab        { padding: 8px 16px; border: 1.5px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; font-size: 13px; color: var(--muted); cursor: pointer; }
+  .wf-tab.is-active { border-color: var(--line); background: #fff; color: var(--ink); font-weight: 700; margin-bottom: -1.5px; }
+  .wf-accordion  { border: 1.5px solid var(--line); border-radius: 8px; padding: 12px; background: #fff; cursor: pointer; }
+  .wf-accordion::after { content: " ▾"; color: var(--muted); float: right; }
+  .wf-stepper    { display: flex; align-items: center; gap: 8px; padding: 12px 0; }
+  .wf-step       { display: inline-grid; place-items: center; min-width: 28px; min-height: 28px; padding: 0 8px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; color: var(--muted); }
+  .wf-step.is-active { border-color: var(--ink); background: var(--soft); color: var(--ink); font-weight: 700; }
+  .wf-toast      { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1.8px solid var(--ink); border-radius: 999px; background: #fff; font-size: 12px; color: var(--ink); box-shadow: 0 4px 12px rgba(31,41,55,.12); }
+
+  /* 3.6 進度 / 圖表 */
+  .wf-bar        { display: inline-block; min-width: 16px; height: 100%; min-height: 20px; background: var(--soft); border: 1.8px solid var(--ink); border-radius: 6px 6px 0 0; }
+  .wf-chart      { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; min-height: 120px; }
+  .wf-chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 100px; }
+  .wf-kpi        { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; }
+  .wf-kpi-grid   { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+  .wf-card       { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; }
+  .wf-list-line  { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .wf-line-row   { display: flex; align-items: center; gap: 8px; padding: 4px 0; }  /* alias of wf-list-line */
+  .wf-segment    { border: 1.8px solid var(--ink); display: grid; place-items: center; padding: 8px; font-size: 11px; color: var(--ink); }
+  .wf-wheel-rim  { position: absolute; inset: -6px; pointer-events: none; }
+
+  /* 3.7 Desktop wireframe — 對等 mobile primitive 完整補齊 */
+  /* 容器（單面，無 sidebar） */
+  .wf-desktop    { max-width: 960px; margin: 16px auto; border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; background: #fff; display: flex; flex-direction: column; }
+  /* 容器（含 sidebar — 後台應用） */
+  .wf-desktop-app { max-width: 960px; margin: 16px auto; display: grid; grid-template-columns: 240px 1fr; min-height: 480px; border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; background: #fff; }
+  .wf-sidebar    { display: flex; flex-direction: column; gap: 4px; padding: 16px 8px; background: var(--soft); border-right: 1.5px solid var(--line); }
+  .wf-sidenav-item { padding: 8px 12px; border-radius: 8px; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .wf-sidenav-item.is-active { background: var(--ink); color: #fff; font-weight: 700; }
+
+  /* 桌面頂部列（對應 mobile 的 wf-appbar） */
+  .wf-topbar     { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1.5px solid var(--line); background: var(--soft); }
+  /* 桌面 hero / banner 區 */
+  .wf-hero       { display: flex; flex-direction: column; gap: 8px; padding: 24px 20px; background: var(--soft); }
+  /* 桌面通告列（對應 mobile 的 wf-marquee） */
+  .wf-notice-bar { display: flex; align-items: center; gap: 8px; padding: 8px 20px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  /* 桌面主內容區（對應 mobile 的 wf-stage） */
+  .wf-main       { padding: 24px 20px; display: flex; flex-direction: column; gap: 16px; }
+  /* 桌面工具列（搜尋/篩選/操作 — 對應 mobile 的 wf-actionbar） */
+  .wf-toolbar    { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 0; }
+  /* 麵包屑 */
+  .wf-breadcrumb { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); padding: 4px 0; }
+  .wf-breadcrumb > * + *::before { content: "›"; margin-right: 6px; color: var(--muted); }
+  /* 分頁器 */
+  .wf-pagination { display: flex; gap: 4px; justify-content: center; padding: 8px 0; font-size: 12px; }
+  .wf-pagination > * { min-width: 28px; height: 28px; display: inline-grid; place-items: center; border: 1.5px solid var(--line); border-radius: 4px; padding: 0 6px; }
+  /* 表單列（label + input 對） */
+  .wf-form-row   { display: grid; grid-template-columns: 140px 1fr; gap: 12px; align-items: center; padding: 6px 0; }
+  /* 多欄表單 */
+  .wf-form-grid  { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  /* KPI 卡 */
+  .wf-stat-card  { padding: 16px; border: 1.5px solid var(--line); border-radius: 8px; display: flex; flex-direction: column; gap: 4px; min-width: 140px; background: var(--soft); }
+  /* 卡片網格（對應 mobile 的 wf-shortcuts） */
+  .wf-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  /* table variant: zebra 條紋 / hover 高亮 */
+  .wf-table--zebra .wf-tr:nth-child(even) { background: var(--soft); }
+  .wf-table--hover .wf-tr:hover { background: var(--soft); }
+
+  @media print {
+    .top-nav, .sidebar { display: none; }
+    .page-wrapper { display: block; }
+    main.content { padding: 0; }
+    .panel { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <h1>📋 {{ feature.name }}</h1>
+  <span class="crumb">— 文件中心</span>
+  <span class="spacer"></span>
+</nav>
+
+<div class="page-wrapper">
+
+  <aside class="sidebar">
+    <button class="sidebar__toggle" id="sidebarToggle" title="收合 / 展開 (Ctrl+\)">‹</button>
+    <div class="sidebar__tabs">
+      <button class="sidebar__tab active" data-panel="docs">📁 文件</button>
+      <button class="sidebar__tab" data-panel="toc">📑 本頁目錄</button>
+    </div>
+    <div class="sidebar__panel active" id="sidebar-docs">
+      {% for s in sections %}
+      <a class="sidebar__link{% if loop.first %} active{% endif %}" data-target="{{ s.type }}">{{ s.title }}</a>
+      {% endfor %}
+      {% if api_explorer %}
+      <a class="sidebar__link" data-target="api-explorer">🔧 API 試打</a>
+      {% endif %}
+      {% if prototype_path %}
+      <a class="sidebar__link" data-target="prototype">🎮 互動原型</a>
+      {% endif %}
+    </div>
+    <div class="sidebar__panel" id="sidebar-toc">
+      <div id="toc-list"></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    {% for s in sections %}
+    <div class="panel panel-doc{% if loop.first %} active{% endif %}" id="{{ s.type }}">
+      {{ s.html | safe }}
+    </div>
+    {% endfor %}
+
+    {% if api_explorer %}
+    <div class="panel" id="api-explorer">
+      <div id="api-detail">
+        <p style="color: var(--text-muted); padding: 32px; text-align: center;">
+          ← 點左側 endpoint 開始試打。所有回應為前端 mock，斷網可用。
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if prototype_path %}
+    <div class="panel" id="prototype">
+      <h1>🎮 互動原型</h1>
+      <p style="color: var(--text-muted); margin: 16px 0 24px;">
+        互動原型是獨立 HTML 檔，需另開分頁體驗。
+      </p>
+      <a href="{{ prototype_path }}" target="_blank" rel="noopener"
+         style="display: inline-block; padding: 14px 28px; background: var(--accent); color: #fff;
+                font-weight: 600; border-radius: 6px; text-decoration: none; font-size: 15px;">
+        🚀 在新分頁開啟原型 →
+      </a>
+      <p style="color: var(--text-muted); margin-top: 24px; font-size: 13px;">
+        檔案路徑：<code>{{ prototype_path }}</code>
+      </p>
+    </div>
+    {% endif %}
+  </main>
+
+</div>
+
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-controls">
+    <button onclick="lbZoom(0.2)">+</button>
+    <button onclick="lbZoom(-0.2)">−</button>
+    <button onclick="lbReset()">⤺</button>
+    <button onclick="closeLightbox()">✕</button>
+  </div>
+  <div class="lightbox-inner" id="lightbox-inner"></div>
+</div>
+
+<!-- mermaid 完全離線：內嵌 templates/mermaid.min.js，不依賴 CDN
+     （user 無網路 / 防火牆擋 cdn.jsdelivr.net 時，舊版 CDN 引用會讓圖完全不渲染） -->
+<script>
+{{ mermaid_js | safe }}
+</script>
+<script>
+const API_CONFIG = {{ api_explorer | default([]) | tojson }};
+const RESPONSE_MAP = {};
+API_CONFIG.forEach(a => RESPONSE_MAP[a.id] = a.responses || {});
+
+mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+
+function sanitizeMermaidSrc(src) {
+  // In sequenceDiagram, mermaid parses raw <, > in message labels as HTML tags
+  // and the diagram breaks. Replace them in message text (after `:` on arrow lines)
+  // with mermaid's own escape codes #lt; / #gt; so they render as real < > characters.
+  if (!/^\s*sequenceDiagram/m.test(src)) return src;
+  return src.split('\n').map(line => {
+    const m = line.match(/^(\s*[^:]*-?->>?\s*[^:]+:)(.*)$/);
+    if (!m) return line;
+    const msg = m[2].replace(/</g, '#lt;').replace(/>/g, '#gt;');
+    return m[1] + msg;
+  }).join('\n');
+}
+
+// ─── 把每份子文件掛載成獨立命名世界 ───
+// 每個 .panel 是一個「主頁」（master），子文件內部所有錨點要加「主頁.」前綴，
+// 否則跨主頁同名錨點會在全域 DOM 撞名（先前 bug：sidebar「API 試打」被技術版裡
+// 同名 `<a id="api-checkin-config">` 攔截，跳錯頁）。
+// 同時把子文件內部相對連結 `#X` 改寫成 `#主頁.X`，保留 intra-master 跳轉。
+function mountSubDocIntoMaster() {
+  // 只處理塞 markdown 的主頁（panel-doc）。widget-only 主頁（api-explorer /
+  // prototype）id 由 JS 直接 getElementById('api-detail') 抓，不能加前綴。
+  document.querySelectorAll('.panel-doc').forEach(master => {
+    const masterName = master.id;
+    if (!masterName) return;
+    const prefix = masterName + '.';
+    // 1) prefix every [id] inside this master (not just h1-h4)
+    master.querySelectorAll('[id]').forEach(el => {
+      if (el === master) return;                       // skip the master container itself
+      if (el.id.startsWith(prefix)) return;            // idempotent
+      el.id = prefix + el.id;
+    });
+    // 2) rewrite intra-master `href="#X"` → `#master.X` so internal links still work
+    master.querySelectorAll('a[href^="#"]').forEach(a => {
+      const raw = a.getAttribute('href').slice(1);
+      if (!raw || raw.startsWith(prefix)) return;
+      if (master.querySelector('#' + CSS.escape(prefix + raw))) {
+        a.setAttribute('href', '#' + prefix + raw);
+      }
+    });
+  });
+}
+
+function transformMermaid() {
+  document.querySelectorAll('pre code.language-mermaid').forEach(code => {
+    const src = sanitizeMermaidSrc(code.textContent);
+    const wrap = document.createElement('div');
+    wrap.className = 'diagram-container';
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = src;
+    div.setAttribute('data-source', src);
+    wrap.appendChild(div);
+    wrap.addEventListener('click', () => openLightbox(wrap));
+    code.parentElement.replaceWith(wrap);
+  });
+}
+
+async function renderMermaidIn(panel) {
+  const nodes = panel.querySelectorAll('.mermaid:not([data-processed="true"])');
+  if (nodes.length) {
+    try { await mermaid.run({ nodes: Array.from(nodes) }); } catch (e) { console.error(e); }
+  }
+}
+
+// ─── Sidebar: collapse toggle ───
+const wrapper = document.querySelector('.page-wrapper');
+const toggleBtn = document.getElementById('sidebarToggle');
+toggleBtn.addEventListener('click', () => {
+  wrapper.classList.toggle('sidebar-collapsed');
+  toggleBtn.textContent = wrapper.classList.contains('sidebar-collapsed') ? '›' : '‹';
+});
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === '\\') { e.preventDefault(); toggleBtn.click(); }
+});
+
+// ─── Sidebar: 文件 / TOC tabs ───
+document.querySelectorAll('.sidebar__tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar__tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar__panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('sidebar-' + tab.dataset.panel).classList.add('active');
+    if (tab.dataset.panel === 'toc') buildToc();
+  });
+});
+
+// ─── TOC builder: scan current panel ───
+function buildToc() {
+  const listEl = document.getElementById('toc-list');
+  const active = document.querySelector('.panel.active');
+  if (!active) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無</div>'; return; }
+
+  // API panel: list endpoints from API_CONFIG
+  if (active.id === 'api-explorer') {
+    const eps = API_CONFIG;
+    if (!eps.length) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無符合 endpoint</div>'; return; }
+    listEl.innerHTML = eps.map(e =>
+      `<a class="toc__link toc__link--api" data-api-id="${e.id}" style="padding:8px 12px;display:block">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <span style="display:inline-block;min-width:48px;font-size:10px;font-weight:700;color:#fff;background:${methodColor(e.method)};padding:2px 6px;border-radius:3px;text-align:center">${e.method}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.path}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);padding-left:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.desc || ''}</div>
+      </a>`
+    ).join('');
+    listEl.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', ev => { ev.preventDefault(); renderApi(a.dataset.apiId); });
+    });
+    return;
+  }
+
+  // Default: scan h1-h4
+  const heads = Array.from(active.querySelectorAll('h1, h2, h3, h4'));
+  if (!heads.length) { listEl.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:12px">無標題</div>'; return; }
+  let html = '';
+  heads.forEach((h, i) => {
+    if (!h.id) {
+      // auto-id MUST include panel.id prefix to avoid collisions across panels
+      h.id = active.id + '__h-' + i + '-' + (h.textContent || '').replace(/\s+/g, '-').slice(0, 30);
+    }
+    html += `<a class="toc__link toc__link--${h.tagName.toLowerCase()}" href="#${h.id}">${h.textContent}</a>`;
+  });
+  listEl.innerHTML = html;
+  listEl.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const tgt = document.getElementById(a.getAttribute('href').slice(1));
+      if (tgt) tgt.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+}
+
+function methodColor(m) {
+  return { GET:'#16a34a', POST:'#2563eb', PUT:'#ea580c', PATCH:'#7c3aed', DELETE:'#dc2626' }[m] || '#64748b';
+}
+
+
+// ─── API Explorer: render single endpoint ───
+function findApi(id) { return API_CONFIG.find(e => e.id === id); }
+
+// Detect path params from path like /api/v1/foo/{id}/bar — return param names
+function detectPathParams(path) { return [...path.matchAll(/\{([^}]+)\}/g)].map(m => m[1]); }
+
+// ─── API explorer — Postman-grade per-endpoint UI ───
+// 4-tab 設定 (Params / Auth / Headers / Body) + 即時預覽 + mock 引擎 (200/400/401)
+// + response 含 _debug echo (request 原樣印回)。
+
+const DEMO_TOKEN = 'demo-token-abc123';
+
+function _esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function _paramRow(p, scope) {
+  // scope = 'path' | 'query' | 'header'
+  const req = p.required ? ' <span style="color:#dc2626">*</span>' : '';
+  const ex = p.example != null ? `placeholder="${_esc(p.example)}"` : (p.description ? `placeholder="${_esc(p.description)}"` : '');
+  return `<div style="display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center;margin-bottom:8px">
+    <label style="font-size:13px;font-weight:600">${_esc(p.name)}${req}<div style="font-size:11px;color:var(--text-muted);font-weight:400">${_esc(p.type||'string')}${p.in&&p.in!==scope?` (${p.in})`:''}</div></label>
+    <input class="api-input" data-scope="${scope}" data-name="${_esc(p.name)}" type="text" value="${_esc(p.default ?? p.example ?? '')}" ${ex} style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px">
+  </div>`;
+}
+
+function renderApi(id) {
+  const ep = findApi(id); if (!ep) return;
+  document.querySelectorAll('.toc__link--api').forEach(x => x.classList.toggle('active', x.dataset.apiId === id));
+  history.replaceState(null, '', '#api-explorer.' + id);
+
+  // Merge declared path params with auto-detected from {placeholders}
+  const declared = ep.parameters || ep.params || [];
+  const declaredPathNames = declared.filter(p => p.in === 'path').map(p => p.name);
+  const autoPath = detectPathParams(ep.path)
+    .filter(n => !declaredPathNames.includes(n))
+    .map(n => ({name: n, in: 'path', type: 'string', required: true}));
+  const pathParams = [...declared.filter(p => p.in === 'path'), ...autoPath];
+  const queryParams = declared.filter(p => p.in === 'query');
+  const headerParams = declared.filter(p => p.in === 'header');
+
+  const auth = ep.auth || {required: false, type: 'none'};
+  const rb = ep.request_body;     // structured body
+  const rbProps = (rb && rb.schema && rb.schema.properties) || {};
+  const rbRequired = (rb && rb.schema && rb.schema.required) || [];
+  const rbExampleStr = rb && rb.example != null ? JSON.stringify(rb.example, null, 2) : '';
+
+  const tabs = [
+    {key:'params',  label:'Params',  count: pathParams.length + queryParams.length},
+    {key:'auth',    label:'Auth',    count: auth.required ? 1 : 0},
+    {key:'headers', label:'Headers', count: headerParams.length},
+    {key:'body',    label:'Body',    count: rb ? Object.keys(rbProps).length : 0},
+  ];
+
+  const html = `
+    <h1 style="margin-bottom:6px"><span class="method ${ep.method}" style="margin-right:8px">${ep.method}</span>${_esc(ep.summary || ep.description || ep.id)}</h1>
+    <div class="api-path" style="font-size:14px;margin-bottom:6px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${_esc(ep.path)}</div>
+    <p style="color:var(--text-muted);margin:0 0 18px">${_esc(ep.description || '')}</p>
+
+    <div class="api-tabs" style="display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:14px">
+      ${tabs.map((t,i) => `<button class="api-tab" data-tab="tab-${t.key}" style="padding:8px 14px;background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-2px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted)${i===0?';color:var(--accent);border-bottom-color:var(--accent)':''}">${t.label}${t.count?` <span style="color:var(--text-muted);font-weight:400">(${t.count})</span>`:''}</button>`).join('')}
+    </div>
+
+    <div class="api-tabpane" id="tab-params" style="display:block">
+      ${pathParams.length ? `<h3 style="margin:0 0 8px;font-size:12px;text-transform:uppercase;color:var(--text-muted)">Path Parameters</h3>${pathParams.map(p => _paramRow(p, 'path')).join('')}` : ''}
+      ${queryParams.length ? `<h3 style="margin:14px 0 8px;font-size:12px;text-transform:uppercase;color:var(--text-muted)">Query Parameters</h3>${queryParams.map(p => _paramRow(p, 'query')).join('')}` : ''}
+      ${!pathParams.length && !queryParams.length ? '<p style="color:var(--text-muted);font-size:13px">此端點無 path / query 參數。</p>' : ''}
+    </div>
+
+    <div class="api-tabpane" id="tab-auth" style="display:none">
+      ${auth.required ? `
+        <p style="margin:0 0 10px;font-size:13px"><strong>需要驗證</strong> · type=<code>${_esc(auth.type)}</code>${auth.location?` · location=<code>${_esc(auth.location)}</code>`:''}${auth.name?` · header=<code>${_esc(auth.name)}</code>`:''}</p>
+        <div style="display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:600">${_esc(auth.name || 'Token')} <span style="color:#dc2626">*</span><div style="font-size:11px;color:var(--text-muted);font-weight:400">${_esc(auth.format || auth.type)}</div></label>
+          <input class="api-input" data-scope="auth" data-name="token" type="text" value="${_esc(DEMO_TOKEN)}" style="padding:8px 10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px">
+        </div>
+        <p style="font-size:12px;color:var(--text-muted)">預填一個 demo token，清空後 mock 會回 401 unauthorized。</p>
+      ` : '<p style="color:var(--text-muted);font-size:13px">此端點為公開端點，不需驗證。</p>'}
+    </div>
+
+    <div class="api-tabpane" id="tab-headers" style="display:none">
+      ${headerParams.length ? headerParams.map(p => _paramRow(p, 'header')).join('') : ''}
+      <p style="font-size:12px;color:var(--text-muted);margin-top:10px">自動附加 headers：<code>Content-Type</code>（依 body）/ <code>Authorization</code>（依 Auth tab）— 不需手動填。</p>
+    </div>
+
+    <div class="api-tabpane" id="tab-body" style="display:none">
+      ${rb ? `
+        <p style="margin:0 0 10px;font-size:13px">Content-Type：<code>${_esc(rb.content_type)}</code>${rb.required?' · <strong>required</strong>':''}</p>
+        ${Object.keys(rbProps).length ? `
+          <h3 style="margin:14px 0 8px;font-size:12px;text-transform:uppercase;color:var(--text-muted)">Schema 欄位</h3>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px">
+            <thead><tr style="background:var(--row-alt)"><th style="text-align:left;padding:6px;border:1px solid var(--border)">field</th><th style="text-align:left;padding:6px;border:1px solid var(--border)">type</th><th style="text-align:center;padding:6px;border:1px solid var(--border)">req</th><th style="text-align:left;padding:6px;border:1px solid var(--border)">description</th></tr></thead>
+            <tbody>
+              ${Object.entries(rbProps).map(([fname, fspec]) => `
+                <tr><td style="padding:6px;border:1px solid var(--border)"><code>${_esc(fname)}</code></td><td style="padding:6px;border:1px solid var(--border)">${_esc(fspec.type||'-')}</td><td style="text-align:center;padding:6px;border:1px solid var(--border)">${rbRequired.includes(fname)?'✓':'-'}</td><td style="padding:6px;border:1px solid var(--border)">${_esc(fspec.description||'')}${fspec.enum?` <em>(enum: ${fspec.enum.map(v=>'`'+_esc(v)+'`').join(', ')})</em>`:''}</td></tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : ''}
+        <label style="font-size:12px;color:var(--text-muted);font-weight:600">Raw JSON</label>
+        <textarea class="api-input" data-scope="body" data-name="raw" style="width:100%;min-height:160px;padding:10px;border:1px solid var(--border-strong);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;margin-top:4px">${_esc(rbExampleStr)}</textarea>
+      ` : '<p style="color:var(--text-muted);font-size:13px">此端點無 request body。</p>'}
+    </div>
+
+    <div class="btns" style="display:flex;gap:8px;margin:18px 0">
+      <button class="btn-try" onclick="tryApi()">▶ Send</button>
+      <button class="btn-curl" onclick="copyCurl()">📋 Copy as cURL</button>
+    </div>
+
+    <div id="api-preview-section" style="margin-top:14px">
+      <h3 style="margin:0 0 6px;font-size:12px;text-transform:uppercase;color:var(--text-muted)">即時預覽（隨輸入更新）</h3>
+      <pre id="api-preview" style="white-space:pre-wrap;word-break:break-all;background:#0a0a14;color:#e5e7eb;padding:12px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px"></pre>
+    </div>
+
+    <div id="api-resp-section" style="display:none;margin-top:18px">
+      <h3 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;color:var(--text-muted)">Response</h3>
+      <div id="api-resp-status" style="margin-bottom:8px"></div>
+      <div class="response" id="api-resp-body"></div>
+    </div>
+  `;
+  document.getElementById('api-detail').innerHTML = html;
+  document.getElementById('api-detail').dataset.currentId = id;
+
+  // Tab switcher
+  document.querySelectorAll('.api-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.api-tab').forEach(b => {
+        b.style.color = 'var(--text-muted)';
+        b.style.borderBottomColor = 'transparent';
+      });
+      btn.style.color = 'var(--accent)';
+      btn.style.borderBottomColor = 'var(--accent)';
+      document.querySelectorAll('.api-tabpane').forEach(p => p.style.display = 'none');
+      document.getElementById(btn.dataset.tab).style.display = 'block';
+    });
+  });
+
+  // Live preview: any input/textarea change → refresh preview
+  document.querySelectorAll('.api-input').forEach(el => {
+    el.addEventListener('input', refreshPreview);
+  });
+  refreshPreview();
+}
+
+function _collectRequest() {
+  const id = document.getElementById('api-detail').dataset.currentId;
+  const ep = findApi(id);
+  if (!ep) return null;
+  const path = {}, query = {}, headers = {};
+  let token = '';
+  let bodyRaw = '';
+  document.querySelectorAll('.api-input').forEach(el => {
+    const scope = el.dataset.scope, name = el.dataset.name;
+    const v = el.value;
+    if (scope === 'path')   path[name] = v;
+    if (scope === 'query')  query[name] = v;
+    if (scope === 'header') headers[name] = v;
+    if (scope === 'auth' && name === 'token') token = v;
+    if (scope === 'body' && name === 'raw')   bodyRaw = v;
+  });
+  // Resolved URL
+  let url = ep.path;
+  Object.entries(path).forEach(([k, v]) => url = url.replace(`{${k}}`, encodeURIComponent(v)));
+  const qs = Object.entries(query).filter(([_, v]) => v !== '' && v != null)
+                .map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  if (qs) url += '?' + qs;
+  // Auto headers
+  const auto = {};
+  if (ep.request_body) auto['Content-Type'] = ep.request_body.content_type || 'application/json';
+  if (ep.auth && ep.auth.required && token) {
+    const header_name = ep.auth.name || 'Authorization';
+    const fmt = (ep.auth.format || '{token}').replace('{token}', token);
+    auto[header_name] = fmt;
+  }
+  const allHeaders = {...auto, ...headers};
+  // Parse body
+  let body = null;
+  if (bodyRaw.trim()) {
+    try { body = JSON.parse(bodyRaw); } catch { body = bodyRaw; }
+  }
+  return { ep, method: ep.method, url, headers: allHeaders, body, token };
+}
+
+function refreshPreview() {
+  const req = _collectRequest(); if (!req) return;
+  const lines = [`${req.method} ${req.url}`];
+  for (const [k, v] of Object.entries(req.headers)) lines.push(`${k}: ${v}`);
+  if (req.body != null) {
+    lines.push('', typeof req.body === 'string' ? req.body : JSON.stringify(req.body, null, 2));
+  }
+  lines.push('', '# cURL', _buildCurl(req));
+  const el = document.getElementById('api-preview');
+  if (el) el.textContent = lines.join('\n');
+}
+
+function _buildCurl(req) {
+  let cmd = `curl -X ${req.method} 'https://api.example.com${req.url}'`;
+  for (const [k, v] of Object.entries(req.headers)) cmd += ` \\\n  -H '${k}: ${v}'`;
+  if (req.body != null) cmd += ` \\\n  -d '${typeof req.body === 'string' ? req.body : JSON.stringify(req.body)}'`;
+  return cmd;
+}
+
+function _mock(req) {
+  // 1. auth required but empty token → 401
+  if (req.ep.auth && req.ep.auth.required && !req.token) {
+    const r401 = (req.ep.responses || {})['401'];
+    const body = r401 ? r401.example : {code: 401, message: 'unauthorized'};
+    return {status: 401, body};
+  }
+  // 2. body schema required field missing → 400
+  const rb = req.ep.request_body;
+  if (rb && rb.schema && Array.isArray(rb.schema.required)) {
+    const got = (typeof req.body === 'object' && req.body) || {};
+    const missing = rb.schema.required.filter(f => !(f in got));
+    if (missing.length) {
+      const r400 = (req.ep.responses || {})['400'];
+      const tmpl = r400 ? r400.example : {code: 400, message: 'bad request'};
+      return {status: 400, body: {...tmpl, missing}};
+    }
+  }
+  // 3. success — pick the 2xx (200 preferred, else 201, else first 2xx)
+  const codes = Object.keys(req.ep.responses || {});
+  const success = codes.find(c => c === '200') || codes.find(c => c === '201') || codes.find(c => c.startsWith('2'));
+  const succ = success ? req.ep.responses[success] : null;
+  const body = succ ? succ.example : {code: 200, data: {}};
+  return {status: success ? Number(success) : 200, body};
+}
+
+function tryApi() {
+  const req = _collectRequest(); if (!req) return;
+  const sec = document.getElementById('api-resp-section');
+  const statusEl = document.getElementById('api-resp-status');
+  const bodyEl = document.getElementById('api-resp-body');
+  sec.style.display = 'block';
+  statusEl.textContent = '⏳ Loading...';
+  bodyEl.textContent = '';
+  setTimeout(() => {
+    const resp = _mock(req);
+    const code = resp.status;
+    const cls = 'status-' + String(code)[0] + 'xx';
+    bodyEl.className = 'response ' + cls;
+    statusEl.innerHTML = `<span style="display:inline-block;padding:3px 10px;background:${methodColor(req.method)};color:#fff;border-radius:4px;font-weight:700;font-size:12px;margin-right:8px">HTTP ${code}</span><span style="color:var(--text-muted);font-size:12px">~200ms</span>`;
+    // Echo request as _debug at the top — user sees their inputs got through
+    const echoed = {
+      _debug: {url: req.url, method: req.method, headers: req.headers, body: req.body},
+      ...((typeof resp.body === 'object' && resp.body) ? resp.body : {body: resp.body}),
+    };
+    bodyEl.textContent = JSON.stringify(echoed, null, 2);
+  }, 200);
+}
+
+function copyCurl() {
+  // Live preview already contains the cURL line; just extract+copy.
+  refreshPreview();
+  const txt = document.getElementById('api-preview').textContent || '';
+  const idx = txt.indexOf('# cURL\n');
+  const cmd = idx >= 0 ? txt.slice(idx + '# cURL\n'.length) : txt;
+  try { navigator.clipboard.writeText(cmd); } catch {}
+  // brief flash on the button
+  const btn = document.querySelector('.btn-curl');
+  if (btn) { const t = btn.textContent; btn.textContent = '✓ 已複製'; setTimeout(() => btn.textContent = t, 1200); }
+}
+
+
+// ─── Section navigation (sidebar 文件 panel) ───
+function activateTab(panelName) {
+  document.querySelectorAll('.sidebar__tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.panel === panelName));
+  document.querySelectorAll('.sidebar__panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'sidebar-' + panelName));
+}
+
+document.querySelectorAll('.sidebar__link').forEach(link => {
+  link.addEventListener('click', async (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.sidebar__link').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    link.classList.add('active');
+    const panel = document.getElementById(link.dataset.target);
+    panel.classList.add('active');
+    await renderMermaidIn(panel);
+    // 用 replaceState 避免重入 goToAnchor（會再 click 一次同個 link）。
+    history.replaceState(null, '', '#' + link.dataset.target);
+    // For API panel, auto-switch sidebar to TOC + render first endpoint
+    if (link.dataset.target === 'api-explorer') {
+      activateTab('toc');
+      buildToc();
+      if (API_CONFIG.length) renderApi(API_CONFIG[0].id);
+    } else if (document.querySelector('.sidebar__tab[data-panel="toc"]').classList.contains('active')) {
+      buildToc();
+    }
+  });
+});
+
+// Lightbox — zoom + pan
+let lbScale = 1, lbX = 0, lbY = 0;
+function lbApply() {
+  document.getElementById('lightbox-inner').style.transform =
+    `translate(${lbX}px, ${lbY}px) scale(${lbScale})`;
+}
+function openLightbox(diagramWrap) {
+  const inner = document.getElementById('lightbox-inner');
+  inner.innerHTML = '';
+  const source = diagramWrap.querySelector('.mermaid')?.getAttribute('data-source') || '';
+  const div = document.createElement('div');
+  div.className = 'mermaid';
+  div.textContent = source;
+  div.setAttribute('data-source', source);
+  inner.appendChild(div);
+  mermaid.run({ nodes: [div] });
+  lbScale = 1; lbX = 0; lbY = 0; lbApply();
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
+function lbZoom(d) { lbScale = Math.max(0.2, Math.min(8, lbScale + d)); lbApply(); }
+function lbReset() { lbScale = 1; lbX = 0; lbY = 0; lbApply(); }
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === '+' || e.key === '=') lbZoom(0.2);
+  if (e.key === '-') lbZoom(-0.2);
+  if (e.key === '0') lbReset();
+});
+
+document.getElementById('lightbox').addEventListener('wheel', e => {
+  if (!document.getElementById('lightbox').classList.contains('show')) return;
+  e.preventDefault();
+  lbZoom(e.deltaY < 0 ? 0.15 : -0.15);
+}, { passive: false });
+
+(function () {
+  const lb = document.getElementById('lightbox');
+  let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+  lb.addEventListener('mousedown', e => {
+    if (e.target.closest('.lightbox-controls')) return;
+    dragging = true; sx = e.clientX; sy = e.clientY; ox = lbX; oy = lbY;
+    lb.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    lbX = ox + (e.clientX - sx);
+    lbY = oy + (e.clientY - sy);
+    lbApply();
+  });
+  window.addEventListener('mouseup', () => { dragging = false; lb.style.cursor = 'default'; });
+  lb.addEventListener('click', e => {
+    if (e.target === lb) closeLightbox();
+  });
+})();
+
+
+// Init
+transformMermaid();
+mountSubDocIntoMaster();
+renderMermaidIn(document.querySelector('.panel.active'));
+
+// 依網址後綴決定該打開哪個主頁、捲到哪個子位置。
+// 後綴格式：`主頁名` 或 `主頁名.子名`。
+//   - `主頁名` → 切到對應 sidebar 分頁
+//   - `主頁名.子名` → 切主頁 + (api-explorer 走 renderApi；其他主頁捲到 id="主頁名.子名" 的元素)
+function goToAnchor() {
+  if (!location.hash) return;
+  const target = location.hash.slice(1);
+  const dot = target.indexOf('.');
+  const master = dot === -1 ? target : target.slice(0, dot);
+  const sub    = dot === -1 ? ''     : target.slice(dot + 1);
+
+  const link = document.querySelector(`.sidebar__link[data-target="${master}"]`);
+  if (!link) return;       // 未知主頁：不亂猜
+  link.click();
+  if (!sub) return;
+
+  if (master === 'api-explorer') {
+    // API 試打主頁有自己的 widget routing：sub = endpoint id
+    setTimeout(() => renderApi(sub), 50);
+    return;
+  }
+  // 一般主頁：捲到 scoped id 元素（mountSubDocIntoMaster 已加好「主頁.」前綴）
+  setTimeout(() => {
+    const el = document.getElementById(target);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }, 300);
+}
+goToAnchor();
+window.addEventListener('hashchange', goToAnchor);
+</script>
+</body>
+</html>

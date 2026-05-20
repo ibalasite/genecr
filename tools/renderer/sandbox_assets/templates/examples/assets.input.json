@@ -1,0 +1,61 @@
+{
+  "feature": {
+    "name": "排行榜",
+    "slug": "leaderboard"
+  },
+  "assets": [
+    {
+      "id": "ASSET-001",
+      "name": "排行榜主背景",
+      "type": "image",
+      "usage": "排行榜主畫面背景，全螢幕 — 詳述用在哪個畫面/哪個 UI section/觸發時機",
+      "spec": [
+        "1080 x 1920 px",
+        "PNG，不透明",
+        "深色為主，金色光暈"
+      ],
+      "image_prompt": "luxury casino leaderboard background, deep navy blue gradient, golden particle light streaks, subtle bokeh, mobile portrait composition, premium iGaming UI background, no text, ultra detailed, 8k",
+      "image_negative": "text, watermark, logo, characters, low quality",
+      "reference": {
+        "platform": "TaDa Gaming",
+        "url": "https://tadagaming.com/zh-cn"
+      },
+      "category": "<sub-category-from-spec-basic>",
+      "owner_role": "art",
+      "output_format": "<format spec, e.g. PNG 1920x600 @2x>",
+      "suggested_filename": "<slug>_<purpose>.<ext>"
+    },
+    {
+      "id": "ASSET-002",
+      "name": "前三名光環特效",
+      "type": "image",
+      "usage": "前三名玩家頭像周圍循環播放 — 詳述用在哪個畫面/哪個 UI section/觸發時機",
+      "spec": [
+        "粒子數 30-50",
+        "循環",
+        "金/銀/銅三色變體"
+      ],
+      "image_prompt": "rotating golden halo particle effect, sparkle ring around avatar, transparent background, loop animation, premium game UI VFX, top 3 ranking glow",
+      "category": "<sub-category-from-spec-basic>",
+      "owner_role": "art",
+      "output_format": "<format spec, e.g. PNG 1920x600 @2x>",
+      "suggested_filename": "<slug>_<purpose>.<ext>"
+    },
+    {
+      "id": "ASSET-003",
+      "name": "領獎彈窗音效",
+      "type": "image",
+      "usage": "玩家領取獎勵時播放 — 詳述用在哪個畫面/哪個 UI section/觸發時機",
+      "spec": [
+        "1.5 秒",
+        "OGG",
+        "不循環"
+      ],
+      "audio_prompt": "celebratory coin shower sound, glittering chimes, satisfying victory cue, casino reward jackpot effect, 1.5 seconds",
+      "category": "<sub-category-from-spec-basic>",
+      "owner_role": "art",
+      "output_format": "<format spec, e.g. PNG 1920x600 @2x>",
+      "suggested_filename": "<slug>_<purpose>.<ext>"
+    }
+  ]
+}

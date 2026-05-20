@@ -1,0 +1,42 @@
+{
+  "feature": {"name": "<功能名稱>", "slug": "<feature-slug>"},
+  "sections": [
+    {"title": "📋 企畫版", "type": "spec-basic"},
+    {"title": "⚙️ 技術版", "type": "spec-advanced"},
+    {"title": "🎨 資源清單", "type": "assets"},
+    {"title": "🧪 BDD", "type": "bdd"},
+    {"title": "📌 SCRUM", "type": "scrum"}
+  ],
+  "api_explorer": [
+    {
+      "id": "api-resource-get",
+      "method": "GET",
+      "path": "/api/v1/resources/{resource_id}",
+      "summary": "取得指定資源",
+      "description": "依 resource_id 取得單筆資源的完整資料。",
+      "auth": {
+        "required": true,
+        "type": "bearer",
+        "location": "header",
+        "name": "Authorization",
+        "format": "Bearer {token}"
+      },
+      "parameters": [
+        {"in": "path", "name": "resource_id", "type": "string", "required": true,
+         "description": "資源 ID", "example": "res_001"}
+      ],
+      "responses": {
+        "200": {
+          "description": "成功",
+          "schema": {"type": "object", "properties": {"code": {"type": "integer"}}},
+          "example": {"code": 200, "data": {"id": "res_001", "name": "範例"}}
+        },
+        "401": {
+          "description": "未登入",
+          "schema": {"type": "object", "properties": {"code": {"type": "integer"}, "message": {"type": "string"}}},
+          "example": {"code": 401, "message": "unauthorized"}
+        }
+      }
+    }
+  ]
+}

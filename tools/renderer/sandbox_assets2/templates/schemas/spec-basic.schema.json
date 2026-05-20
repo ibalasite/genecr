@@ -8,8 +8,8 @@
       "type": "object",
       "required": ["name", "slug"],
       "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "slug": {"type": "string", "minLength": 1}
+        "name": {"type": "string", "minLength": 5},
+        "slug": {"type": "string", "minLength": 5}
       }
     },
     "change_log": {

@@ -50,7 +50,7 @@ genecr/
 │   ├── *.tmpl                 # 7 份 Jinja2 模板（spec-basic / spec-advanced / assets / bdd / scrum / prototype / docs）
 │   ├── schemas/               # JSON Schema — 用於 generate→validate→fix loop
 │   ├── examples/              # canonical 範例 input.json（純 placeholder，不綁特定 feature）
-│   ├── prompts/               # 7 份 AI prompt（含 _fix.prompt.md fix-loop 通用版）
+│   ├── prompts/               # 7 份 AI prompt（含 _fix/_fixer/_gen_fixer/_review 通用 prompt）
 │   └── wireframe-dsl.md       # 低保真線框圖 DSL（wf-* class 規範）
 └── tools/
     ├── renderer/              # 源碼
@@ -160,7 +160,9 @@ git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.claude\skil
    spec-basic → spec-advanced → assets → bdd → scrum → prototype → docs
 3. 每個 step 用 program-orchestrated review_loop：
    a. AI generator（獨立 subagent，讀 brief + schema + example 內嵌進 prompt）
-   b. 程式檢查：jsonschema validate + cross_check 跨步一致性
+   b. 程式：jsonschema validate
+      - schema 有錯 → skip cross_check → 直接 fixer 修格式（不讓格式錯卡死後續）
+      - schema 乾淨 → 跑 cross_check 跨步一致性
    c. 過 → AI reviewer（獨立 subagent）做語義審查 → finding=0 收斂
    d. 不過 → AI fixer（獨立 subagent，讀 issue list + 原 JSON）→ 重來 b
    e. revalidate-by-step：既有 output 也會對新規則重檢
@@ -168,13 +170,24 @@ git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.claude\skil
 5. docs.html 最後集成所有 .md + API explorer + 內嵌 mermaid.min.js（離線）
 ```
 
+**Dryrun 技術規模預估**（step isolation 關鍵）：
+
+spec-basic 是 step 1，跑的時候下游（spec-advanced）不存在。為了讓 timeline 公式自洽，spec-basic 要求 AI 在 `dryrun.tech_counts` 自報技術規模估算（api_endpoints / db_tables / redis_keys）：
+
+- **timeline 公式用**：`server_engineer` 工作天 = `dryrun.tech_counts.api_endpoints × 1.0`
+- **下游最低約束**：spec-advanced 產出後，cross_check 驗 `sa.apis` 數 ≥ `dryrun.api_endpoints`、mysql table 數 ≥ `dryrun.db_tables`、redis key 數 ≥ `dryrun.redis_keys`（程式強制，不是 AI 自評）
+
+AI 估算依據：玩家 wireframe 操作數 + 後台 CRUD 面（每實體 × 3~5）+ 認證固定 +3 + 業務規則（分潤 → 額外 table；排行榜 → Redis）。
+
 **三段獨立 subagent（generator / reviewer / fixer）** = 程式編排，避免「同一 AI 自我審查」偏差。
 
 **cross_check 跨步驟一致性**（檔案 `tools/renderer/cross_check.py`）：
-- timeline 週數 == `ceil(max(per-role 公式工作天) / 5)`
+- timeline 週數 == `ceil(max(per-role 公式工作天) / 5)`（server 工作天從 `spec-basic.dryrun.tech_counts.api_endpoints` 讀，不讀下游）
 - scrum 各 role stories 加總 ≥ 公式地板（從 baseline anchor 比例縮放）
 - assets 件數對齊 spec-basic 自報的 visual_total / audio_total
 - spec-advanced 的 SQL WHERE 欄位有對應 index、Redis 鍵都先宣告
+- `check_dryrun_vs_advanced`：spec-advanced 實際 API 數 / DB table 數 / Redis key 數 ≥ spec-basic `dryrun.tech_counts` 估算（step isolation 最低約束，程式強制）
+- **schema 有錯時封鎖 cross_check**：同一輪 schema validate 失敗 → 先讓 fixer 修格式，cross_check 下輪再跑（避免 schema 錯誤導致 cross_check crash，即 issue #13 根因修法）
 - 全部數值由程式計算（不交 AI 自報自核）
 
 ### 直接呼叫 pipeline.py（進階）
@@ -293,7 +306,7 @@ pipeline 純檔案驅動：刪一個 `.md` 再執行 `pipeline.py`（不帶 `--n
 | 症狀 | 可能原因 | 怎麼處理 |
 |---|---|---|
 | `step.errors.1.txt` 內容是 `JSON parse error: Expecting value at line 1 column 1` | AI 回應是 0 bytes 或非 JSON | 看 `<step>.combined.prompt.md` 確認 prompt 有沒怪；通常重跑就好 |
-| schema fail，errors 列出缺哪些 required 欄位 | AI 漏填欄位 | 自動 fix loop 會跑 2 次（attempt 2, 3）通常會修好 |
+| schema fail，errors 列出缺哪些 required 欄位 | AI 漏填欄位 | fix loop 無上限直到 finding=0；schema 錯 → 先修格式再做 cross_check |
 | 3 次都過不了 | prompt 太鬆或 schema 太嚴 | 看 `errors.<n>.txt`；考慮修 prompt 或暫時放鬆 schema |
 | 全 0 bytes、AI 沒回應 | `claude -p` 沙箱權限問題（檔案外路徑） | 我們已內嵌 brief/schema/example 不靠 Read tool；若還 0 bytes 檢查 claude CLI 是否能跑 |
 | `claude: command not found` | Claude CLI 沒裝 / 不在 PATH | `npm i -g @anthropic-ai/claude-code` 或改 `pipeline.json` 的 `ai.command` 指向你的 CLI |

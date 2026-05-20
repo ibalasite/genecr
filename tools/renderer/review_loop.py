@@ -196,7 +196,12 @@ def run_step(
             Issue(step=step_name, category="schema_error", detail=err)
             for err in schema_errs
         ]
-        cross_issues = cross_check_fn(step_name, all_data)
+        # cross_check 只在 schema 乾淨時才跑，確保 cross_check
+        # 不會因為欄位型別錯誤（如 responses 是 list）而 crash。
+        if schema_issues:
+            cross_issues = []
+        else:
+            cross_issues = cross_check_fn(step_name, all_data)
         program_issues = schema_issues + cross_issues
 
         if program_issues:

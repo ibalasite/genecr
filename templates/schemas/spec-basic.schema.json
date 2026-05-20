@@ -192,6 +192,21 @@
       },
       "additionalProperties": false
     },
+    "dryrun": {
+      "type": "object",
+      "description": "basic 根據 wireframe/UI 需求預估下游技術規模，供 timeline 公式使用，不依賴下游 step。",
+      "properties": {
+        "tech_counts": {
+          "type": "object",
+          "required": ["api_endpoints", "db_tables", "redis_keys"],
+          "properties": {
+            "api_endpoints": {"type": "integer", "minimum": 0, "description": "從 wireframe 操作需求估出的 API 數"},
+            "db_tables":     {"type": "integer", "minimum": 0, "description": "這些 API 需要幾張 DB table"},
+            "redis_keys":    {"type": "integer", "minimum": 0, "description": "有幾個 Redis key pattern（無需求填 0）"}
+          }
+        }
+      }
+    },
     "resources": {
       "type": "object",
       "required": ["art", "audio", "engineering"],

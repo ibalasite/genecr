@@ -115,18 +115,17 @@ _ANCHOR_CLIENT       = (8, 7)   # 8 點 / 7 頁 wireframe
 _ANCHOR_PLANNER      = (3, 12)  # 3 點 / 12 條 acceptance_criteria
 
 
-def _per_role_points_anchor(spec_basic: dict, spec_advanced: dict | None = None) -> dict[str, float]:
+def _per_role_points_anchor(spec_basic: dict) -> dict[str, float]:
     """每 role 按 anchor 比例算出「地板點數」（= 工作天）。
 
-    spec-basic 步驟呼叫時 spec_advanced=None → server 只算 API（mysql/redis 計 0）。
-    scrum 步驟呼叫時帶 spec_advanced → server 算完整公式 API+MySQL+Redis。
-    formula 是同一份；不同步驟拿到的輸入資料量不同，輸出可能不同。
+    純 spec-basic 自洽：api/mysql/redis 數量從 sb.dryrun.tech_counts 拿（AI 在 basic
+    步驟自報的預估值）。不依賴下游 spec_advanced，符合 step isolation 鐵律。
     """
     rc = spec_basic.get("resource_counts") or {}
-    models = (spec_advanced or {}).get("data_models") or []
-    n_api    = int(rc.get("api_endpoints", 0) or 0)
-    n_mysql  = sum(1 for m in models if isinstance(m, dict) and m.get("kind") != "redis")
-    n_redis  = sum(1 for m in models if isinstance(m, dict) and m.get("kind") == "redis")
+    tc = (spec_basic.get("dryrun") or {}).get("tech_counts") or {}
+    n_api    = int(tc.get("api_endpoints", 0) or rc.get("api_endpoints", 0) or 0)
+    n_mysql  = int(tc.get("db_tables", 0) or 0)
+    n_redis  = int(tc.get("redis_keys", 0) or 0)
     n_asset  = int(rc.get("visual_total", 0) or 0) + int(rc.get("audio_total", 0) or 0)
     n_wf     = len(spec_basic.get("wireframes") or [])
     n_ac     = int(rc.get("acceptance_criteria", 0) or 0)
@@ -282,13 +281,12 @@ def check_story_has_subtasks(scrum_data: dict) -> list[Issue]:
     return issues
 
 
-def check_timeline_against_formula(spec_basic: dict, spec_advanced: dict | None = None) -> list[Issue]:
+def check_timeline_against_formula(spec_basic: dict) -> list[Issue]:
     """spec-basic timeline check：用 anchor 公式算地板，必須等於 ceil(max/5)。
 
-    spec_advanced 缺則 mysql/redis 計 0（spec-basic 步驟單獨跑 timeline 時的 fallback）。
-    scrum 步驟做同樣檢查時會帶 spec_advanced 進來 → 完整公式。
+    純 sb 自洽：mysql/redis 從 sb.dryrun.tech_counts 拿，不看下游。
     """
-    budget = _per_role_points_anchor(spec_basic, spec_advanced)
+    budget = _per_role_points_anchor(spec_basic)
     expected_weeks = _elapsed_weeks_from_role_budget(budget)
     total_weeks = sum(t.get("duration_weeks", 0) or 0
                       for t in (spec_basic.get("timeline") or []) if isinstance(t, dict))
@@ -320,11 +318,11 @@ def check_scrum_workload(spec_basic: dict, scrum: dict | None,
                          spec_advanced: dict | None = None) -> list[Issue]:
     """scrum step：per-role 地板 + 單 story cap + epic 覆蓋 + 不准 PO + subtasks 必填。
 
-    用 anchor 公式算 per-role 地板（含 mysql/redis 量，從 spec_advanced 取）。
+    用 anchor 公式算 per-role 地板（從 sb.dryrun.tech_counts 拿，spec_advanced 保留相容參數但不使用）。
     """
     if not scrum:
         return []
-    formula = _per_role_points_anchor(spec_basic, spec_advanced)
+    formula = _per_role_points_anchor(spec_basic)
     return (check_per_role_points_floor(scrum, formula)
             + check_per_story_points_cap(scrum)
             + check_epic_role_coverage(scrum)
@@ -511,6 +509,49 @@ def check_redis_key_alignment(spec_advanced_data: dict) -> list[Issue]:
 # ─── orchestrator ───────────────────────────────────────────────────────────
 
 _QPS_RE = __import__("re").compile(r"(QPS\s*\d+|req/s|/min|/sec)", __import__("re").I)
+
+
+def check_dryrun_vs_advanced(spec_basic: dict, spec_advanced: dict) -> list[Issue]:
+    """spec-advanced 實際數量必須 >= spec-basic dryrun 估算。
+
+    basic 的 dryrun.tech_counts 是技術版的最低標準：
+    - sa.apis 數 >= sb.dryrun.tech_counts.api_endpoints
+    - sa.data_models 非 redis 數 >= sb.dryrun.tech_counts.db_tables
+    - sa.data_models kind=redis 數 >= sb.dryrun.tech_counts.redis_keys
+    """
+    tc = (spec_basic.get("dryrun") or {}).get("tech_counts") or {}
+    if not tc:
+        return []
+
+    issues: list[Issue] = []
+    min_api = int(tc.get("api_endpoints", 0) or 0)
+    min_db  = int(tc.get("db_tables", 0) or 0)
+    min_redis = int(tc.get("redis_keys", 0) or 0)
+
+    actual_api = len(spec_advanced.get("apis") or [])
+    models = spec_advanced.get("data_models") or []
+    actual_db    = sum(1 for m in models if isinstance(m, dict) and m.get("kind") != "redis")
+    actual_redis = sum(1 for m in models if isinstance(m, dict) and m.get("kind") == "redis")
+
+    if actual_api < min_api:
+        issues.append(Issue(
+            step="spec-advanced",
+            category="sa_apis_below_dryrun",
+            detail=f"sa.apis 實際 {actual_api} 個 < sb.dryrun.tech_counts.api_endpoints {min_api} 個",
+        ))
+    if actual_db < min_db:
+        issues.append(Issue(
+            step="spec-advanced",
+            category="sa_db_tables_below_dryrun",
+            detail=f"sa.data_models DB table 實際 {actual_db} 張 < sb.dryrun.tech_counts.db_tables {min_db} 張",
+        ))
+    if actual_redis < min_redis:
+        issues.append(Issue(
+            step="spec-advanced",
+            category="sa_redis_keys_below_dryrun",
+            detail=f"sa.data_models redis 實際 {actual_redis} 個 < sb.dryrun.tech_counts.redis_keys {min_redis} 個",
+        ))
+    return issues
 
 
 def check_apis_postman_grade(spec_advanced_data: dict) -> list[Issue]:
@@ -1558,12 +1599,13 @@ def run_all_checks(step_name: str, all_step_data: dict, baseline: dict | None = 
         issues += check_scrum_no_teams_field(scrum)
     if step_name == "spec-basic" and sb:
         # spec-basic 純自洽（不跨 doc）— 全部從 sb 自有 bookkeeping 算。
-        issues += check_timeline_against_formula(sb, sa)
+        issues += check_timeline_against_formula(sb)
         issues += check_admin_wireframe_dsl(sb)
         issues += check_admin_wireframe_self_consistency(sb)
         issues += check_wireframe_row_inline_only(sb)
 
     if step_name == "spec-advanced" and sa:
+        issues += check_dryrun_vs_advanced(sb, sa)
         issues += check_sql_index_alignment(sa)
         issues += check_redis_key_alignment(sa)
         issues += check_apis_postman_grade(sa)

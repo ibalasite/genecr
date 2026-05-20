@@ -265,3 +265,45 @@ def test_initial_data_with_issues_runs_fixer():
     assert ai.count("generator") == 0
     assert ai.count("fixer") == 1
     assert result.data == fixed
+
+
+def test_truncated_generator_uses_tail_completer():
+    """Generator truncates mid-JSON → tail_completer fills missing tail → parse succeeds without fixer."""
+    head = '{"feature": {"name": "test"}, "apis": [{"name": "a"}'  # truncated, no closing
+    tail_from_completer = '], "counts": {"total": 1}}'  # completer fills the rest
+
+    ai = FakeAI(responses={
+        "generator": [head],
+        "tail_completer": [tail_from_completer],
+        "reviewer": [json.dumps({"issues": []})],
+    })
+    result = run_step(
+        "spec-advanced", {}, ai, _ok_schema, _ok_cross_check,
+        schema_required_keys=["feature", "apis", "counts"],
+    )
+    assert result.success
+    assert ai.count("generator") == 1
+    assert ai.count("tail_completer") == 1
+    assert ai.count("gen_fixer") == 0  # fixer 不應該被呼叫
+    assert result.data["counts"] == {"total": 1}
+
+
+def test_tail_completer_missing_keys_passed_correctly():
+    """tail_completer payload 包含正確的 missing_keys 列表。"""
+    head = '{"feature": {"name": "x"}'  # truncated, missing apis and counts
+    tail_from_completer = ', "apis": [], "counts": {"total": 0}}'
+
+    ai = FakeAI(responses={
+        "generator": [head],
+        "tail_completer": [tail_from_completer],
+        "reviewer": [json.dumps({"issues": []})],
+    })
+    run_step(
+        "spec-advanced", {}, ai, _ok_schema, _ok_cross_check,
+        schema_required_keys=["feature", "apis", "counts"],
+    )
+    completer_calls = [(r, p) for r, p in ai.log if r == "tail_completer"]
+    assert len(completer_calls) == 1
+    payload = completer_calls[0][1]
+    assert set(payload["missing_keys"]) == {"apis", "counts"}
+    assert payload["truncated_raw"] == head

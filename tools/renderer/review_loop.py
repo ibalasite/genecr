@@ -46,8 +46,22 @@ def _parse_json(raw: str) -> dict:
     return json.loads(raw)
 
 
+def _is_truncated(raw: str) -> bool:
+    """截斷判斷：開頭是 { 但 parse 失敗，代表 AI 生成到一半被 token limit 截斷。"""
+    stripped = raw.strip()
+    if not stripped.startswith('{'):
+        return False
+    try:
+        json.loads(stripped)
+        return False
+    except json.JSONDecodeError:
+        return True
+
+
 def _ensure_valid_json(initial_raw: str,
-                        gen_fixer_invoker: Callable[[str, str], str]) -> dict:
+                        gen_fixer_invoker: Callable[[str, str], str],
+                        tail_completer_invoker: Callable[[str, list[str]], str] | None = None,
+                        required_keys: list[str] | None = None) -> dict:
     """Type-level loop：把 raw 收斂成合法 JSON dict（無 iter cap）。
 
     每輪：① 程式 parse → ② 程式 json_repair → ③ AI gen_fixer（窄 prompt）。
@@ -73,6 +87,32 @@ def _ensure_valid_json(initial_raw: str,
             )
         except Exception as e:
             last_err = e
+        # tier 1.5: 截斷補完（只在第一輪、有 tail_completer、且確認是截斷時觸發）
+        # 必須在 json_repair 之前，否則 json_repair 把截斷 JSON「勉強補完」，
+        # 丟失後半段內容；截斷補完保留 90%+ 並只請 AI 補缺失尾巴。
+        if iteration == 1 and tail_completer_invoker is not None and _is_truncated(raw):
+            missing = []
+            if required_keys:
+                missing = [k for k in required_keys if f'"{k}"' not in raw]
+            tail_raw = tail_completer_invoker(raw, missing)
+            if tail_raw and tail_raw.strip():
+                combined = raw.rstrip() + "\n" + tail_raw.lstrip()
+                try:
+                    result = _parse_json(combined)
+                    if isinstance(result, dict):
+                        return result
+                except Exception:
+                    pass
+                try:
+                    from json_repair import repair_json
+                    parsed = json.loads(repair_json(combined))
+                    if isinstance(parsed, dict):
+                        return parsed
+                except Exception:
+                    pass
+                # 補完後仍失敗，把 combined 當新 raw 繼續走後面 tier
+                raw = combined
+
         # tier 2: 程式 json_repair（無 AI cost，補逗號/括號/單引號/全形/註解等）
         # 同樣要求 dict — json_repair 有時會把「多 dict 連著」修成 list，
         # 那也不接受，繼續下一輪讓 AI gen_fixer 重新生成 dict。
@@ -87,6 +127,7 @@ def _ensure_valid_json(initial_raw: str,
             )
         except Exception:
             pass
+
         # tier 3: AI gen_fixer 窄 prompt（只看 raw 末段 + parse error，省 token）
         new_raw = gen_fixer_invoker(_trim_for_fixer(raw), str(last_err))
         # 剎車：AI 沒回 / 連續 3 次回同樣的東西 → break 避免無限呼叫
@@ -137,6 +178,7 @@ def run_step(
     cross_check_fn: CrossCheckFn,
     max_rounds: int | None = None,
     initial_data: dict | None = None,
+    schema_required_keys: list[str] | None = None,
 ) -> RunStepResult:
     """Program-controlled loop. Three independent AI subagents.
 
@@ -175,6 +217,10 @@ def run_step(
                 gen_fixer_invoker=lambda raw, err: ai_invoker("gen_fixer", {
                     "step": step_name, "raw": raw, "parse_error": err,
                 }),
+                tail_completer_invoker=lambda raw, missing: ai_invoker("tail_completer", {
+                    "step": step_name, "truncated_raw": raw, "missing_keys": missing,
+                }),
+                required_keys=schema_required_keys,
             )
         except ValueError as e:
             return RunStepResult(

@@ -47,6 +47,8 @@ Before submitting, verify EACH:
   observable outcome (not "system works")
 - R8 `unresolved_reference`: every cross-ID (api-xxx, sc-xxx, ASSET-xxx)
   resolves to something declared
+- R9 `dryrun_missing`: `dryrun.tech_counts` 三個欄位（api_endpoints / db_tables /
+  redis_keys）必須是整數 ≥ 0，且 api_endpoints ≥ 3、db_tables ≥ 5（iGaming 底限）
 
 If you cannot satisfy one of these, you have failed before submitting.
 
@@ -150,6 +152,67 @@ Bookkeeping 欄位允許純整數：`modules` (功能模組數)、`acceptance_cr
 
 Write real integers — no `<N>` placeholders.
 
+## DRYRUN — 技術規模預估（timeline 輸入 + 下游最低約束）
+
+`dryrun.tech_counts` 是 spec-basic 自報的技術規模估算，供 timeline 公式使用，並成為 spec-advanced 實際產出的**最低約束**（程式 cross_check 強制，不是 AI 自評）。
+
+### 三個必填整數
+
+```json
+"dryrun": {
+  "tech_counts": {
+    "api_endpoints": 8,
+    "db_tables": 5,
+    "redis_keys": 1
+  }
+}
+```
+
+### 如何估算 `api_endpoints`
+
+分兩個面向逐一計數，合計：
+
+**玩家面（player wireframes）**：每張玩家線稿上每個需要向伺服器取值或送資料的操作算 1 個 API（頁面初始化 load、按鈕觸發動作、查詢、領獎 …）。
+
+**後台面（admin wireframes）**：每個被管理員管理的實體（活動、獎勵、玩家記錄、報表 …）需要 CRUD，估法：`實體數 × 3～5`（list + get + create/update + delete + export）。後台面 API 通常不比玩家面少。
+
+**永遠額外加**：
+- 認證相關（login / token-refresh / logout）：固定 +3
+- 若有非同步回調（金流 payout callback / 第三方通知）：每個 webhook +1
+
+### 如何估算 `db_tables`
+
+從需求（rules / user_journey / business_logic 欄位）推導，逐類檢查：
+
+| 類別 | 說明 | 有無需求 |
+|---|---|---|
+| `users` / `sessions` | 永遠需要 | 必加 |
+| 主實體表 | 每個核心概念（活動、任務、獎品 …）一張 | 依需求 |
+| `transactions` / `ledger` | 有任何虛擬幣/點數/金流操作 → 必須獨立 audit table | 幾乎必加 |
+| `user_progress` / `participation` | 玩家個人進度、打卡、任務完成狀態 | 依需求 |
+| `commissions` / `agent_splits` | 提到代理商、分潤、多層返水 → 必加 | 依需求 |
+| `config` / `feature_flags` | 後台可調整的活動參數 | 依需求 |
+| `audit_log` | iGaming 法規幾乎必要，操作記錄不可覆蓋 | **iGaming 預設必加** |
+
+**iGaming 最低底限：任何功能至少 5 張 table**（users + 主實體 + transactions + user_progress + audit_log）。若你算出的數字 < 5，重新檢查有無漏算。
+
+### 如何估算 `redis_keys`
+
+- 無排行榜、無 rate-limiting、無 session cache → 填 0
+- 有排行榜（leaderboard）：+1
+- 有速率限制（每日上限、防刷）：+1
+- 有 session / token cache：+1
+- 有熱點資料 cache（活動設定、公告）：+1
+
+### 這兩個數字的雙重用途
+
+1. **Timeline 計算**：`server_engineer_days = dryrun.tech_counts.api_endpoints × 1.0`（見下方公式）
+2. **下游最低約束**：spec-advanced 實際產出的 `apis` 數必須 ≥ `api_endpoints`、`data_models` 中 mysql 數 ≥ `db_tables`、redis 數 ≥ `redis_keys`（程式 cross_check 自動驗，未達標擋住 pipeline）
+
+估算要誠實，不要刻意壓低也不要膨脹。spec-advanced 的設計者看到 dryrun 是「輸入估算」，他們仍須從實際設計推導每一個 API，cross_check 只是確認沒有嚴重缺漏。
+
+---
+
 ## TIMELINE — 估時公式（純 spec-basic 自洽，不准依下游）
 
 每個 `timeline[]` phase 必填 `duration_weeks` (integer)。
@@ -159,7 +222,7 @@ Write real integers — no `<N>` placeholders.
 | role | day/item coef | metric 來源（**全在 spec-basic 內部**） |
 |---|---|---|
 | `art` | 0.2 day | 加總 `resource_counts` 內 art types（image/animation/sound/video/font/particle nested dict 總值）|
-| `server_engineer` | 1.0 day | `resource_counts.api_endpoints`（**整數，AI 自報**）|
+| `server_engineer` | 1.0 day | `dryrun.tech_counts.api_endpoints`（**整數，見上方 DRYRUN 節**）|
 | `client_engineer` | 0.67 day | `len(wireframes)` |
 | `planner` | 0.2 day | `len(user_journey) + len(admin_journey) + len(matrix.rows)` + 固定 5 |
 
@@ -176,7 +239,7 @@ total_weeks = ceil(max(art_days, server_days, client_days, planner_days) / 5)
 
 **有 AI 協助**，傳統「4 週 + 3 週」估時錯了 — 此公式是按 1 點 = 1 工作天校準。
 
-**為什麼公式只看 spec-basic 自己**：spec-basic 是 step 1，重生時下游（spec-advanced/assets/scrum）不存在或可能 stale。所以 `api_endpoints` 必須由 AI 在 spec-basic 就自報，不靠去讀 spec-advanced。下游 step 自己會驗 sa.apis 實際數 vs sb.api_endpoints 自報數是否對齊。
+**為什麼公式只看 spec-basic 自己**：spec-basic 是 step 1，重生時下游（spec-advanced/assets/scrum）不存在或可能 stale。`api_endpoints` 由 AI 在 DRYRUN 節自報，不靠去讀 spec-advanced。下游 step 自己會驗 sa.apis 實際數 vs dryrun.tech_counts.api_endpoints 估算數是否對齊。
 
 ## TASK
 Print a single JSON object to STDOUT. **Nothing else.** No markdown fences,

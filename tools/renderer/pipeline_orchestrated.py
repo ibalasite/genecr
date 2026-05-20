@@ -61,14 +61,15 @@ def _load_all_upstream(step_name: str, run_dir: Path, depends_on: list[str] | No
 
 
 def _build_schema_validator(step_type: str):
-    """Return a callable(data) -> list[str] using the step's jsonschema."""
+    """Return (validate_fn, required_keys) using the step's jsonschema."""
     schema_path = TEMPLATES / "schemas" / f"{step_type}.schema.json"
     if not schema_path.exists():
-        return lambda _data: []
+        return lambda _data: [], []
 
     from jsonschema import Draft7Validator
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     validator = Draft7Validator(schema)
+    required_keys = schema.get("required", [])
 
     def validate(data: dict) -> list[str]:
         errs = []
@@ -76,7 +77,7 @@ def _build_schema_validator(step_type: str):
             path = ".".join(str(p) for p in e.absolute_path) or "(root)"
             errs.append(f"{path}: {e.message}")
         return errs
-    return validate
+    return validate, required_keys
 
 
 def _format_role_prompt(role: str, step_type: str, payload: dict, brief_file: Path) -> str:
@@ -126,6 +127,14 @@ def _format_role_prompt(role: str, step_type: str, payload: dict, brief_file: Pa
                 .replace("{step_type}", step_type)
                 .replace("{raw_text}", payload["raw"])
                 .replace("{parse_error}", payload["parse_error"]))
+
+    if role == "tail_completer":
+        # 截斷補完：保留前段，只補缺失尾巴
+        template = _read(TEMPLATES / "prompts" / "_tail_completer.prompt.md")
+        return (template
+                .replace("{step_type}", step_type)
+                .replace("{truncated_raw}", payload["truncated_raw"][-3000:])
+                .replace("{missing_keys}", json.dumps(payload["missing_keys"], ensure_ascii=False)))
 
     raise ValueError(f"unknown role: {role}")
 
@@ -212,7 +221,7 @@ def orchestrated_call_ai_for_step(
     baseline = _load_baseline_for_regression(step_name, run_dir)
 
     invoker = make_subprocess_invoker(ai_command, step_type, brief_file, run_dir)
-    schema_validate = _build_schema_validator(step_type)
+    schema_validate, schema_required_keys = _build_schema_validator(step_type)
 
     # cross_check 嚴格用 depends_on 過濾後的 upstream — 禁止跨步驟偷下游 sibling.
     def cross_check_with_baseline(step_name_arg, all_step_data):
@@ -226,6 +235,7 @@ def orchestrated_call_ai_for_step(
         cross_check_fn=cross_check_with_baseline,
         max_rounds=max_rounds,
         initial_data=initial_data,
+        schema_required_keys=schema_required_keys,
     )
 
     if result.success and result.data is not None:

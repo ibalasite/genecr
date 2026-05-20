@@ -72,7 +72,7 @@ def test_load_upstream_depends_on_missing_file_silently_skipped(tmp_path):
 
 
 def test_schema_validator_returns_strings_on_error():
-    validate = _build_schema_validator("spec-basic")
+    validate, _ = _build_schema_validator("spec-basic")
     errors = validate({"bad": True})  # missing all required fields
     assert errors, "expected validation errors"
     assert all(isinstance(e, str) for e in errors)
@@ -84,8 +84,9 @@ def test_schema_validator_passes_valid_example():
     example = json.loads(
         (repo / "templates" / "examples" / "spec-basic.input.json").read_text(encoding="utf-8")
     )
-    validate = _build_schema_validator("spec-basic")
+    validate, required_keys = _build_schema_validator("spec-basic")
     assert validate(example) == []
+    assert isinstance(required_keys, list)
 
 
 def test_format_generator_prompt_includes_brief(tmp_path):

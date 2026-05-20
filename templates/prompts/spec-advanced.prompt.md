@@ -37,6 +37,7 @@ Every token and every minute spent here is doubled, tripled, or worse.
 - R8 `pseudocode_magic`: every `business_logic[].pseudocode` references
   real APIs + real tables
 - R9 `count_inconsistent`: `counts.api_endpoints` == len(apis), etc.
+- R10 `sa_missing_base_tables`: `data_models[]` 必須涵蓋玩家/主實體/交易帳本/玩家進度/稽核日誌五大類別（見下方 iGaming 必備基礎表）
 
 ═══════════════════════════════════════════════════════════════════════════
 
@@ -116,6 +117,23 @@ Beyond the base schema, include:
   fields + indexes). For redis kind: provide `redis_pattern`
   (e.g. `user:{uid}:level`), `value_type` ∈ {string, hash, list, zset, set},
   and `ttl`.
+
+### iGaming 必備基礎表（缺一 reviewer 擋）
+
+下列類別每個 iGaming feature 都必須有，依需求命名，禁止省略：
+
+| 類別 | 說明 | 典型命名範例 |
+|---|---|---|
+| 使用者/玩家 | 玩家身份或外鍵 | `users` / `players` |
+| 主實體 | 本 feature 核心概念（活動、任務、獎品…）| `events` / `missions` / `prizes` |
+| 交易/帳本 | 任何虛擬幣/點數/金流 — 必須獨立，不可混在主實體欄位 | `transactions` / `ledger` / `reward_logs` |
+| 玩家進度 | 個人參與狀態、完成紀錄 | `user_progress` / `participation` / `sign_in_records` |
+| 稽核日誌 | iGaming 法規要求不可覆蓋的操作紀錄 | `audit_logs` / `operation_logs` |
+
+若 spec-basic 提到代理商/分潤/multi-tier，還須加 `commissions` / `agent_splits`。
+若後台有可調設定，還須加 `configs` / `feature_flags`。
+
+**最低數量**：mysql table 數 ≥ `spec-basic.dryrun.tech_counts.db_tables`（程式 cross_check 強制）。
 
 - `db_queries[]`: each entry has `scenario`, `sql` (real query), and
   `used_indexes`. Downstream cross_check verifies WHERE columns are

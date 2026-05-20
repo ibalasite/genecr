@@ -107,6 +107,17 @@ Path: `apis[*].{perf, rate_limit}`
 Fail when: `perf` references QPS but `rate_limit` is absent.
 Fix hint: `"rate_limit": {"per_minute": <n>, "per_user": true|false}`.
 
+### R17 — `sa_missing_base_tables`
+Check: `data_models[]` 涵蓋 iGaming 五大基礎表類別（語意判斷，不是 exact match）：
+1. **玩家/使用者**：有一張表存玩家身份或以 user_id 為外鍵的核心表
+2. **主實體**：有一張表代表本 feature 的核心概念（活動/任務/獎品等）
+3. **交易/帳本**：有一張獨立的異動/流水/日誌表（不可把金流欄位混進主實體）
+4. **玩家進度**：有一張記錄個人參與狀態/完成紀錄的表
+5. **稽核日誌**：有一張不可覆蓋的 audit / operation log 表
+Path: `data_models[kind=mysql][*].name` + `data_models[kind=mysql][*].desc`
+Fail when: 缺少任何一個類別，且在 desc / create_table_sql 中找不到可對應的語意。
+Fix hint: 補上缺少類別對應的 table，命名需反映業務意義（如 `audit_logs` / `reward_transactions`）。
+
 ## ISSUE CATEGORY TAGS (whitelist — emit ONLY these)
 
 - `template_noise`
@@ -125,3 +136,4 @@ Fix hint: `"rate_limit": {"per_minute": <n>, "per_user": true|false}`.
 - `api_responses_no_success_or_error`
 - `api_response_no_schema`
 - `api_rate_limit_missing`
+- `sa_missing_base_tables`

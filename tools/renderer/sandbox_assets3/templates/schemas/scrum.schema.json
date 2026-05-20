@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "scrum input",
+  "type": "object",
+  "required": ["feature", "epics", "stories"],
+  "properties": {
+    "feature": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {"type": "string"},
+        "slug": {"type": "string"}
+      }
+    },
+    "epics": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "description": "4 main role epics — one per server_engineer / client_engineer / planner / art. PO 工作不開 work-item story，只在 epic.po_acceptance 記述。",
+      "items": {
+        "type": "object",
+        "required": ["id", "owner_role", "title", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "description": "Epic ID, e.g. E-srv / E-cli / E-art / E-pln"},
+          "owner_role": {
+            "type": "string",
+            "enum": ["server_engineer", "client_engineer", "planner", "art"]
+          },
+          "title": {"type": "string"},
+          "description": {"type": "string"},
+          "po_acceptance": {"type": "string", "description": "PO 驗收條件（PO 不開 story，工作體現於此欄）"}
+        }
+      }
+    },
+    "stories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "epic", "title", "role", "want", "benefit", "owner_role", "points", "subtasks"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": ["string", "integer"]},
+          "epic": {"type": "string", "description": "對應的 epic.id"},
+          "title": {"type": "string"},
+          "role": {"type": "string", "description": "User story 中的 'as a ...' 角色（玩家/管理員/...），不是 owner"},
+          "want": {"type": "string"},
+          "benefit": {"type": "string"},
+          "acceptance": {"type": "array"},
+          "owner_role": {
+            "type": "string",
+            "enum": ["server_engineer", "client_engineer", "planner", "art"],
+            "description": "4 主要 role 之一（PO 不開 work-item story）"
+          },
+          "points": {
+            "type": "integer",
+            "enum": [1, 2, 3, 5],
+            "description": "Fibonacci，per-story cap 5 點 (=5 工作天)。超過 5 必拆"
+          },
+          "subtasks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string"},
+            "description": "子項目清單；對應實際 deliverable（1 API / 1 wireframe / 1 asset 等）"
+          },
+          "depends_on": {"type": "array"},
+          "assets": {"type": "array"},
+          "tech_note": {"type": "string"}
+        }
+      }
+    }
+  }
+}

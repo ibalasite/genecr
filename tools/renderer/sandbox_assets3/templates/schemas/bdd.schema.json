@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "bdd input",
+  "type": "object",
+  "required": ["feature", "scenarios"],
+  "properties": {
+    "feature": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {"type": "string"},
+        "slug": {"type": "string"}
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "gherkin_zh", "sequence_diagram"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "kind": {"type": "string"},
+          "gherkin_zh": {"type": "string"},
+          "gherkin_en": {"type": "string"},
+          "sequence_diagram": {
+            "type": "string",
+            "description": "Mermaid sequenceDiagram source. MUST stay non-empty — user-flagged preserved render feature.",
+            "minLength": 10
+          },
+          "apis": {"type": "array"},
+          "data_sources": {"type": "array"}
+        }
+      }
+    }
+  }
+}

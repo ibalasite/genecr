@@ -1,0 +1,220 @@
+{
+  "feature": {
+    "name": "<功能名稱>",
+    "slug": "<feature-slug>"
+  },
+  "change_log": [
+    {
+      "date": "<YYYY-MM-DD>",
+      "author": "<作者>",
+      "note": "<變更說明>"
+    }
+  ],
+  "related_docs": [
+    {
+      "file": "<檔案或連結>",
+      "desc": "<說明>",
+      "status": "<進行中|已完成|待補>"
+    }
+  ],
+  "summary": {
+    "what": "<一句話描述這個功能是什麼>",
+    "why": "<為何要做：玩家動機 + 商業價值>",
+    "audience": "<目標族群：哪一類玩家>"
+  },
+  "competitors": [
+    {
+      "name": "<競業 A>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    },
+    {
+      "name": "<競業 B>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    },
+    {
+      "name": "<競業 C>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    },
+    {
+      "name": "<競業 D>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    },
+    {
+      "name": "<競業 E>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    },
+    {
+      "name": "<競業 F>",
+      "market": "<市場>",
+      "highlight": "<亮點/差異>",
+      "url": "<連結>"
+    }
+  ],
+  "comparison_table": {
+    "competitors": [
+      "<競業 A>",
+      "<競業 B>"
+    ],
+    "rows": [
+      {
+        "item": "<對比項>",
+        "us": "<我們>",
+        "others": [
+          "<競業 A 值>",
+          "<競業 B 值>"
+        ]
+      }
+    ]
+  },
+  "axes": [
+    {
+      "name": "<切換軸名稱>",
+      "options": [
+        {
+          "name": "<選項 1>",
+          "desc": "<說明>"
+        },
+        {
+          "name": "<選項 2>",
+          "desc": "<說明>"
+        }
+      ]
+    }
+  ],
+  "matrix": {
+    "description": "<軸交叉組合說明>",
+    "row_axis": "<row 軸名>",
+    "col_axis": "<col 軸名>",
+    "cols": [
+      "<col 1>",
+      "<col 2>"
+    ],
+    "rows": [
+      {
+        "label": "<row 1>",
+        "cells": [
+          "✓",
+          "--"
+        ],
+        "time": "<時間區段選項>"
+      }
+    ]
+  },
+  "fields": [
+    {
+      "name": "<欄位名>",
+      "desc": "<說明 + 格式規則>",
+      "example": "<範例值>"
+    }
+  ],
+  "rules": {
+    "trigger": "<觸發條件>",
+    "data": "<資料處理規則：重複/上限/邊界>",
+    "sorting": "<排序與 tiebreaker>",
+    "anti_cheat": "<防作弊機制>"
+  },
+  "user_journey": [
+    {
+      "action": "<玩家動作>",
+      "detail": "<細節>",
+      "emotion": "<情緒/動機>"
+    }
+  ],
+  "ui_sections": [
+    {
+      "name": "<UI 區域名>",
+      "detail": "<位置 + 互動細節>"
+    }
+  ],
+  "ui_misc": {
+    "refresh": "<刷新機制>",
+    "extensibility": "<擴充性註記>",
+    "edge_cases": "<斷網/無資料/權限不足等邊界處理>"
+  },
+  "i18n": [
+    {
+      "zh": "<中文詞條>",
+      "en": "<English>",
+      "es": "<Español>"
+    }
+  ],
+  "help_page": {
+    "hook": "<一句話 hook>",
+    "bullets": [
+      "<🎯 賣點 1>",
+      "<💰 賣點 2>",
+      "<🎁 賣點 3>"
+    ],
+    "steps": [
+      "<步驟 1>",
+      "<步驟 2>",
+      "<步驟 3>"
+    ]
+  },
+  "timeline": [
+    {
+      "phase": "Phase 1 - MVP",
+      "content": "<MVP 內容>",
+      "duration": "<X 週>",
+      "duration_weeks": 1
+    },
+    {
+      "phase": "Phase 2 - 優化",
+      "content": "<優化內容>",
+      "duration": "<X 週>",
+      "duration_weeks": 1
+    }
+  ],
+  "resources": {
+    "art": "<美術資源概數>",
+    "audio": "<音效資源概數>",
+    "engineering": "<低|中|高，附原因>"
+  },
+  "admin_journey": [
+    {"action": "建立活動", "detail": "管理員進入「後台 — 活動設定面板」填入名稱、起迄、每日獎勵、目標 VIP，按儲存發佈", "role": "admin"},
+    {"action": "監看玩家進度", "detail": "切到「後台 — 玩家記錄列表」依活動篩選查詢，看每位玩家當前天數與大獎選擇狀態", "role": "admin"},
+    {"action": "補簽 / 匯出", "detail": "對特定玩家點「補簽」做修正，必要時匯出 CSV 給營運分析", "role": "admin"}
+  ],
+  "wireframes": [
+    {
+      "name": "<主畫面>",
+      "desc": "<一句話描述這張線框>",
+      "html": "<div class=\"wf-scope\"><div class=\"wf-mobile\"><div class=\"wf-statusbar\"><span>09:41</span><span>● ● ●</span></div><div class=\"wf-appbar\"><span class=\"wf-dot\"></span><span class=\"wf-section-title\">標題</span><span class=\"wf-pill\">餘額</span></div><div class=\"wf-stage\"><div class=\"wf-skeleton-block\" style=\"width:100%;min-height:200px\">主要內容區</div></div><div class=\"wf-actionbar\"><button class=\"wf-btn wf-btn-primary\">主按鈕</button></div></div></div>"
+    },
+    {
+      "name": "<彈窗>",
+      "desc": "<彈窗用途>",
+      "html": "<div class=\"wf-scope\"><div class=\"wf-modal\"><div class=\"wf-modal-icon\">ICON</div><div class=\"wf-modal-title\">標題</div><div class=\"wf-modal-body\">內容</div><div class=\"wf-modal-actions\"><button class=\"wf-btn wf-btn-primary\">確認</button></div></div></div>"
+    },
+    {
+      "name": "後台 — 活動設定面板",
+      "desc": "管理員設定活動起迄、每日獎勵、目標 VIP 層級",
+      "html": "<div class=\"wf-scope\"><div class=\"wf-desktop\"><div class=\"wf-topbar\"><span class=\"wf-section-title\">後台 / 活動設定</span><span class=\"wf-pill\">admin</span></div><div class=\"wf-breadcrumb\"><span>後台</span><span>活動管理</span><span>活動設定</span></div><div class=\"wf-main\"><div class=\"wf-form-grid\"><div class=\"wf-form-row\"><div class=\"wf-line\">活動名稱 <span class=\"wf-required\">*</span></div><input class=\"wf-input\" placeholder=\"例：每日簽到 7 日\"></div><div class=\"wf-form-row\"><div class=\"wf-line\">活動 ID</div><input class=\"wf-input\" placeholder=\"daily-checkin-7day\"></div><div class=\"wf-form-row\"><div class=\"wf-line\">開始時間 <span class=\"wf-required\">*</span></div><input class=\"wf-input-date\"></div><div class=\"wf-form-row\"><div class=\"wf-line\">結束時間 <span class=\"wf-required\">*</span></div><input class=\"wf-input-date\"></div><div class=\"wf-form-row\"><div class=\"wf-line\">目標 VIP 層級</div><select class=\"wf-select\"><option>全部</option><option>VIP1+</option></select></div><div class=\"wf-form-row\"><div class=\"wf-line\">每日獎勵點數</div><input class=\"wf-input\" placeholder=\"100,200,300,500,800,1200,2000\"></div></div><div class=\"wf-form-row\"><div class=\"wf-line\">說明</div><textarea class=\"wf-textarea\" placeholder=\"活動規則 / 注意事項\"></textarea></div><div class=\"wf-toolbar\"><button class=\"wf-btn\">取消</button><button class=\"wf-btn wf-btn-primary\">儲存並發佈</button></div></div></div></div>"
+    },
+    {
+      "name": "後台 — 玩家記錄列表",
+      "desc": "管理員依活動篩選查詢玩家簽到狀態、補發、匯出",
+      "html": "<div class=\"wf-scope\"><div class=\"wf-desktop\"><div class=\"wf-topbar\"><span class=\"wf-section-title\">後台 / 玩家記錄</span><span class=\"wf-pill\">admin</span></div><div class=\"wf-breadcrumb\"><span>後台</span><span>玩家紀錄</span></div><div class=\"wf-main\"><div class=\"wf-toolbar\"><select class=\"wf-select\"><option>選擇活動</option></select><input class=\"wf-input\" placeholder=\"玩家 ID\"><input class=\"wf-input-date\"><button class=\"wf-btn\">查詢</button><button class=\"wf-btn\">匯出 CSV</button></div><div class=\"wf-table wf-table--zebra\"><div class=\"wf-tr\"><div class=\"wf-td\">玩家 ID</div><div class=\"wf-td\">當前天數</div><div class=\"wf-td\">最後簽到</div><div class=\"wf-td\">大獎選擇</div><div class=\"wf-td\">操作</div></div><div class=\"wf-tr\"><div class=\"wf-td\">player_8821</div><div class=\"wf-td\">3</div><div class=\"wf-td\">05/17 10:23</div><div class=\"wf-td\">-</div><div class=\"wf-td\"><button class=\"wf-btn\">補簽</button></div></div><div class=\"wf-tr\"><div class=\"wf-td\">player_8822</div><div class=\"wf-td\">7 ✓</div><div class=\"wf-td\">05/17 22:05</div><div class=\"wf-td\">現金</div><div class=\"wf-td\"><button class=\"wf-btn\">詳情</button></div></div></div><div class=\"wf-pagination\"><span>‹</span><span class=\"wf-pill is-active\">1</span><span>2</span><span>3</span><span>›</span></div></div></div></div>"
+    }
+  ],
+  "resource_counts": {
+    "image": {
+      "<sub-category>": 1
+    },
+    "sound": {
+      "<sub-category>": 1
+    },
+    "visual_total": 1,
+    "audio_total": 1
+  }
+}

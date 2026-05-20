@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>genecr wireframe DSL — Living Style Guide</title>
+<style>
+  :root { --ink:#1f2937; --muted:#6b7280; --line:#c7cdd6; --soft:#f6f7f9; --panel:#ffffff; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", "Microsoft JhengHei", sans-serif; padding: 24px 32px; max-width: 1200px; margin: 0 auto; color: var(--ink); background: #fafbfc; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 20px; margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--line); }
+  h3 { font-size: 15px; color: var(--muted); margin-top: 20px; }
+  .demo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; margin: 8px 0; }
+  .demo-render { padding: 8px; background: #fafbfc; border-radius: 6px; min-height: 60px; display: flex; align-items: center; justify-content: center; }
+  .demo-code { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 11px; background: var(--ink); color: #fff; padding: 10px 12px; border-radius: 6px; overflow-x: auto; white-space: pre; }
+  .nav { position: sticky; top: 0; background: #fff; padding: 12px 16px; border: 1.5px solid var(--line); border-radius: 8px; margin-bottom: 16px; z-index: 10; }
+  .nav a { margin-right: 12px; color: var(--ink); text-decoration: none; font-size: 13px; }
+  .nav a:hover { text-decoration: underline; }
+
+  /* ─── wf-* CSS (mirror of docs.html.tmpl) ─── */
+  .wf-scope { font: 13px/1.5 -apple-system, "Segoe UI", sans-serif; color: var(--ink); }
+  .wf-scope *, .wf-scope *::before, .wf-scope *::after { box-sizing: border-box; }
+  .wf-frame { max-width: 720px; margin: 16px auto; border: 2px solid var(--ink); border-radius: 20px; overflow: hidden; background: var(--panel); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .wf-panel { border: 1.8px solid var(--line); border-radius: 12px; background: #fff; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .wf-section-title { font-weight: 800; font-size: 14px; color: var(--ink); }
+  .wf-helper { color: var(--muted); font-size: 12px; }
+  .wf-divider { height: 0; border: none; border-top: 1.5px solid var(--line); margin: 8px 0; }
+  .wf-pill { display: inline-grid; place-items: center; min-width: 56px; height: 28px; padding: 0 10px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; }
+  .wf-pill.is-active { border-color: var(--ink); background: var(--soft); font-weight: 700; }
+  .wf-btn { min-height: 34px; padding: 0 14px; border: 1.8px solid var(--line); border-radius: 999px; background: #fff; font-size: 13px; cursor: pointer; }
+  .wf-btn-primary { border-color: var(--ink); font-weight: 700; background: var(--soft); }
+  .wf-dot { display: inline-block; width: 18px; height: 18px; border: 1.8px solid var(--ink); border-radius: 50%; background: var(--soft); }
+  .wf-icon-slot { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1.5px dashed var(--line); border-radius: 8px; color: var(--muted); font-size: 10px; }
+  .wf-required { color: #b91c1c; font-weight: 700; }
+  .wf-badge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 8px; border: 1.8px solid var(--ink); border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1; color: var(--ink); background: #fff; }
+  .wf-countdown { font-family: monospace; font-size: 24px; font-weight: 800; letter-spacing: 2px; }
+  .wf-empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+  .wf-skeleton-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 160px; min-height: 28px; padding: 4px 12px; border: 1.5px solid var(--line); border-radius: 999px; background: repeating-linear-gradient(90deg, #fff, #fff 10px, var(--soft) 10px, var(--soft) 20px); font-size: 12px; color: var(--muted); }
+  .wf-skeleton-line { display: flex; align-items: center; min-height: 22px; padding: 4px 10px; flex: 1 1 auto; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; line-height: 1.4; color: var(--muted); }
+  .wf-skeleton-block { background: var(--soft); border: 1.8px solid var(--line); border-radius: 12px; min-height: 40px; padding: 8px 12px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; }
+  /* 排版 */
+  .wf-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .wf-list { display: flex; flex-direction: column; gap: 6px; }
+  .wf-line { display: flex; align-items: center; min-height: 26px; padding: 4px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 12px; }
+  .wf-text { font-size: 13px; line-height: 1.6; }
+  .wf-link { color: var(--ink); text-decoration: underline; cursor: pointer; }
+  /* 表格 */
+  .wf-table { display: table; width: 100%; border-collapse: collapse; border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .wf-tr { display: table-row; }
+  .wf-tr:nth-child(even) { background: var(--soft); }
+  .wf-td { display: table-cell; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 12px; }
+  /* Form */
+  .wf-input { display: block; width: 100%; min-height: 36px; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; }
+  .wf-input-date { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; }
+  .wf-input-date::before { content: "📅"; opacity: .6; }
+  .wf-select { display: inline-flex; align-items: center; justify-content: space-between; min-width: 120px; min-height: 36px; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; }
+  .wf-select::after { content: "▾"; margin-left: 8px; opacity: .6; }
+  .wf-textarea { display: block; width: 100%; min-height: 80px; padding: 8px 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; }
+  .wf-check { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1.8px solid var(--ink); border-radius: 4px; background: #fff; font-size: 12px; line-height: 1; }
+  .wf-check.is-active::after { content: "✓"; font-weight: 800; }
+  .wf-radio { display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1.8px solid var(--ink); border-radius: 50%; background: #fff; }
+  .wf-radio.is-active::after { content: ""; width: 8px; height: 8px; background: var(--ink); border-radius: 50%; }
+  .wf-switch { display: inline-block; position: relative; width: 36px; height: 20px; border: 1.8px solid var(--ink); border-radius: 999px; background: #fff; }
+  .wf-switch::after { content: ""; position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; border-radius: 50%; background: var(--line); }
+  .wf-switch.is-active::after { left: 17px; background: var(--ink); }
+  /* 進階 */
+  .wf-tabs { display: flex; gap: 4px; border-bottom: 1.5px solid var(--line); padding: 0 8px; }
+  .wf-tab { padding: 8px 16px; border: 1.5px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; font-size: 13px; color: var(--muted); cursor: pointer; }
+  .wf-tab.is-active { border-color: var(--line); background: #fff; color: var(--ink); font-weight: 700; margin-bottom: -1.5px; }
+  .wf-accordion { border: 1.5px solid var(--line); border-radius: 8px; padding: 12px; background: #fff; cursor: pointer; }
+  .wf-accordion::after { content: " ▾"; color: var(--muted); float: right; }
+  .wf-stepper { display: flex; align-items: center; gap: 8px; padding: 12px 0; }
+  .wf-step { display: inline-grid; place-items: center; min-width: 28px; min-height: 28px; padding: 0 8px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; color: var(--muted); }
+  .wf-step.is-active { border-color: var(--ink); background: var(--soft); color: var(--ink); font-weight: 700; }
+  .wf-toast { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1.8px solid var(--ink); border-radius: 999px; background: #fff; font-size: 12px; box-shadow: 0 4px 12px rgba(31,41,55,.12); }
+  /* 圖表 */
+  .wf-bar { display: inline-block; min-width: 16px; height: 100%; min-height: 20px; background: var(--soft); border: 1.8px solid var(--ink); border-radius: 6px 6px 0 0; }
+  .wf-chart { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; min-height: 120px; }
+  .wf-chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 100px; }
+  .wf-kpi { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1.5px solid var(--line); border-radius: 8px; background: #fff; }
+  .wf-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+  .wf-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; }
+  .wf-list-line { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .wf-line-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .wf-segment { border: 1.8px solid var(--ink); display: grid; place-items: center; padding: 8px; font-size: 11px; }
+  /* Mobile container */
+  .wf-mobile { width: 360px; margin: 8px auto; background: #fff; border: 2px solid var(--ink); border-radius: 20px; overflow: hidden; }
+  .wf-statusbar { display: flex; justify-content: space-between; padding: 4px 16px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .wf-appbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 2px solid var(--line); background: #fbfbfc; }
+  .wf-stage { display: flex; flex-direction: column; gap: 12px; padding: 20px 16px; min-height: 200px; }
+  .wf-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); gap: 8px; width: 100%; }
+  .wf-actionbar { display: flex; gap: 8px; padding: 10px 16px; border-top: 1.5px solid var(--line); }
+  .wf-actionbar .wf-btn-primary { flex: 1; }
+  .wf-modal { width: 300px; margin: 16px auto; border: 2px solid var(--ink); border-radius: 16px; background: #fff; padding: 24px 20px; text-align: center; }
+  .wf-modal-icon { width: 60px; height: 60px; margin: 0 auto 12px; border: 2px dashed var(--line); border-radius: 12px; display: grid; place-items: center; color: var(--muted); font-size: 11px; }
+  .wf-modal-title { font-size: 16px; font-weight: 800; }
+  .wf-modal-body { font-size: 13px; display: flex; flex-direction: column; gap: 12px; text-align: left; }
+  .wf-modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  /* Desktop container */
+  .wf-desktop { max-width: 960px; margin: 16px auto; display: grid; grid-template-columns: 240px 1fr; min-height: 320px; border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; background: #fff; }
+  .wf-sidebar { display: flex; flex-direction: column; gap: 4px; padding: 16px 8px; background: var(--soft); border-right: 1.5px solid var(--line); }
+  .wf-sidenav-item { padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .wf-sidenav-item.is-active { background: var(--ink); color: #fff; font-weight: 700; }
+</style>
+</head>
+<body class="wf-scope">
+
+<h1>genecr wireframe DSL — Living Style Guide</h1>
+<p class="wf-helper">所有 primitive 視覺範例 + HTML source。要畫新線稿 → 從這抄。</p>
+
+<nav class="nav">
+  <a href="#layout">📐 排版/列表</a>
+  <a href="#text">📝 文字</a>
+  <a href="#form">📋 Form</a>
+  <a href="#buttons">🔘 按鈕/標籤</a>
+  <a href="#advanced">🎛 進階 UI</a>
+  <a href="#chart">📊 進度/圖表</a>
+  <a href="#mobile">📱 Mobile</a>
+  <a href="#desktop">🖥 Desktop</a>
+  <a href="#modal">🪟 Modal</a>
+  <a href="#wheel">🎡 輪盤</a>
+</nav>
+
+<h2 id="layout">3.2 排版 / 列表 / 表格</h2>
+<h3>.wf-row — 顯式橫排</h3>
+<div class="demo"><div class="demo-render"><div class="wf-row"><span class="wf-pill">D1</span><span class="wf-line">+100 點數</span><span class="wf-badge">已入帳</span></div></div><pre class="demo-code">&lt;div class="wf-row"&gt;
+  &lt;span class="wf-pill"&gt;D1&lt;/span&gt;
+  &lt;span class="wf-line"&gt;+100 點數&lt;/span&gt;
+  &lt;span class="wf-badge"&gt;已入帳&lt;/span&gt;
+&lt;/div&gt;</pre></div>
+
+<h3>.wf-list + .wf-line — 文字列表</h3>
+<div class="demo"><div class="demo-render"><div class="wf-list" style="width:100%"><div class="wf-line">🎯 連簽 7 日領點數</div><div class="wf-line">💰 第 7 日二選一</div><div class="wf-line">🎁 斷簽歸零</div></div></div><pre class="demo-code">&lt;div class="wf-list"&gt;
+  &lt;div class="wf-line"&gt;🎯 連簽 7 日領點數&lt;/div&gt;
+  &lt;div class="wf-line"&gt;💰 第 7 日二選一&lt;/div&gt;
+&lt;/div&gt;</pre></div>
+
+<h3>.wf-table — 表格</h3>
+<div class="demo"><div class="demo-render"><div class="wf-table"><div class="wf-tr"><div class="wf-td">D1</div><div class="wf-td">100 點</div></div><div class="wf-tr"><div class="wf-td">D7</div><div class="wf-td">50x 流水</div></div></div></div><pre class="demo-code">&lt;div class="wf-table"&gt;
+  &lt;div class="wf-tr"&gt;&lt;div class="wf-td"&gt;D1&lt;/div&gt;&lt;div class="wf-td"&gt;100 點&lt;/div&gt;&lt;/div&gt;
+&lt;/div&gt;</pre></div>
+
+<h2 id="text">3.2b 文字</h2>
+<div class="demo"><div class="demo-render" style="flex-direction:column;align-items:flex-start;gap:8px;width:100%"><div class="wf-section-title">區塊標題</div><div class="wf-text">這是一段內文，使用 wf-text 渲染。可以放長段落，字級 13px。</div><div class="wf-helper">輔助文字（次要）</div><div class="wf-link">了解更多 →</div></div><pre class="demo-code">&lt;div class="wf-section-title"&gt;區塊標題&lt;/div&gt;
+&lt;div class="wf-text"&gt;內文段落…&lt;/div&gt;
+&lt;div class="wf-helper"&gt;輔助文字&lt;/div&gt;
+&lt;span class="wf-link"&gt;了解更多 →&lt;/span&gt;</pre></div>
+
+<h2 id="form">3.3 Form 元件（對標 HTML）</h2>
+<div class="demo"><div class="demo-render" style="flex-direction:column;align-items:flex-start;gap:8px;width:100%"><input class="wf-input" placeholder="文字輸入" /><span class="wf-input-date">2026-06-01</span><span class="wf-select">選項一</span><textarea class="wf-textarea" placeholder="多行輸入"></textarea><div class="wf-row"><span class="wf-check is-active"></span><span>Checkbox 已勾</span><span class="wf-check"></span><span>未勾</span></div><div class="wf-row"><span class="wf-radio is-active"></span><span>Radio A</span><span class="wf-radio"></span><span>Radio B</span></div><div class="wf-row"><span class="wf-switch is-active"></span><span>啟用</span><span class="wf-switch"></span><span>停用</span></div></div><pre class="demo-code">&lt;input class="wf-input" placeholder="文字"&gt;
+&lt;span class="wf-input-date"&gt;2026-06-01&lt;/span&gt;
+&lt;span class="wf-select"&gt;選項一&lt;/span&gt;
+&lt;textarea class="wf-textarea"&gt;&lt;/textarea&gt;
+&lt;span class="wf-check is-active"&gt;&lt;/span&gt;
+&lt;span class="wf-radio is-active"&gt;&lt;/span&gt;
+&lt;span class="wf-switch is-active"&gt;&lt;/span&gt;</pre></div>
+
+<h2 id="buttons">3.4 按鈕 / 標籤 / 角標</h2>
+<div class="demo"><div class="demo-render"><div class="wf-row"><button class="wf-btn">取消</button><button class="wf-btn wf-btn-primary">確認</button><span class="wf-pill">標籤</span><span class="wf-pill is-active">啟用中</span><span class="wf-badge">3</span><span class="wf-badge">已入帳</span><span class="wf-dot"></span><span class="wf-required">*</span></div></div><pre class="demo-code">&lt;button class="wf-btn"&gt;取消&lt;/button&gt;
+&lt;button class="wf-btn wf-btn-primary"&gt;確認&lt;/button&gt;
+&lt;span class="wf-pill"&gt;標籤&lt;/span&gt;
+&lt;span class="wf-pill is-active"&gt;啟用中&lt;/span&gt;
+&lt;span class="wf-badge"&gt;3&lt;/span&gt;</pre></div>
+
+<h2 id="advanced">3.5 進階 UI</h2>
+<h3>.wf-tabs</h3>
+<div class="demo"><div class="demo-render" style="width:100%"><div class="wf-tabs"><div class="wf-tab is-active">總覽</div><div class="wf-tab">記錄</div><div class="wf-tab">設定</div></div></div><pre class="demo-code">&lt;div class="wf-tabs"&gt;
+  &lt;div class="wf-tab is-active"&gt;總覽&lt;/div&gt;
+  &lt;div class="wf-tab"&gt;記錄&lt;/div&gt;
+&lt;/div&gt;</pre></div>
+
+<h3>.wf-stepper</h3>
+<div class="demo"><div class="demo-render"><div class="wf-stepper"><span class="wf-step is-active">1</span><span class="wf-step">2</span><span class="wf-step">3</span></div></div><pre class="demo-code">&lt;div class="wf-stepper"&gt;
+  &lt;span class="wf-step is-active"&gt;1&lt;/span&gt;
+  &lt;span class="wf-step"&gt;2&lt;/span&gt;
+&lt;/div&gt;</pre></div>
+
+<h3>.wf-accordion / .wf-toast</h3>
+<div class="demo"><div class="demo-render" style="flex-direction:column;width:100%;gap:8px"><div class="wf-accordion">展開更多細節</div><span class="wf-toast">儲存成功 ✓</span></div><pre class="demo-code">&lt;div class="wf-accordion"&gt;展開更多細節&lt;/div&gt;
+&lt;span class="wf-toast"&gt;儲存成功 ✓&lt;/span&gt;</pre></div>
+
+<h2 id="chart">3.6 進度 / 圖表 / KPI</h2>
+<div class="demo"><div class="demo-render" style="flex-direction:column;width:100%;gap:12px"><div class="wf-chart"><div class="wf-chart-bars"><span class="wf-bar" style="height:40%"></span><span class="wf-bar" style="height:70%"></span><span class="wf-bar" style="height:50%"></span><span class="wf-bar" style="height:90%"></span></div></div><div class="wf-kpi-grid"><div class="wf-kpi"><div class="wf-helper">DAU</div><div style="font-size:24px;font-weight:800">12,345</div></div><div class="wf-kpi"><div class="wf-helper">轉換率</div><div style="font-size:24px;font-weight:800">8.4%</div></div></div></div><pre class="demo-code">&lt;div class="wf-chart"&gt;
+  &lt;div class="wf-chart-bars"&gt;
+    &lt;span class="wf-bar" style="height:70%"&gt;&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="wf-kpi-grid"&gt;
+  &lt;div class="wf-kpi"&gt;&lt;div class="wf-helper"&gt;DAU&lt;/div&gt;…&lt;/div&gt;
+&lt;/div&gt;</pre></div>
+
+<h3>.wf-skeleton-* — 純空白占位（不可塞文字）</h3>
+<div class="demo"><div class="demo-render" style="flex-direction:column;width:100%;gap:8px"><span class="wf-skeleton-pill"></span><div class="wf-skeleton-line"></div><div class="wf-skeleton-block">圖片占位</div></div><pre class="demo-code">&lt;span class="wf-skeleton-pill"&gt;&lt;/span&gt;
+&lt;div class="wf-skeleton-line"&gt;&lt;/div&gt;
+&lt;div class="wf-skeleton-block"&gt;&lt;/div&gt;</pre></div>
+
+<h2 id="mobile">3.1a Mobile 容器</h2>
+<div class="demo"><div class="demo-render"><div class="wf-mobile"><div class="wf-statusbar"><span>09:41</span><span>● ● ●</span></div><div class="wf-appbar"><span class="wf-dot"></span><span class="wf-section-title">連簽 7 日</span><span class="wf-pill">9,999</span></div><div class="wf-stage"><div class="wf-board"><div class="wf-pill is-active">D1</div><div class="wf-pill is-active">D2</div><div class="wf-pill">D3</div><div class="wf-pill">D4</div><div class="wf-pill">D5</div><div class="wf-pill">D6</div><div class="wf-pill">D7</div></div><div class="wf-panel"><div class="wf-section-title">今日獎勵</div><div class="wf-line">+100 點數</div></div></div><div class="wf-actionbar"><button class="wf-btn wf-btn-primary">立即領取</button></div></div></div><pre class="demo-code">&lt;div class="wf-mobile"&gt;
+  &lt;div class="wf-statusbar"&gt;…&lt;/div&gt;
+  &lt;div class="wf-appbar"&gt;…&lt;/div&gt;
+  &lt;div class="wf-stage"&gt;
+    &lt;div class="wf-board"&gt;7 個 wf-pill&lt;/div&gt;
+    &lt;div class="wf-panel"&gt;…&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="wf-actionbar"&gt;…&lt;/div&gt;
+&lt;/div&gt;</pre></div>
+
+<h2 id="desktop">3.1b Desktop 容器</h2>
+<div class="demo"><div class="demo-render"><div class="wf-desktop"><div class="wf-sidebar"><div class="wf-sidenav-item is-active">Dashboard</div><div class="wf-sidenav-item">活動管理</div><div class="wf-sidenav-item">玩家</div></div><div style="padding:20px"><div class="wf-section-title">儀表板</div><div class="wf-kpi-grid" style="margin-top:12px"><div class="wf-kpi"><div class="wf-helper">DAU</div><div style="font-size:20px;font-weight:800">1,234</div></div><div class="wf-kpi"><div class="wf-helper">活動數</div><div style="font-size:20px;font-weight:800">7</div></div></div></div></div></div><pre class="demo-code">&lt;div class="wf-desktop"&gt;
+  &lt;div class="wf-sidebar"&gt;
+    &lt;div class="wf-sidenav-item is-active"&gt;…&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;main&gt;…&lt;/main&gt;
+&lt;/div&gt;</pre></div>
+
+<h2 id="modal">3.1c Modal</h2>
+<div class="demo"><div class="demo-render"><div class="wf-modal"><div class="wf-modal-icon">🎁</div><div class="wf-modal-title">恭喜！</div><div class="wf-modal-body"><div class="wf-text">您已連簽 7 天，請選擇您的大獎。</div></div><div class="wf-modal-actions"><button class="wf-btn">再想想</button><button class="wf-btn wf-btn-primary">確認</button></div></div></div><pre class="demo-code">&lt;div class="wf-modal"&gt;
+  &lt;div class="wf-modal-icon"&gt;🎁&lt;/div&gt;
+  &lt;div class="wf-modal-title"&gt;標題&lt;/div&gt;
+  &lt;div class="wf-modal-body"&gt;內容&lt;/div&gt;
+  &lt;div class="wf-modal-actions"&gt;…&lt;/div&gt;
+&lt;/div&gt;</pre></div>
+
+<h2 id="wheel">3.7 輪盤 primitives</h2>
+<div class="demo"><div class="demo-render"><div style="position:relative;width:200px;height:200px;border:2.5px solid var(--ink);border-radius:50%;background:conic-gradient(from -15deg, #fff 0 60deg, var(--soft) 60deg 120deg, #fff 120deg 180deg, var(--soft) 180deg 240deg, #fff 240deg 300deg, var(--soft) 300deg 360deg)"><div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:20px solid var(--ink)"></div><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:60px;height:60px;border-radius:50%;border:2.5px solid var(--ink);background:#fff;display:grid;place-items:center;font-weight:800">SPIN</div></div></div><pre class="demo-code">&lt;div class="wf-wheel"&gt;
+  &lt;div class="wf-wheel-pointer"&gt;&lt;/div&gt;
+  &lt;div class="wf-wheel-hub"&gt;SPIN&lt;/div&gt;
+&lt;/div&gt;</pre></div>
+
+<p style="margin-top:40px;text-align:center;color:var(--muted);font-size:11px">
+  原始 DSL 文件：<code>templates/wireframe-dsl.md</code> ｜
+  原始 CSS：<code>templates/docs.html.tmpl</code> 第 320 行起 ｜
+  違反規範會被 reviewer R9/R10/R11 擋
+</p>
+
+</body>
+</html>

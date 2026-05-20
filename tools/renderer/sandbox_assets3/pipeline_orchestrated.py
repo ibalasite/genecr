@@ -159,18 +159,22 @@ def make_subprocess_invoker(
         output_path = work_dir / f"{step_type}.{role}.output.txt"
         prompt_path.write_text(prompt_text, encoding="utf-8")
 
-        cmd = ai_command.format(prompt=str(prompt_path), output=str(output_path))
-        print(f"   ▸ {role}: $ {cmd}")
+        # Strip {output} redirect — let subprocess capture stdout directly.
+        # Shell redirect (> {output}) returns before claude finishes writing;
+        # capture_output=True + r.stdout is guaranteed complete on return.
+        ai_cmd_no_redirect = ai_command.split(">")[0].strip()
+        cmd = ai_cmd_no_redirect.format(prompt=str(prompt_path))
+        print(f"   ▸ {role}: $ {cmd} > {output_path.name}")
         try:
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True,
                                encoding="utf-8", errors="replace")
         except Exception as e:
             return json.dumps({"error": f"subprocess exception: {e}"})
 
-        # Some AI CLIs write to {output}; others to stdout. Prefer the file.
-        if output_path.exists() and output_path.stat().st_size > 0:
-            return output_path.read_text(encoding="utf-8")
-        return r.stdout or r.stderr or ""
+        content = r.stdout or r.stderr or ""
+        if content.strip():
+            output_path.write_text(content, encoding="utf-8")
+        return content
 
     return invoke
 

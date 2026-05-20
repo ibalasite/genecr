@@ -34,9 +34,9 @@ Fail when: id matches one of those generic patterns.
 
 ### R5 — `prompt_too_shallow`
 Check: for visual asset types (image, animation, particle), the
-`image_prompt` field contains at least 3 distinct concepts (subject,
+`production_prompt` field contains at least 3 distinct concepts (subject,
 style, composition or equivalent).
-Path: `assets[*].image_prompt`
+Path: `assets[*].production_prompt`
 Fail when: prompt is one word, empty, or pure template placeholder.
 
 ### R6 — `usage_vague`

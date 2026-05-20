@@ -22,7 +22,7 @@ Every token and every minute spent here is doubled, tripled, or worse.
   key in upstream `spec-basic.resource_counts`
 - R3 `id_collision`: `assets[].id` is unique
 - R4 `id_placeholder`: ids are meaningful (no asset1 / asset2 / tbd)
-- R5 `prompt_too_shallow`: visual assets have image_prompt with subject +
+- R5 `prompt_too_shallow`: visual assets have production_prompt with subject +
   style + composition (≥ 3 concepts)
 - R6 `usage_vague`: usage specifies scene + UI section + placement
 - R7 `reference_placeholder`: reference URL is a real URL or omitted
@@ -93,7 +93,6 @@ production_prompt  # ★ 全類型必填，≥ 15 字。給 AI / 美術產出這
                 #   image / animation / particle / video：建議英文 T2I/T2V prompt 含 subject + style + composition
                 #   sound：寫音色 + 長度 + 情境，例「short upbeat coin-collect chime, 0.8s, bright synth」
                 #   font：寫字型風格 + 字重 + 字符集需求，例「圓潤無襯線繁中字型, Bold, 數字 0-9 + 常用 1000 字」
-image_prompt    # （legacy / 可選）視覺類英文 prompt — 若已寫在 production_prompt 內可省略
 ```
 
 **owner_role 對照表**（所有 6 種素材都歸 art — 同一角色用 AI 或手作）：

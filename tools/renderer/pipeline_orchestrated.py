@@ -19,7 +19,7 @@ from cross_check import run_all_checks
 from review_loop import RunStepResult, run_step
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-TEMPLATES = Path(__file__).resolve().parent / "templates"
+TEMPLATES = REPO_ROOT / "templates"
 
 
 def _read(p: Path) -> str:

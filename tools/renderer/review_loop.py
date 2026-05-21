@@ -170,6 +170,9 @@ def _parse_review_issues(raw: str, step_name: str) -> list[Issue]:
     return issues
 
 
+_OUTPUT_TOO_SMALL_RATIO = 0.10  # generator output < 10% of prompt → 視為無效，要求重建
+
+
 def run_step(
     step_name: str,
     all_data: dict,
@@ -179,6 +182,7 @@ def run_step(
     max_rounds: int | None = None,
     initial_data: dict | None = None,
     schema_required_keys: list[str] | None = None,
+    work_dir: "Path | None" = None,
 ) -> RunStepResult:
     """Program-controlled loop. Three independent AI subagents.
 
@@ -202,15 +206,46 @@ def run_step(
     # 1. Generator — skipped when initial_data is provided (revalidate mode:
     # an existing <step>.input.json is fed in directly so we re-check it
     # against current rules without burning tokens on regeneration).
+    _generator_too_small: Issue | None = None  # 帶進第一輪 program_issues
+
     if initial_data is not None:
         data = initial_data
     else:
-        gen_raw = ai_invoker("generator", {
-            "step": step_name,
-            "upstream": all_data,
-        })
+        # Layer 1：generator output 太小 → 在 gen loop 直接重打，不讓壞 data 往下
+        _GEN_RETRIES = 2
+        for _gen_attempt in range(1 + _GEN_RETRIES):
+            gen_raw = ai_invoker("generator", {
+                "step": step_name,
+                "upstream": all_data,
+            })
+            _prompt_size = 0
+            if work_dir is not None:
+                from pathlib import Path as _Path
+                _pf = _Path(work_dir) / f"{step_name}.generator.combined.prompt.md"
+                if _pf.exists():
+                    _prompt_size = _pf.stat().st_size
+            _output_size = len(gen_raw.encode("utf-8"))
+            _ratio = _output_size / _prompt_size if _prompt_size > 0 else 1.0
+            print(f"   [size check] gen attempt {_gen_attempt+1}: output {_output_size:,} B"
+                  f" / prompt {_prompt_size:,} B = {_ratio:.1%}")
+            if _ratio >= _OUTPUT_TOO_SMALL_RATIO:
+                break  # 正常，往下走
+            if _gen_attempt < _GEN_RETRIES:
+                print(f"   [size check] ⚠ too small — retrying generator ({_gen_attempt+1}/{_GEN_RETRIES})")
+            else:
+                # Layer 2 safety net：全部重試仍太小，標記讓 fixer 知道要重建
+                print(f"   [size check] ❌ still too small after {_GEN_RETRIES} retries — escalating to fixer")
+                _generator_too_small = Issue(
+                    step=step_name,
+                    category="output_too_small",
+                    detail=(
+                        f"generator {_gen_attempt+1} 次輸出皆 < {_OUTPUT_TOO_SMALL_RATIO:.0%} of prompt"
+                        f"（最後一次 {_output_size:,} / {_prompt_size:,} = {_ratio:.1%}）"
+                        f"，fixer 請從頭完整重建"
+                    ),
+                )
+
         # Type-level loop：gen → check → program fix → check → AI gen_fixer → check → loop
-        # 收斂前提：每輪只動格式不動內容；max_iter 防發散。
         try:
             data = _ensure_valid_json(
                 gen_raw,
@@ -236,6 +271,12 @@ def run_step(
         # Update all_data so cross_check sees the current step's output
         all_data = {**all_data, step_name: data}
 
+        # 第一輪注入 output_too_small（若有），之後清除
+        extra_program: list[Issue] = []
+        if attempt == 1 and _generator_too_small is not None:
+            extra_program = [_generator_too_small]
+            _generator_too_small = None  # 只注入一次
+
         # Program checks first (cheap, no AI cost).
         schema_errs = schema_validate(data)
         schema_issues = [
@@ -248,7 +289,7 @@ def run_step(
             cross_issues = []
         else:
             cross_issues = cross_check_fn(step_name, all_data)
-        program_issues = schema_issues + cross_issues
+        program_issues = extra_program + schema_issues + cross_issues
 
         if program_issues:
             # Skip reviewer this round — fixer first repairs format/alignment.

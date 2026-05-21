@@ -18,7 +18,7 @@ from pathlib import Path
 from cross_check import run_all_checks
 from review_loop import RunStepResult, run_step
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = REPO_ROOT / "templates"
 
 

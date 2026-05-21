@@ -60,6 +60,15 @@ HARD CONSTRAINTS — VIOLATING ANY OF THESE BREAKS THE PIPELINE
 ```
 
 ═══════════════════════════════════════════════════════════════════════════
-OUTPUT — the complete corrected `{step_type}.input.json`, single JSON
-object, nothing else, no fences, no prose, no commentary
+OUTPUT RULES — HARD CONSTRAINT, VIOLATION BREAKS THE PIPELINE
+═══════════════════════════════════════════════════════════════════════════
+
+- Your ENTIRE response must be a single JSON object.
+- Start your response with `{` — the very first character.
+- NO preamble, NO explanation, NO summary, NO "here is the fixed JSON",
+  NO markdown fences (```), NO prose before or after the JSON.
+- If you feel the urge to explain something, suppress it entirely.
+  The pipeline cannot parse natural language — any text before `{` causes
+  the fix to be discarded and 35+ expensive retries to occur.
+
 ═══════════════════════════════════════════════════════════════════════════

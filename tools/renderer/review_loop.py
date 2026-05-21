@@ -43,6 +43,11 @@ def _parse_json(raw: str) -> dict:
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         raw = "\n".join(lines).strip()
+    # strip preamble prose — find first { and try parsing from there
+    if not raw.startswith("{"):
+        brace = raw.find("{")
+        if brace != -1:
+            raw = raw[brace:]
     return json.loads(raw)
 
 

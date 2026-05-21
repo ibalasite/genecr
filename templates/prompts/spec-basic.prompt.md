@@ -91,9 +91,13 @@ count of every asset category the feature needs. Downstream `assets` will
 be checked mechanically against these counts (program-side count, not AI
 self-report).
 
-### resource_counts.visual_total / audio_total（必填整數）
+**美術資源（image/animation/sound/video/font/particle）和 visual_total/audio_total
+必須填在 `dryrun.resource_counts`，不在頂層 `resource_counts`。**
+`acceptance_criteria` 計數必須填在 `dryrun.test_counts.acceptance_criteria`。
 
-`resource_counts` 必須包含 `visual_total` (整數) 與 `audio_total` (整數)。
+### dryrun.resource_counts.visual_total / audio_total（必填整數）
+
+`dryrun.resource_counts` 必須包含 `visual_total` (整數) 與 `audio_total` (整數)。
 - `visual_total` = 美術實體總數（image + animation + particle + video + font 你預期會交付的個別檔案數，例如 7 個 D-day 格子圖算 7 不是 1 種規格）。
 - `audio_total` = 音效檔總數（sound 的個別檔案數）。
 
@@ -115,47 +119,58 @@ self-report).
 
 ### Format — 必為 nested dict 子類拆分（reviewer R12 強制）
 
-每個 asset 大類（image / animation / sound / video / font / particle /
-copywriting / i18n_strings）必須是 `{子類名: int}` 的 nested dict，**不准只給整數總數**。
+每個 asset 大類（image / animation / sound / video / font / particle）
+必須是 `{子類名: int}` 的 nested dict，**不准只給整數總數**。
 
 **錯誤範例**：
 ```json
-"resource_counts": { "image": 24, "sound": 6 }   ❌  reviewer R12 退
+"dryrun": { "resource_counts": { "image": 24, "sound": 6 } }   ❌  reviewer 退
 ```
 
 **正確範例**：
 ```json
-"resource_counts": {
-  "image": {
-    "格子狀態圖": 21,
-    "寶箱": 1,
-    "二選一卡片": 2,
-    "主橫幅": 1,
-    "icon": 4
+"dryrun": {
+  "resource_counts": {
+    "image": {
+      "格子狀態圖": 21,
+      "寶箱": 1,
+      "二選一卡片": 2,
+      "主橫幅": 1,
+      "icon": 4
+    },
+    "sound": {
+      "簽到成功": 1,
+      "斷簽提示": 1,
+      "大獎選擇彈窗": 1,
+      "確認領取": 1,
+      "倒數結束": 1,
+      "活動結束": 1
+    },
+    "visual_total": 29,
+    "audio_total": 6
   },
-  "sound": {
-    "簽到成功": 1,
-    "斷簽提示": 1,
-    "大獎選擇彈窗": 1,
-    "確認領取": 1,
-    "倒數結束": 1,
-    "活動結束": 1
-  }
+  "test_counts": {
+    "acceptance_criteria": 12
+  },
+  "tech_counts": { "api_endpoints": 8, "db_tables": 5, "redis_keys": 1 }
 }
 ```
 
-子類名要具描述性（使用者一看就知道是什麼）。下游 assets.assets[].category
-必須對應某個子類 key。
-
-Bookkeeping 欄位允許純整數：`acceptance_criteria`（陣列長度一致）。
+子類名要具描述性。下游 assets.assets[].category 必須對應某個子類 key。
 
 Write real integers — no `<N>` placeholders.
 
-## DRYRUN — 技術規模預估（timeline 輸入 + 下游最低約束）
+## DRYRUN — 三組必填估算（timeline 輸入 + 下游最低約束）
 
-`dryrun.tech_counts` 是 spec-basic 自報的技術規模估算，供 timeline 公式使用，並成為 spec-advanced 實際產出的**最低約束**（程式 cross_check 強制，不是 AI 自評）。
+`dryrun` 有三個子物件，全部必填：
 
-### 三個必填整數
+| 子物件 | 用途 |
+|---|---|
+| `tech_counts` | 技術規模估算，供 timeline 公式和 spec-advanced cross_check 使用 |
+| `resource_counts` | 美術資源 SSOT，供 art timeline 公式和 assets cross_check 使用 |
+| `test_counts` | 驗收計數 SSOT，供 planner timeline 公式和 bdd cross_check 使用 |
+
+### dryrun.tech_counts（三個必填整數）
 
 ```json
 "dryrun": {
@@ -203,10 +218,29 @@ Write real integers — no `<N>` placeholders.
 - 有 session / token cache：+1
 - 有熱點資料 cache（活動設定、公告）：+1
 
-### 這兩個數字的雙重用途
+### tech_counts 的雙重用途
 
 1. **Timeline 計算**：`server_engineer_days = dryrun.tech_counts.api_endpoints × 1.0`（見下方公式）
 2. **下游最低約束**：spec-advanced 實際產出的 `apis` 數必須 ≥ `api_endpoints`、`data_models` 中 mysql 數 ≥ `db_tables`、redis 數 ≥ `redis_keys`（程式 cross_check 自動驗，未達標擋住 pipeline）
+
+### dryrun.test_counts（必填）
+
+`acceptance_criteria` = `len(acceptance_criteria[])` — 即你在本文件 `acceptance_criteria` 陣列裡列出的條目總數。
+
+```json
+"dryrun": {
+  "test_counts": {
+    "acceptance_criteria": 12
+  }
+}
+```
+
+用途：`planner_days = dryrun.test_counts.acceptance_criteria × 0.25`（timeline 公式）；bdd cross_check 也用此數字驗 scenario 數量是否足夠。
+
+### dryrun.resource_counts（必填，見上方 RESOURCE COUNTS 節）
+
+`visual_total`/`audio_total` 及各美術大類子類 dict 填法見 RESOURCE COUNTS 節，此處不重複。
+用途：`art_days = (visual_total + audio_total) × 8/43`（timeline 公式）；assets cross_check 用此對齊實際產出。
 
 估算要誠實，不要刻意壓低也不要膨脹。spec-advanced 的設計者看到 dryrun 是「輸入估算」，他們仍須從實際設計推導每一個 API，cross_check 只是確認沒有嚴重缺漏。
 
@@ -220,7 +254,7 @@ Write real integers — no `<N>` placeholders.
 
 | role | day/item coef | metric 來源（**全在 spec-basic 內部**） |
 |---|---|---|
-| `art` | 0.2 day | 加總 `resource_counts` 內 art types（image/animation/sound/video/font/particle nested dict 總值）|
+| `art` | 0.2 day | `dryrun.resource_counts.visual_total + audio_total`（dryrun 自報總數）|
 | `server_engineer` | 1.0 day | `dryrun.tech_counts.api_endpoints`（**整數，見上方 DRYRUN 節**）|
 | `client_engineer` | 0.67 day | `len(wireframes)` |
 | `planner` | 0.2 day | `len(user_journey) + len(admin_journey) + len(matrix.rows)` + 固定 5 |

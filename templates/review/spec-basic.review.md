@@ -19,11 +19,11 @@ input declares.
 Fail when: any sub-field is empty, a placeholder, or one word.
 
 ### R3 — `count_inconsistent`
-Check: `resource_counts.<category>` integer equals the number of entries
+Check: `dryrun.resource_counts.<category>` integer equals the number of entries
 in this document that match that category.
-Path: `resource_counts.*`
+Path: `dryrun.resource_counts.*`
 Fail when: declared count != actual count of matching entries within this
-document (e.g. resource_counts.competitors=6 but competitors[] has 5).
+document (e.g. dryrun.resource_counts.image sum=6 but image subkeys total 5).
 Note: cross-document counts are checked by program cross_check, not here.
 
 ### R4 — `axis_option_mismatch`
@@ -80,22 +80,28 @@ Path: `wireframes[*].html`
 Fail when: a wf-* class string is not on the DSL allow-list.
 Fix hint: pick a real DSL primitive; do not invent classes.
 
-### R12 — `resource_counts_must_be_nested`
-Check: `resource_counts` 中每個 asset 大類（image / sound / animation / video / particle / font / copywriting / ...）必須是 **nested dict** `{子類: int}`，不可給純整數總數。
-Path: `resource_counts.*`
-Fail when: 任一 asset 類別的值是 `int` 而非 `{子類: int}` dict。例外：`acceptance_criteria` 等 bookkeeping 欄位允許純整數。
+### R12 — `dryrun_resource_counts_must_be_nested`
+Check: `dryrun.resource_counts` 中每個 asset 大類（image / sound / animation / video / particle / font）必須是 **nested dict** `{子類: int}`，不可給純整數總數。
+Path: `dryrun.resource_counts.*`
+Fail when: 任一 asset 類別的值是 `int` 而非 `{子類: int}` dict。例外：`visual_total` / `audio_total` 允許純整數。
 Fix hint: 拆子類別，例如 `"image": 24` → `"image": {"格子狀態圖": 21, "寶箱": 1, "二選一卡片": 2}`。
 
-### R_visual_audio_totals — `resource_counts_total_missing`
-Check: `resource_counts.visual_total` 與 `resource_counts.audio_total` 必為整數且 >= 0。
-Path: `resource_counts.visual_total` / `resource_counts.audio_total`
+### R_visual_audio_totals — `dryrun_resource_counts_total_missing`
+Check: `dryrun.resource_counts.visual_total` 與 `dryrun.resource_counts.audio_total` 必為整數且 >= 0。
+Path: `dryrun.resource_counts.visual_total` / `dryrun.resource_counts.audio_total`
 Fail when: 缺少或非整數。
 Fix hint: 補上 AI 自報的「美術實體總數」（image+animation+particle+video+font 個別檔案數）與「音效檔總數」。下游 assets step 的 Counter(assets[].type) 必須對齊這兩個數字。
+
+### R_dryrun_test_counts — `dryrun_test_counts_missing`
+Check: `dryrun.test_counts.acceptance_criteria` 必為整數且 = `len(acceptance_criteria[])`。
+Path: `dryrun.test_counts.acceptance_criteria` ↔ `acceptance_criteria[]`
+Fail when: 欄位缺失、非整數、或與 `len(acceptance_criteria[])` 不一致。
+Fix hint: 數一數 `acceptance_criteria` 陣列長度，填入 `dryrun.test_counts.acceptance_criteria`。
 
 ### R13 — `timeline_overestimated` / `timeline_underestimated`
 Check: spec-basic 純自洽（不讀任何下游 sibling）。
 **公式**（per-role budget，全從 sb 自有 bookkeeping）：
-- art = 0.2 × sum(resource_counts art types)
+- art = 0.2 × (dryrun.resource_counts.visual_total + audio_total)
 - server = 1.0 × dryrun.tech_counts.api_endpoints
 - client = 0.67 × len(wireframes)
 - planner = 0.2 × (len(user_journey) + len(admin_journey) + matrix.rows + 5)
@@ -178,8 +184,9 @@ Fix hint: 改用 `<div class="wf-table"><div class="wf-tr"><div class="wf-td">�
 - `skeleton_with_text`
 - `inline_children_no_row`
 - `class_not_in_dsl`
-- `resource_counts_must_be_nested`
-- `resource_counts_total_missing`
+- `dryrun_resource_counts_must_be_nested`
+- `dryrun_resource_counts_total_missing`
+- `dryrun_test_counts_missing`
 - `timeline_overestimated`
 - `timeline_underestimated`
 - `wireframe_admin_uncovered`

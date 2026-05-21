@@ -697,8 +697,11 @@ def upgrade_runtime(genecr_dir: Path, log) -> bool:
     try:
         host = detect_host(genecr_dir) or "gemini"
         creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
-        subprocess.run(["git", "-C", str(genecr_dir), "pull", "--ff-only"],
-                       capture_output=True, timeout=60, creationflags=creationflags)
+        r = subprocess.run(["git", "-C", str(genecr_dir), "pull", "--ff-only"],
+                           capture_output=True, text=True, timeout=60, creationflags=creationflags)
+        if r.returncode != 0:
+            log(f"❌ git pull 失敗（rc={r.returncode}）：{(r.stderr or r.stdout or '').strip()[:200]}")
+            return False
         return deploy_genecr_python_native(host, log)
     except Exception as e:
         log(f"❌ {e}")

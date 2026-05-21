@@ -31,6 +31,9 @@ pdd *.md
 __pycache__/
 *.pyc
 
+# tools/bin/*.py — build 產物，由 tools/renderer/build.sh 複製，SSOT 在 tools/renderer/
+tools/bin/*.py
+
 # OS / editor noise
 .DS_Store
 Thumbs.db

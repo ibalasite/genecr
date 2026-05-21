@@ -53,7 +53,7 @@ GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.3.11"
+APP_VERSION = "0.3.12"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -697,15 +697,12 @@ def upgrade_runtime(genecr_dir: Path, log) -> bool:
     try:
         host = detect_host(genecr_dir) or "gemini"
         creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
-        # stash local changes so --ff-only never gets blocked by dirty worktree
-        subprocess.run(["git", "-C", str(genecr_dir), "stash"],
+        subprocess.run(["git", "-C", str(genecr_dir), "fetch", "--quiet"],
                        capture_output=True, timeout=30, creationflags=creationflags)
-        r = subprocess.run(["git", "-C", str(genecr_dir), "pull", "--ff-only"],
+        r = subprocess.run(["git", "-C", str(genecr_dir), "reset", "--hard", "origin/master"],
                            capture_output=True, text=True, timeout=60, creationflags=creationflags)
-        subprocess.run(["git", "-C", str(genecr_dir), "stash", "pop"],
-                       capture_output=True, timeout=30, creationflags=creationflags)
         if r.returncode != 0:
-            log(f"❌ git pull 失敗（rc={r.returncode}）：{(r.stderr or r.stdout or '').strip()[:200]}")
+            log(f"❌ git reset 失敗（rc={r.returncode}）：{(r.stderr or r.stdout or '').strip()[:200]}")
             return False
         return deploy_genecr_python_native(host, log)
     except Exception as e:

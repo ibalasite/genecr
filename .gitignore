@@ -31,8 +31,17 @@ pdd *.md
 __pycache__/
 *.pyc
 
-# tools/bin/*.py — build 產物，由 tools/renderer/build.sh 複製，SSOT 在 tools/renderer/
-tools/bin/*.py
+# tools/bin/ 內由 tools/renderer/build.sh glob-copy 產生的 .py — SSOT 在 tools/renderer/
+# 只排除 renderer package 的產出，非 build.sh package 的單檔 py 仍應進 git
+tools/bin/cross_check.py
+tools/bin/inverse.py
+tools/bin/orchestrate.py
+tools/bin/pipeline.py
+tools/bin/pipeline_orchestrated.py
+tools/bin/render.py
+tools/bin/review_loop.py
+tools/bin/sandbox_assets_parallel.py
+tools/bin/sandbox_truncation.py
 
 # OS / editor noise
 .DS_Store

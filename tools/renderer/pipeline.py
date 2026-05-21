@@ -22,6 +22,7 @@ Status is determined ONLY by filesystem state, never by stdout messages.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -445,7 +446,7 @@ def main(argv: list[str]) -> int:
     slug_arg = _arg_value(args, "--slug")
     name_arg = _arg_value(args, "--name")
 
-    pipeline_path = Path(pipeline_arg or "pipeline.json").resolve()
+    pipeline_path = Path(os.environ["GENECR_DIR"]) / "pipeline.json"
     if not pipeline_path.exists():
         print(f"[error] pipeline file not found: {pipeline_path}")
         print(__doc__)

@@ -196,7 +196,9 @@ _upgrade_one() {
     return 1
   fi
   log "[upgrade:$host] git pull..."
+  git -C "$runtime" stash
   git -C "$runtime" pull --ff-only
+  git -C "$runtime" stash pop 2>/dev/null || true
   # Re-exec freshly-pulled setup so any newly-added functions take effect (gendoc pattern).
   exec "$runtime/setup" _post_upgrade "$host"
 }

@@ -80,10 +80,10 @@ def test_role_budget_uses_calibrated_coef():
         "user_journey": [{"action": "a"}] * 3,
         "admin_journey": [{"action": "a"}] * 2,
         "matrix": {"rows": [{"label": "r"}] * 2},
-        "resource_counts": {
-            "image": {"x": 30, "y": 13},
+        "dryrun": {
+            "tech_counts": {"api_endpoints": 8},
+            "resource_counts": {"image": {"x": 30, "y": 13}},
         },
-        "dryrun": {"tech_counts": {"api_endpoints": 8}},
     }
     budget = _role_budget_days(sb)
     assert "po" not in budget, "po must not appear in role budget dict"
@@ -98,11 +98,10 @@ def test_role_budget_uses_sb_bookkeeping_without_sibling():
     from cross_check import _role_budget_days
     sb = {
         "wireframes": [{"name": "wf"}] * 3,
-        "resource_counts": {
-            "image": {"a": 10, "b": 5},
-            "sound": {"c": 6},
+        "dryrun": {
+            "tech_counts": {"api_endpoints": 5},
+            "resource_counts": {"image": {"a": 10, "b": 5}, "sound": {"c": 6}},
         },
-        "dryrun": {"tech_counts": {"api_endpoints": 5}},
     }
     budget = _role_budget_days(sb)
     assert budget["art"] == pytest.approx(4.2, abs=0.1)  # 0.2 × 21

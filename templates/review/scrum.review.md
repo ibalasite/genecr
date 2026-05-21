@@ -139,3 +139,5 @@ Fix hint: 列出實際 deliverable（1 API / 1 wireframe / 1 asset 等）。
 - `story_no_epic_link`
 - `po_owner_role_used`
 - `story_missing_subtasks`
+- `oversized_story`
+- `timeline_scrum_mismatch`

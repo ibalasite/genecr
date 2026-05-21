@@ -25,7 +25,7 @@ from cross_check import (
 def _spec_basic_with_counts(counts):
     return {
         "feature": {"name": "x", "slug": "x"},
-        "resource_counts": counts,
+        "dryrun": {"resource_counts": counts},
     }
 
 
@@ -203,7 +203,7 @@ def test_scenario_count_adequate():
 
 def test_scenario_count_too_few():
     bdd = {"scenarios": [{"id": "1"}, {"id": "2"}]}
-    sb = {"acceptance_criteria": ["a", "b", "c"]}
+    sb = {"dryrun": {"test_counts": {"acceptance_criteria": 3}}}
     sa = {"apis": [{"id": "a1"}, {"id": "a2"}]}
     issues = check_scenario_count(bdd, sb, sa)
     assert len(issues) == 1
@@ -213,9 +213,9 @@ def test_scenario_count_too_few():
 
 
 def test_scenario_count_works_with_counts_object():
-    """Alternative spec-basic shape: resource_counts.acceptance_criteria=N."""
+    """dryrun.test_counts.acceptance_criteria=N."""
     bdd = {"scenarios": [{"id": "1"}]}
-    sb = {"resource_counts": {"acceptance_criteria": 3}}
+    sb = {"dryrun": {"test_counts": {"acceptance_criteria": 3}}}
     sa = {"counts": {"api_endpoints": 1}}
     issues = check_scenario_count(bdd, sb, sa)
     assert len(issues) == 1

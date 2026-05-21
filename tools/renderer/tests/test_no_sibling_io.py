@@ -57,14 +57,16 @@ def test_preprocess_spec_basic_no_disk(monkeypatch, tmp_path):
     import render
     sb = {
         "feature": {"name": "f", "slug": "f"},
-        "resource_counts": {
-            "visual_total": 10,
-            "audio_total": 3,
-            "image": {"a": 1},
-            "animation": {"b": 1},
-            "sound": {"c": 1},
-            "particle": {"d": 1},
-            "acceptance_criteria": 1,
+        "dryrun": {
+            "resource_counts": {
+                "visual_total": 10,
+                "audio_total": 3,
+                "image": {"a": 1},
+                "animation": {"b": 1},
+                "sound": {"c": 1},
+                "particle": {"d": 1},
+            },
+            "test_counts": {"acceptance_criteria": 1},
         },
     }
     out = render.preprocess("spec-basic", dict(sb), tmp_path)

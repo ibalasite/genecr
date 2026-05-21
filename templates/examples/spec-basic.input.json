@@ -181,9 +181,21 @@
     "engineering": "<低|中|高，附原因>"
   },
   "admin_journey": [
-    {"action": "建立活動", "detail": "管理員進入「後台 — 活動設定面板」填入名稱、起迄、每日獎勵、目標 VIP，按儲存發佈", "role": "admin"},
-    {"action": "監看玩家進度", "detail": "切到「後台 — 玩家記錄列表」依活動篩選查詢，看每位玩家當前天數與大獎選擇狀態", "role": "admin"},
-    {"action": "補簽 / 匯出", "detail": "對特定玩家點「補簽」做修正，必要時匯出 CSV 給營運分析", "role": "admin"}
+    {
+      "action": "建立活動",
+      "detail": "管理員進入「後台 — 活動設定面板」填入名稱、起迄、每日獎勵、目標 VIP，按儲存發佈",
+      "role": "admin"
+    },
+    {
+      "action": "監看玩家進度",
+      "detail": "切到「後台 — 玩家記錄列表」依活動篩選查詢，看每位玩家當前天數與大獎選擇狀態",
+      "role": "admin"
+    },
+    {
+      "action": "補簽 / 匯出",
+      "detail": "對特定玩家點「補簽」做修正，必要時匯出 CSV 給營運分析",
+      "role": "admin"
+    }
   ],
   "wireframes": [
     {
@@ -216,5 +228,25 @@
     },
     "visual_total": 1,
     "audio_total": 1
+  },
+  "dryrun": {
+    "resource_counts": {
+      "image": {
+        "<sub-category>": 1
+      },
+      "sound": {
+        "<sub-category>": 1
+      },
+      "visual_total": 1,
+      "audio_total": 1
+    },
+    "test_counts": {
+      "acceptance_criteria": 5
+    },
+    "tech_counts": {
+      "api_endpoints": 6,
+      "db_tables": 3,
+      "redis_keys": 1
+    }
   }
 }

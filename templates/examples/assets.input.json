@@ -23,7 +23,8 @@
       "category": "<sub-category-from-spec-basic>",
       "owner_role": "art",
       "output_format": "<format spec, e.g. PNG 1920x600 @2x>",
-      "suggested_filename": "<slug>_<purpose>.<ext>"
+      "suggested_filename": "<slug>_<purpose>.<ext>",
+      "production_prompt": "luxury casino leaderboard background, deep navy blue gradient, golden particle light streaks, subtle bokeh, mobile portrait composition, premium iGaming UI background, no text, ultra detailed, 8k"
     },
     {
       "id": "ASSET-002",
@@ -39,7 +40,8 @@
       "category": "<sub-category-from-spec-basic>",
       "owner_role": "art",
       "output_format": "<format spec, e.g. PNG 1920x600 @2x>",
-      "suggested_filename": "<slug>_<purpose>.<ext>"
+      "suggested_filename": "<slug>_<purpose>.<ext>",
+      "production_prompt": "rotating golden halo particle effect, sparkle ring around avatar, transparent background, loop animation, premium game UI VFX, top 3 ranking glow"
     },
     {
       "id": "ASSET-003",
@@ -55,7 +57,8 @@
       "category": "<sub-category-from-spec-basic>",
       "owner_role": "art",
       "output_format": "<format spec, e.g. PNG 1920x600 @2x>",
-      "suggested_filename": "<slug>_<purpose>.<ext>"
+      "suggested_filename": "<slug>_<purpose>.<ext>",
+      "production_prompt": "celebratory coin shower sound, glittering chimes, satisfying victory cue, casino reward jackpot effect, 1.5 seconds"
     }
   ]
 }

@@ -75,7 +75,15 @@ _SA_SHELL = {
     "feature": {"name": "x", "slug": "x"},
     "architecture": {"overview": "o", "diagram": "graph TD\n  A-->B"},
     "client": {"scene": "s", "components": [], "states": []},
-    "apis": [{"id": "a1", "method": "GET", "path": "/x", "desc": "d"}],
+    "apis": [{
+        "id": "a1", "method": "GET", "path": "/x",
+        "summary": "get x", "description": "get x detail",
+        "auth": {"required": False, "type": "none"}, "parameters": [],
+        "responses": {
+            "200": {"description": "ok", "schema": {}, "example": {}},
+            "400": {"description": "bad request", "schema": {}, "example": {}},
+        },
+    }],
     "data_models": [],
     "business_logic": [{"title": "t", "desc": "d"}],
     "cache_strategy": [],

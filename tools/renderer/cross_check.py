@@ -51,7 +51,7 @@ def _normalize_type(t: str) -> str:
 
 
 def check_resource_counts(spec_basic_data: dict, assets_data: dict) -> list[Issue]:
-    counts = spec_basic_data.get("resource_counts") or {}
+    counts = (spec_basic_data.get("dryrun") or {}).get("resource_counts") or {}
     if not counts:
         return []
 
@@ -121,14 +121,16 @@ def _per_role_points_anchor(spec_basic: dict) -> dict[str, float]:
     純 spec-basic 自洽：api/mysql/redis 數量從 sb.dryrun.tech_counts 拿（AI 在 basic
     步驟自報的預估值）。不依賴下游 spec_advanced，符合 step isolation 鐵律。
     """
-    rc = spec_basic.get("resource_counts") or {}
-    tc = (spec_basic.get("dryrun") or {}).get("tech_counts") or {}
+    dryrun   = spec_basic.get("dryrun") or {}
+    rc       = dryrun.get("resource_counts") or {}
+    tc       = dryrun.get("tech_counts") or {}
+    _tc      = dryrun.get("test_counts") or {}
     n_api    = int(tc.get("api_endpoints", 0) or 0)
     n_mysql  = int(tc.get("db_tables", 0) or 0)
     n_redis  = int(tc.get("redis_keys", 0) or 0)
     n_asset  = int(rc.get("visual_total", 0) or 0) + int(rc.get("audio_total", 0) or 0)
     n_wf     = len(spec_basic.get("wireframes") or [])
-    n_ac     = int(rc.get("acceptance_criteria", 0) or 0)
+    n_ac     = int(_tc.get("acceptance_criteria", 0) or 0)
 
     server = (
         n_api   * _ANCHOR_SERVER_API[0]   / _ANCHOR_SERVER_API[1] +
@@ -155,12 +157,13 @@ def _role_budget_days(spec_basic: dict) -> dict[str, float]:
     禁止讀 sa / assets / 任何下游 sibling — spec-basic 自有 bookkeeping 為準。
     """
     wf_n = len(spec_basic.get("wireframes") or [])
-    rc = spec_basic.get("resource_counts") or {}
-    tc = (spec_basic.get("dryrun") or {}).get("tech_counts") or {}
+    dryrun = spec_basic.get("dryrun") or {}
+    rc = dryrun.get("resource_counts") or {}
+    tc = dryrun.get("tech_counts") or {}
     api_n = int(tc.get("api_endpoints", 0) or 0)
     asset_n = 0
     for k, v in rc.items():
-        if k in {"acceptance_criteria"}:
+        if k in {"visual_total", "audio_total"}:
             continue
         if isinstance(v, dict):
             asset_n += sum(int(x) for x in v.values() if isinstance(x, (int, float)))
@@ -340,7 +343,9 @@ def check_assets_matches_sb_totals(spec_basic: dict, assets_data: dict) -> list[
     if not (spec_basic and assets_data):
         return []
     issues: list[Issue] = []
-    rc = spec_basic.get("resource_counts") or {}
+    rc = (spec_basic.get("dryrun") or {}).get("resource_counts") or {}
+    if not rc:
+        return []
     expected_visual = int(rc.get("visual_total", 0) or 0)
     expected_audio = int(rc.get("audio_total", 0) or 0)
     counts = Counter(a.get("type") for a in (assets_data.get("assets") or []))
@@ -350,13 +355,13 @@ def check_assets_matches_sb_totals(spec_basic: dict, assets_data: dict) -> list[
         issues.append(Issue(
             step="assets",
             category="assets_visual_total_mismatch",
-            detail=f"sb.resource_counts.visual_total={expected_visual} but assets has {actual_visual} visual items",
+            detail=f"sb.dryrun.resource_counts.visual_total={expected_visual} but assets has {actual_visual} visual items",
         ))
     if actual_audio != expected_audio:
         issues.append(Issue(
             step="assets",
             category="assets_audio_total_mismatch",
-            detail=f"sb.resource_counts.audio_total={expected_audio} but assets has {actual_audio} sound items",
+            detail=f"sb.dryrun.resource_counts.audio_total={expected_audio} but assets has {actual_audio} sound items",
         ))
     return issues
 
@@ -370,13 +375,10 @@ def check_assets_matches_sb_totals(spec_basic: dict, assets_data: dict) -> list[
 # ─── scenario count ─────────────────────────────────────────────────────────
 
 def _get_acceptance_count(spec_basic_data: dict) -> int:
-    rc = spec_basic_data.get("resource_counts") or {}
-    if "acceptance_criteria" in rc:
-        v = rc["acceptance_criteria"]
-        return v if isinstance(v, int) else 0
-    ac = spec_basic_data.get("acceptance_criteria")
-    if isinstance(ac, list):
-        return len(ac)
+    tc = (spec_basic_data.get("dryrun") or {}).get("test_counts") or {}
+    v = tc.get("acceptance_criteria")
+    if isinstance(v, int):
+        return v
     return 0
 
 

@@ -148,7 +148,7 @@ def preprocess(type_: str, data: dict, base_dir: Path) -> dict:
     docs IS the aggregator — reading sibling .md and feature.json is its job.
     """
     if type_ == "spec-basic":
-        rc = data.get("resource_counts", {}) or {}
+        rc = (data.get("dryrun") or {}).get("resource_counts") or {}
         visual = int(rc.get("visual_total", 0) or 0)
         audio = int(rc.get("audio_total", 0) or 0)
         data["resource_summary"] = {

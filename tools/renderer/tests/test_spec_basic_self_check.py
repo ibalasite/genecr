@@ -50,12 +50,14 @@ def test_role_budget_uses_sb_resource_counts_only():
         "wireframes": [{"name": f"w{i}"} for i in range(6)],
         "user_journey": [{"action": "a"}] * 3,
         "admin_journey": [{"action": "a"}] * 2,
-        "resource_counts": {
-            "image": {"a": 10, "b": 5},
-            "animation": {"c": 3},
-            "sound": {"d": 6},
+        "dryrun": {
+            "tech_counts": {"api_endpoints": 8},
+            "resource_counts": {
+                "image": {"a": 10, "b": 5},
+                "animation": {"c": 3},
+                "sound": {"d": 6},
+            },
         },
-        "dryrun": {"tech_counts": {"api_endpoints": 8}},
     }
     budget = _role_budget_days(sb)
     assert budget["server_engineer"] == pytest.approx(8.0)

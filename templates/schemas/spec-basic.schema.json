@@ -19,7 +19,6 @@
     "help_page",
     "timeline",
     "resources",
-    "resource_counts",
     "dryrun"
   ],
   "properties": {
@@ -476,13 +475,6 @@
           }
         }
       }
-    },
-    "resource_counts": {
-      "type": "object",
-      "description": "資源（UI 素材檔）+ bookkeeping count。Top-level keys 限定 enum：6 種素材（nested {子類: N}）或 bookkeeping（整數）。文案/i18n 等屬 spec-basic.i18n，不在這。",
-      "required": [],
-      "properties": {},
-      "additionalProperties": false
     },
     "dryrun": {
       "type": "object",

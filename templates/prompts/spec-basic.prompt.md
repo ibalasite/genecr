@@ -34,7 +34,7 @@ Before submitting, verify EACH:
 - R2 `shallow_competitor`: every `competitors[]` entry has all sub-fields
   (name, market, highlight, url, mechanic, rtp, payout, user_flow,
   differentiation, weakness) filled with **concrete content**, ≥ 6 entries
-- R3 `count_inconsistent`: `resource_counts.<category>` equals the actual
+- R3 `count_inconsistent`: `dryrun.resource_counts.<category>` equals the actual
   number of entries of that type in your document; nested dict leaves sum
   correctly
 - R4 `axis_option_mismatch`: every `matrix.cols` and `matrix.rows[].label`
@@ -86,14 +86,9 @@ user-facing strings unless the brief uses an English technical term.
 
 ## RESOURCE COUNTS — required output (used by downstream cross_check)
 
-You MUST include a top-level `resource_counts` object declaring the EXACT
-count of every asset category the feature needs. Downstream `assets` will
-be checked mechanically against these counts (program-side count, not AI
-self-report).
-
 **美術資源（image/animation/sound/video/font/particle）和 visual_total/audio_total
-必須填在 `dryrun.resource_counts`，不在頂層 `resource_counts`。**
-`acceptance_criteria` 計數必須填在 `dryrun.test_counts.acceptance_criteria`。
+填在 `dryrun.resource_counts`。**
+`dryrun.test_counts.acceptance_criteria` 填 `len(acceptance_criteria[])` 整數。
 
 ### dryrun.resource_counts.visual_total / audio_total（必填整數）
 

@@ -219,7 +219,6 @@
       "html": "<div class=\"wf-scope\"><div class=\"wf-desktop\"><div class=\"wf-topbar\"><span class=\"wf-section-title\">後台 / 玩家記錄</span><span class=\"wf-pill\">admin</span></div><div class=\"wf-breadcrumb\"><span>後台</span><span>玩家紀錄</span></div><div class=\"wf-main\"><div class=\"wf-toolbar\"><select class=\"wf-select\"><option>選擇活動</option></select><input class=\"wf-input\" placeholder=\"玩家 ID\"><input class=\"wf-input-date\"><button class=\"wf-btn\">查詢</button><button class=\"wf-btn\">匯出 CSV</button></div><div class=\"wf-table wf-table--zebra\"><div class=\"wf-tr\"><div class=\"wf-td\">玩家 ID</div><div class=\"wf-td\">當前天數</div><div class=\"wf-td\">最後簽到</div><div class=\"wf-td\">大獎選擇</div><div class=\"wf-td\">操作</div></div><div class=\"wf-tr\"><div class=\"wf-td\">player_8821</div><div class=\"wf-td\">3</div><div class=\"wf-td\">05/17 10:23</div><div class=\"wf-td\">-</div><div class=\"wf-td\"><button class=\"wf-btn\">補簽</button></div></div><div class=\"wf-tr\"><div class=\"wf-td\">player_8822</div><div class=\"wf-td\">7 ✓</div><div class=\"wf-td\">05/17 22:05</div><div class=\"wf-td\">現金</div><div class=\"wf-td\"><button class=\"wf-btn\">詳情</button></div></div></div><div class=\"wf-pagination\"><span>‹</span><span class=\"wf-pill is-active\">1</span><span>2</span><span>3</span><span>›</span></div></div></div></div>"
     }
   ],
-  "resource_counts": {},
   "dryrun": {
     "resource_counts": {
       "image": {

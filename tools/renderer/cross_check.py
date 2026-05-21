@@ -123,7 +123,7 @@ def _per_role_points_anchor(spec_basic: dict) -> dict[str, float]:
     """
     rc = spec_basic.get("resource_counts") or {}
     tc = (spec_basic.get("dryrun") or {}).get("tech_counts") or {}
-    n_api    = int(tc.get("api_endpoints", 0) or rc.get("api_endpoints", 0) or 0)
+    n_api    = int(tc.get("api_endpoints", 0) or 0)
     n_mysql  = int(tc.get("db_tables", 0) or 0)
     n_redis  = int(tc.get("redis_keys", 0) or 0)
     n_asset  = int(rc.get("visual_total", 0) or 0) + int(rc.get("audio_total", 0) or 0)
@@ -147,7 +147,7 @@ def _role_budget_days(spec_basic: dict) -> dict[str, float]:
     """Per-role work-day budget — **pure spec-basic self-contained**.
     Calibrated to checkin7v2 case as 1.0× anchor:
     - art          0.2 day per asset (from sb.resource_counts art types sum)
-    - server_eng   1.0 day per API (from sb.resource_counts.api_endpoints, AI 自報)
+    - server_eng   1.0 day per API (from sb.dryrun.tech_counts.api_endpoints, AI 自報)
     - client_eng   0.67 day per wireframe (sb.wireframes count)
     - planner      0.2 day per spec section (sb sections derived)
 
@@ -156,10 +156,11 @@ def _role_budget_days(spec_basic: dict) -> dict[str, float]:
     """
     wf_n = len(spec_basic.get("wireframes") or [])
     rc = spec_basic.get("resource_counts") or {}
-    api_n = int(rc.get("api_endpoints", 0) or 0)
+    tc = (spec_basic.get("dryrun") or {}).get("tech_counts") or {}
+    api_n = int(tc.get("api_endpoints", 0) or 0)
     asset_n = 0
     for k, v in rc.items():
-        if k in {"modules", "acceptance_criteria", "api_endpoints"}:
+        if k in {"modules", "acceptance_criteria"}:
             continue
         if isinstance(v, dict):
             asset_n += sum(int(x) for x in v.values() if isinstance(x, (int, float)))

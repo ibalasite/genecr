@@ -60,7 +60,6 @@ def test_baseline_team_weeks_eq_2():
 def test_anchor_scale_example_red_envelope_server():
     """User 舉例：10 API + 5 MySQL + 6 Redis → server formula = 13.0"""
     sb = {
-        "resource_counts": {"api_endpoints": 10},
         "dryrun": {"tech_counts": {"api_endpoints": 10, "db_tables": 5, "redis_keys": 6}},
     }
     f = _per_role_points_anchor(sb)
@@ -68,9 +67,8 @@ def test_anchor_scale_example_red_envelope_server():
     assert abs(f["server_engineer"] - 13.0) < 0.01
 
 
-def test_no_dryrun_falls_back_to_resource_counts_api():
-    """dryrun 缺失時，api_endpoints fallback 到 resource_counts.api_endpoints；mysql/redis 計 0"""
-    sb = {"resource_counts": {"api_endpoints": 8}}
+def test_no_dryrun_api_counts_zero():
+    """dryrun 缺失時，api_endpoints = 0；mysql/redis 計 0"""
+    sb = {"resource_counts": {"image": {"x": 5}}}
     f = _per_role_points_anchor(sb)
-    # 只算 API: 8 × 5/8 = 5.0；mysql/redis = 0
-    assert abs(f["server_engineer"] - 5.0) < 0.01
+    assert abs(f["server_engineer"] - 0.0) < 0.01

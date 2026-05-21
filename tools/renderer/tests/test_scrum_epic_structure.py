@@ -81,9 +81,9 @@ def test_role_budget_uses_calibrated_coef():
         "admin_journey": [{"action": "a"}] * 2,
         "matrix": {"rows": [{"label": "r"}] * 2},
         "resource_counts": {
-            "api_endpoints": 8,
             "image": {"x": 30, "y": 13},
         },
+        "dryrun": {"tech_counts": {"api_endpoints": 8}},
     }
     budget = _role_budget_days(sb)
     assert "po" not in budget, "po must not appear in role budget dict"
@@ -99,10 +99,10 @@ def test_role_budget_uses_sb_bookkeeping_without_sibling():
     sb = {
         "wireframes": [{"name": "wf"}] * 3,
         "resource_counts": {
-            "api_endpoints": 5,
             "image": {"a": 10, "b": 5},
             "sound": {"c": 6},
         },
+        "dryrun": {"tech_counts": {"api_endpoints": 5}},
     }
     budget = _role_budget_days(sb)
     assert budget["art"] == pytest.approx(4.2, abs=0.1)  # 0.2 × 21
@@ -203,11 +203,12 @@ def test_timeline_ceiling_on_exact_boundary():
 
 def test_check_timeline_flags_underestimate():
     """spec-basic timeline 1 week < ceil expected 2 weeks → flag.
-    純 sb（不傳 sa/assets）— 用 sb.resource_counts.api_endpoints / wireframes 自報數。"""
+    純 sb（不傳 sa/assets）— 用 sb.dryrun.tech_counts.api_endpoints / wireframes 自報數。"""
     from cross_check import check_timeline_against_formula
     sb = {"wireframes": [{"name": f"w{i}"} for i in range(6)],
           "timeline": [{"phase": "MVP", "duration_weeks": 1}],
-          "resource_counts": {"api_endpoints": 8, "image": {"x": 43}}}
+          "resource_counts": {"image": {"x": 43}},
+          "dryrun": {"tech_counts": {"api_endpoints": 8}}}
     issues = check_timeline_against_formula(sb)
     cats = {i.category for i in issues}
     assert "timeline_underestimated" in cats
@@ -218,7 +219,8 @@ def test_check_timeline_passes_at_exact_expected():
     from cross_check import check_timeline_against_formula
     sb = {"wireframes": [{"name": f"w{i}"} for i in range(6)],
           "timeline": [{"phase": "MVP", "duration_weeks": 2}],
-          "resource_counts": {"api_endpoints": 8, "image": {"x": 43}}}
+          "resource_counts": {"image": {"x": 43}},
+          "dryrun": {"tech_counts": {"api_endpoints": 8}}}
     issues = check_timeline_against_formula(sb)
     assert not issues
 

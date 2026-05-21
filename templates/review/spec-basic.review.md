@@ -96,7 +96,7 @@ Fix hint: 補上 AI 自報的「美術實體總數」（image+animation+particle
 Check: spec-basic 純自洽（不讀任何下游 sibling）。
 **公式**（per-role budget，全從 sb 自有 bookkeeping）：
 - art = 0.2 × sum(resource_counts art types)
-- server = 1.0 × resource_counts.api_endpoints
+- server = 1.0 × dryrun.tech_counts.api_endpoints
 - client = 0.67 × len(wireframes)
 - planner = 0.2 × (len(user_journey) + len(admin_journey) + matrix.rows + 5)
 - **total_weeks = ceil(max(per-role-days) / 5)**（無條件進位整數週）

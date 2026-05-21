@@ -3,7 +3,7 @@
 歷史錯誤：check_timeline_against_formula(sb, sa, assets) /
 check_wireframe_coverage(sb, sa, scrum) 為了「公式好看」偷讀下游 sibling，
 fresh-feature 從零生時下游不存在 → check broken。spec-basic 自己手上的
-bookkeeping (resource_counts.api_endpoints / admin_journey / wireframes /
+bookkeeping (dryrun.tech_counts.api_endpoints / admin_journey / wireframes /
 sections) 就該夠用，沒就補 schema 欄位讓 AI 自報。
 """
 from __future__ import annotations
@@ -51,11 +51,11 @@ def test_role_budget_uses_sb_resource_counts_only():
         "user_journey": [{"action": "a"}] * 3,
         "admin_journey": [{"action": "a"}] * 2,
         "resource_counts": {
-            "api_endpoints": 8,
             "image": {"a": 10, "b": 5},
             "animation": {"c": 3},
             "sound": {"d": 6},
         },
+        "dryrun": {"tech_counts": {"api_endpoints": 8}},
     }
     budget = _role_budget_days(sb)
     assert budget["server_engineer"] == pytest.approx(8.0)
@@ -120,7 +120,7 @@ def test_timeline_formula_documented_in_prompt():
     assert "ceil(max" in text or "ceil（max" in text or "無條件進位" in text, (
         "prompt 必須說明 timeline_weeks = ceil(max(per-role-days)/5)"
     )
-    assert "api_endpoints" in text, "prompt 必須教 AI 寫 resource_counts.api_endpoints 自報數"
+    assert "api_endpoints" in text, "prompt 必須教 AI 寫 dryrun.tech_counts.api_endpoints 自報數"
 
 
 def test_timeline_rule_in_review_md():

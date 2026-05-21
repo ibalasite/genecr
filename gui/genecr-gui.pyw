@@ -53,7 +53,7 @@ GENECR_REPO_URL = "https://github.com/ibalasite/genecr.git"
 GENECR_RELEASES_API = "https://api.github.com/repos/ibalasite/genecr/releases/latest"
 GENECR_RELEASES_PAGE = "https://github.com/ibalasite/genecr/releases/latest"
 GENECR_NEW_ISSUE_URL = "https://github.com/ibalasite/genecr/issues/new"
-APP_VERSION = "0.3.10"
+APP_VERSION = "0.3.11"
 
 APP_TITLE = "genecr — iGaming 文件產生器"
 STEPS = ["spec-basic", "spec-advanced", "assets", "bdd", "scrum", "prototype", "docs"]
@@ -697,8 +697,13 @@ def upgrade_runtime(genecr_dir: Path, log) -> bool:
     try:
         host = detect_host(genecr_dir) or "gemini"
         creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0  # type: ignore[attr-defined]
+        # stash local changes so --ff-only never gets blocked by dirty worktree
+        subprocess.run(["git", "-C", str(genecr_dir), "stash"],
+                       capture_output=True, timeout=30, creationflags=creationflags)
         r = subprocess.run(["git", "-C", str(genecr_dir), "pull", "--ff-only"],
                            capture_output=True, text=True, timeout=60, creationflags=creationflags)
+        subprocess.run(["git", "-C", str(genecr_dir), "stash", "pop"],
+                       capture_output=True, timeout=30, creationflags=creationflags)
         if r.returncode != 0:
             log(f"❌ git pull 失敗（rc={r.returncode}）：{(r.stderr or r.stdout or '').strip()[:200]}")
             return False
@@ -2184,7 +2189,7 @@ class GenecrGUI(tk.Tk):
             # 1. Check runtime updates — 跑遍所有已安裝 host（user 可能同時裝
             #    gemini / claude / codex 三套，全部都該更新到最新）
             set_status("檢查 runtime 版本…")
-            results = upgrade_all_installed_hosts(lambda l: None)
+            results = upgrade_all_installed_hosts(set_status)
             updated = [h for h, s in results.items() if s == "updated"]
             failed = [h for h, s in results.items() if s == "failed"]
             if updated:

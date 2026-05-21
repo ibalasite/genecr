@@ -24,7 +24,7 @@
           "type": {
             "type": "string",
             "enum": ["image", "animation", "sound", "video", "font", "particle"],
-            "description": "UI 實作要打包進 build 的素材檔。只允許這 6 種。**不可**用 copywriting / i18n_strings（文案屬 spec-basic.i18n）或任何 spec 結構欄位（modules / acceptance_criteria / fields / wireframes / ...）。"
+            "description": "UI 實作要打包進 build 的素材檔。只允許這 6 種。"
           },
           "category": {
             "type": "string",

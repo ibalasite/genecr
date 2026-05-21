@@ -64,9 +64,7 @@ def test_preprocess_spec_basic_no_disk(monkeypatch, tmp_path):
             "animation": {"b": 1},
             "sound": {"c": 1},
             "particle": {"d": 1},
-            "modules": 1,
             "acceptance_criteria": 1,
-            "api_endpoints": 1,
         },
     }
     out = render.preprocess("spec-basic", dict(sb), tmp_path)

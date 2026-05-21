@@ -16,7 +16,7 @@ Check: every `assets[].type` ∈ {image, animation, sound, video, font, particle
 Path: `assets[*].type`
 Fail when:
 - type 是 copywriting / i18n_strings（文案屬 spec-basic.i18n，企畫寫的，不重複放這）
-- type 是 modules / acceptance_criteria / fields / competitors / axes / matrix_* /
+- type 是 fields / competitors / axes / matrix_* /
   user_journey_steps / ui_sections / wireframes / timeline_phases / help_* /
   change_log / related_docs 等 spec 結構欄位（不是素材）
 - 任何其他不在 6 種白名單的值

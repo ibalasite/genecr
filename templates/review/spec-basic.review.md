@@ -83,7 +83,7 @@ Fix hint: pick a real DSL primitive; do not invent classes.
 ### R12 — `resource_counts_must_be_nested`
 Check: `resource_counts` 中每個 asset 大類（image / sound / animation / video / particle / font / copywriting / ...）必須是 **nested dict** `{子類: int}`，不可給純整數總數。
 Path: `resource_counts.*`
-Fail when: 任一 asset 類別的值是 `int` 而非 `{子類: int}` dict。例外：`modules` / `acceptance_criteria` / `api_endpoints` 等 bookkeeping 欄位允許純整數。
+Fail when: 任一 asset 類別的值是 `int` 而非 `{子類: int}` dict。例外：`acceptance_criteria` 等 bookkeeping 欄位允許純整數。
 Fix hint: 拆子類別，例如 `"image": 24` → `"image": {"格子狀態圖": 21, "寶箱": 1, "二選一卡片": 2}`。
 
 ### R_visual_audio_totals — `resource_counts_total_missing`

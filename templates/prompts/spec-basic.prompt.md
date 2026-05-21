@@ -147,8 +147,7 @@ copywriting / i18n_strings）必須是 `{子類名: int}` 的 nested dict，**�
 子類名要具描述性（使用者一看就知道是什麼）。下游 assets.assets[].category
 必須對應某個子類 key。
 
-Bookkeeping 欄位允許純整數：`modules` (功能模組數)、`acceptance_criteria`
-(陣列長度一致)、`api_endpoints`。
+Bookkeeping 欄位允許純整數：`acceptance_criteria`（陣列長度一致）。
 
 Write real integers — no `<N>` placeholders.
 

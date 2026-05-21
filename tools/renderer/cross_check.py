@@ -73,7 +73,7 @@ def check_resource_counts(spec_basic_data: dict, assets_data: dict) -> list[Issu
     # subkey alignment is enforced via check_assets_matches_sb_totals plus
     # the visual_total / audio_total contract (single source of truth).
     for cat, declared_value in counts.items():
-        if cat in {"modules", "acceptance_criteria", "api_endpoints",
+        if cat in {"acceptance_criteria",
                    "visual_total", "audio_total"}:
             continue
         n_type = _normalize_type(cat)
@@ -160,7 +160,7 @@ def _role_budget_days(spec_basic: dict) -> dict[str, float]:
     api_n = int(tc.get("api_endpoints", 0) or 0)
     asset_n = 0
     for k, v in rc.items():
-        if k in {"modules", "acceptance_criteria"}:
+        if k in {"acceptance_criteria"}:
             continue
         if isinstance(v, dict):
             asset_n += sum(int(x) for x in v.values() if isinstance(x, (int, float)))

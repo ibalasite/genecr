@@ -73,8 +73,6 @@ name            # 中文描述名（如「文案-連簽 7 日領大獎」）
 type            # ★ ENUM 限定 6 種：image / animation / sound / video / font / particle
                 #   = UI 實作要打包進 build 的素材檔。**只此 6 種**，schema enum 擋
                 #   **禁列**：copywriting / i18n_strings（文案屬 spec-basic.i18n）
-                #            / modules / acceptance_criteria / fields / wireframes 等
-                #            spec 結構欄位（描述用，不是素材）
 category        # ★ 子類，必須對應 spec-basic.resource_counts[type] 的某個 key
                 #   例如 spec-basic 寫 image.格子狀態圖=21，這 21 張的 category 都填「格子狀態圖」
 owner_role      # ★ scrum team role 之一: server_engineer | client_engineer | planner | po | art

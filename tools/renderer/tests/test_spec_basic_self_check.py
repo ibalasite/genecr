@@ -68,7 +68,8 @@ def test_timeline_check_works_without_any_sibling():
     from cross_check import check_timeline_against_formula
     sb = {
         "wireframes": [{"name": "w"}] * 6,
-        "resource_counts": {"api_endpoints": 8, "image": {"x": 10}},
+        "resource_counts": {"image": {"x": 10}},
+        "dryrun": {"tech_counts": {"api_endpoints": 8}},
         "timeline": [{"phase": "MVP", "duration_weeks": 1}],  # underestimated
         "user_journey": [{"action": "a"}] * 3,
         "admin_journey": [],

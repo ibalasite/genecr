@@ -184,9 +184,7 @@
         "video":     {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}, "minProperties": 1},
         "font":      {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}, "minProperties": 1},
         "particle":  {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}, "minProperties": 1},
-        "modules":             {"type": "integer", "minimum": 0},
         "acceptance_criteria": {"type": "integer", "minimum": 0},
-        "api_endpoints":       {"type": "integer", "minimum": 0},
         "visual_total": {"type": "integer", "minimum": 0, "description": "image+animation+particle+video+font 實體總數（AI 自報，作為 §14 與 assets 對齊合約）"},
         "audio_total":  {"type": "integer", "minimum": 0, "description": "sound 實體總數"}
       },

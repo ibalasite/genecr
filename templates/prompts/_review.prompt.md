@@ -31,7 +31,10 @@ HARD CONSTRAINTS — VIOLATING ANY OF THESE INVALIDATES YOUR OUTPUT
    Good: "competitors[3].weakness is '<待補>' — template placeholder
    not filled in."
 
-7. **EMPTY IS ACCEPTABLE** — If every rule passes, output
+7. **EXHAUSTIVE SCAN** — Report ALL rule violations you find in a single
+   response. Do NOT hold back issues for later rounds. One pass, all findings.
+
+8. **EMPTY IS ACCEPTABLE** — If every rule passes, output
    `{"issues": []}`. Do NOT manufacture issues to look thorough.
 
 ═══════════════════════════════════════════════════════════════════════════

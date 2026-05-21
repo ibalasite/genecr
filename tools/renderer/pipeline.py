@@ -214,13 +214,17 @@ _QUOTA_KEYWORDS = (
 def _run_ai(ai_cfg: dict, prompt_path: Path, output_path: Path, brief_file: Path,
             quota_retry_max: int = 2, quota_retry_wait: int = 60) -> bool:
     """Run host CLI. Capture stderr; on quota-style failure auto-retry after wait."""
-    cmd = _resolve_command(ai_cfg).format(
+    # Strip {output} redirect — capture stdout directly via Python.
+    # Shell redirect (> {output}) returns before claude finishes writing on Windows,
+    # causing 0-byte or truncated output. capture_output=True guarantees completeness.
+    raw_cmd = _resolve_command(ai_cfg)
+    ai_cmd_no_redirect = raw_cmd.split(">")[0].strip()
+    cmd = ai_cmd_no_redirect.format(
         prompt=str(prompt_path),
-        output=str(output_path),
         brief_file=str(brief_file),
         repo_root=str(REPO_ROOT),
     )
-    print(f"      $ {cmd}")
+    print(f"      $ {cmd} > {output_path.name}")
     for retry in range(quota_retry_max + 1):
         try:
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True,
@@ -228,8 +232,10 @@ def _run_ai(ai_cfg: dict, prompt_path: Path, output_path: Path, brief_file: Path
         except Exception as e:
             print(f"      ✗ subprocess exception: {e}")
             return False
-        # Success path
-        if r.returncode == 0 and output_path.exists() and output_path.stat().st_size > 0:
+        # Write stdout to output_path so downstream reads it
+        content = r.stdout or ""
+        if r.returncode == 0 and content.strip():
+            output_path.write_text(content, encoding="utf-8")
             return True
         # Failure — surface stderr so the user / GUI can classify
         stderr = (r.stderr or "").strip()

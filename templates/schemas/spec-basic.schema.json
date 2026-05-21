@@ -2,14 +2,14 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "spec-basic input",
   "type": "object",
-  "required": ["feature", "change_log", "related_docs", "summary", "competitors", "axes", "matrix", "fields", "rules", "user_journey", "ui_sections", "ui_misc", "i18n", "help_page", "timeline", "resources", "resource_counts"],
+  "required": ["feature", "change_log", "related_docs", "summary", "competitors", "axes", "matrix", "fields", "rules", "user_journey", "ui_sections", "ui_misc", "i18n", "help_page", "timeline", "resources", "resource_counts", "dryrun"],
   "properties": {
     "feature": {
       "type": "object",
       "required": ["name", "slug"],
       "properties": {
-        "name": {"type": "string"},
-        "slug": {"type": "string"}
+        "name": {"type": "string", "minLength": 5},
+        "slug": {"type": "string", "minLength": 5}
       }
     },
     "change_log": {

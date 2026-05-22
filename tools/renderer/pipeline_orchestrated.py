@@ -12,9 +12,9 @@ commit (vs. burying it in a larger refactor).
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
 
+from ai_command import format_ai_command, resolve_ai_command, run_ai_command
 from cross_check import run_all_checks
 from review_loop import RunStepResult, run_step
 
@@ -150,8 +150,8 @@ def make_subprocess_invoker(
     ai_command uses {prompt} and {output} placeholders (same as legacy
     pipeline.json ai.command). For each invocation:
       1. Write the role's combined prompt to a tmp file
-      2. Run subprocess capturing stdout to a tmp output file
-      3. Read and return the output text
+      2. Run subprocess, letting the CLI either write {output} or emit stdout
+      3. Prefer the output file, then fall back to stdout/stderr
     """
     def invoke(role: str, payload: dict) -> str:
         prompt_text = _format_role_prompt(role, step_type, payload, brief_file)
@@ -159,22 +159,26 @@ def make_subprocess_invoker(
         output_path = work_dir / f"{step_type}.{role}.output.txt"
         prompt_path.write_text(prompt_text, encoding="utf-8")
 
-        # Strip {output} redirect — let subprocess capture stdout directly.
-        # Shell redirect (> {output}) returns before claude finishes writing;
-        # capture_output=True + r.stdout is guaranteed complete on return.
-        ai_cmd_no_redirect = ai_command.split(">")[0].strip()
-        cmd = ai_cmd_no_redirect.format(prompt=str(prompt_path))
-        print(f"   ▸ {role}: $ {cmd} > {output_path.name}")
         try:
-            r = subprocess.run(cmd, shell=True, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
+            preview_cmd = format_ai_command(
+                ai_command,
+                prompt_path=prompt_path,
+                output_path=output_path,
+                brief_file=brief_file,
+                repo_root=REPO_ROOT,
+            )
+            print(f"   ▸ {role}: $ {preview_cmd}")
+            result = run_ai_command(
+                ai_command,
+                prompt_path=prompt_path,
+                output_path=output_path,
+                brief_file=brief_file,
+                repo_root=REPO_ROOT,
+            )
         except Exception as e:
             return json.dumps({"error": f"subprocess exception: {e}"})
 
-        content = r.stdout or r.stderr or ""
-        if content.strip():
-            output_path.write_text(content, encoding="utf-8")
-        return content
+        return result.content
 
     return invoke
 
@@ -218,7 +222,7 @@ def orchestrated_call_ai_for_step(
     On success, writes the final accepted data to {step}.input.json.
     """
     upstream = _load_all_upstream(step_name, run_dir, depends_on=depends_on)
-    ai_command = ai_cfg.get("command") or list(ai_cfg.get("commands", {}).values())[0]
+    ai_command = resolve_ai_command(ai_cfg)
 
     # Snapshot baseline BEFORE regen — used by check_no_regression to detect
     # AI silently shrinking arrays.

@@ -39,6 +39,7 @@ except (AttributeError, ValueError):
     pass  # Python < 3.7 or non-tty stream
 
 import render as r
+from ai_command import format_ai_command, resolve_ai_command, run_ai_command
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Outputs live in the USER'S cwd (where they invoked genecr), NOT in runtime.
@@ -194,15 +195,8 @@ def _substitute(raw: str, brief_file: Path, output_path: Path, type_: str, extra
 
 
 def _resolve_command(ai_cfg: dict) -> str:
-    """Pick command per host: ai.commands[$GENECR_HOST] if defined, else ai.command."""
-    import os
-    host = os.environ.get("GENECR_HOST", "")
-    cmds = ai_cfg.get("commands") or {}
-    if host and host in cmds:
-        return cmds[host]
-    if "command" in ai_cfg:
-        return ai_cfg["command"]
-    raise KeyError(f"No AI command for host '{host}' (no ai.commands[{host}] and no ai.command)")
+    """Backward-compatible wrapper around the shared host-aware resolver."""
+    return resolve_ai_command(ai_cfg)
 
 
 _QUOTA_KEYWORDS = (
@@ -214,34 +208,41 @@ _QUOTA_KEYWORDS = (
 
 def _run_ai(ai_cfg: dict, prompt_path: Path, output_path: Path, brief_file: Path,
             quota_retry_max: int = 2, quota_retry_wait: int = 60) -> bool:
-    """Run host CLI. Capture stderr; on quota-style failure auto-retry after wait."""
-    # Strip {output} redirect — capture stdout directly via Python.
-    # Shell redirect (> {output}) returns before claude finishes writing on Windows,
-    # causing 0-byte or truncated output. capture_output=True guarantees completeness.
+    """Run host CLI. Prefer explicit output file, then stdout/stderr, with quota retry."""
     raw_cmd = _resolve_command(ai_cfg)
-    ai_cmd_no_redirect = raw_cmd.split(">")[0].strip()
-    cmd = ai_cmd_no_redirect.format(
-        prompt=str(prompt_path),
-        brief_file=str(brief_file),
-        repo_root=str(REPO_ROOT),
-    )
-    print(f"      $ {cmd} > {output_path.name}")
+    try:
+        preview_cmd = format_ai_command(
+            raw_cmd,
+            prompt_path=prompt_path,
+            output_path=output_path,
+            brief_file=brief_file,
+            repo_root=REPO_ROOT,
+        )
+    except Exception as e:
+        print(f"      ✗ command format error: {e}")
+        return False
+    print(f"      $ {preview_cmd}")
     for retry in range(quota_retry_max + 1):
         try:
-            r = subprocess.run(cmd, shell=True, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
+            result = run_ai_command(
+                raw_cmd,
+                prompt_path=prompt_path,
+                output_path=output_path,
+                brief_file=brief_file,
+                repo_root=REPO_ROOT,
+            )
         except Exception as e:
             print(f"      ✗ subprocess exception: {e}")
             return False
-        # Write stdout to output_path so downstream reads it
-        content = r.stdout or ""
-        if r.returncode == 0 and content.strip():
-            output_path.write_text(content, encoding="utf-8")
+
+        content = result.content
+        if result.returncode == 0 and content.strip():
             return True
+
         # Failure — surface stderr so the user / GUI can classify
-        stderr = (r.stderr or "").strip()
-        stdout = (r.stdout or "").strip()
-        print(f"      ✗ subprocess failed (exit {r.returncode}); stderr/stdout below:")
+        stderr = result.stderr.strip()
+        stdout = result.stdout.strip()
+        print(f"      ✗ subprocess failed (exit {result.returncode}); stderr/stdout below:")
         if stderr:
             for line in stderr.splitlines()[:20]:
                 print(f"        [stderr] {line}")

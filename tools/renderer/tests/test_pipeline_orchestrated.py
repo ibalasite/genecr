@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
+from ai_command import resolve_ai_command
 from pipeline_orchestrated import (
     _build_schema_validator,
     _format_role_prompt,
@@ -20,6 +21,24 @@ from pipeline_orchestrated import (
     make_subprocess_invoker,
     orchestrated_call_ai_for_step,
 )
+
+
+def test_resolve_ai_command_prefers_host_specific_command(monkeypatch):
+    monkeypatch.setenv("GENECR_HOST", "codex")
+    ai_cfg = {
+        "command": "claude -p < {prompt} > {output}",
+        "commands": {
+            "codex": "codex exec -o {output} < {prompt}",
+            "claude": "claude -p < {prompt} > {output}",
+        },
+    }
+    assert resolve_ai_command(ai_cfg) == "codex exec -o {output} < {prompt}"
+
+
+def test_resolve_ai_command_falls_back_to_legacy_command(monkeypatch):
+    monkeypatch.delenv("GENECR_HOST", raising=False)
+    ai_cfg = {"command": "claude -p < {prompt} > {output}"}
+    assert resolve_ai_command(ai_cfg) == "claude -p < {prompt} > {output}"
 
 
 def test_load_upstream_collects_input_json_files(tmp_path):
@@ -116,22 +135,25 @@ def test_format_fixer_prompt_includes_issues(tmp_path):
     assert "INDEPENDENT FIXER" in out
 
 
-def test_subprocess_invoker_writes_prompt_and_reads_output(tmp_path, monkeypatch):
-    """When subprocess produces an output file, invoker returns its contents."""
+def test_subprocess_invoker_prefers_output_file_over_stdout(tmp_path, monkeypatch):
+    """Codex-style -o output should win over noisy stdout."""
     def fake_run(cmd, **kwargs):
-        # Parse {output} path from cmd
-        # cmd format: "fake {prompt} > {output}" — extract last token
-        out_path = Path(cmd.split(">")[-1].strip())
+        out_path = tmp_path / "spec-basic.generator.output.txt"
         out_path.write_text('{"feature": {"name": "x", "slug": "x"}}',
                             encoding="utf-8")
-        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=0,
+            stdout="session log noise",
+            stderr="",
+        )
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     brief = tmp_path / "brief.txt"
     brief.write_text("brief", encoding="utf-8")
     invoker = make_subprocess_invoker(
-        ai_command="fake {prompt} > {output}",
+        ai_command="fake -o {output} < {prompt}",
         step_type="spec-basic",
         brief_file=brief,
         work_dir=tmp_path,
@@ -141,6 +163,30 @@ def test_subprocess_invoker_writes_prompt_and_reads_output(tmp_path, monkeypatch
     # Combined prompt file should have been written
     combined = list(tmp_path.glob("*.combined.prompt.md"))
     assert combined, "combined prompt file not written"
+
+
+def test_subprocess_invoker_falls_back_to_stdout_when_output_file_missing(tmp_path, monkeypatch):
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=0,
+            stdout='{"feature": {"name": "stdout", "slug": "stdout"}}',
+            stderr="",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    brief = tmp_path / "brief.txt"
+    brief.write_text("brief", encoding="utf-8")
+    invoker = make_subprocess_invoker(
+        ai_command="fake {prompt}",
+        step_type="spec-basic",
+        brief_file=brief,
+        work_dir=tmp_path,
+    )
+    out = invoker("generator", {"upstream": {}})
+    assert '"slug": "stdout"' in out
+    assert (tmp_path / "spec-basic.generator.output.txt").exists()
 
 
 def test_orchestrated_call_writes_input_json_on_success(tmp_path, monkeypatch):
@@ -153,8 +199,12 @@ def test_orchestrated_call_writes_input_json_on_success(tmp_path, monkeypatch):
     )
 
     def fake_run(cmd, **kwargs):
-        out_path = Path(cmd.split(">")[-1].strip())
-        path_str = str(out_path)
+        prompt_path = Path(cmd.split("<")[-1].strip())
+        role = "reviewer" if "reviewer" in prompt_path.name else "generator"
+        if "fixer" in prompt_path.name:
+            role = "fixer"
+        out_path = tmp_path / f"spec-basic.{role}.output.txt"
+        path_str = out_path.name
         if "generator" in path_str or "fixer" in path_str:
             out_path.write_text(json.dumps(valid), encoding="utf-8")
         else:  # reviewer
@@ -177,3 +227,44 @@ def test_orchestrated_call_writes_input_json_on_success(tmp_path, monkeypatch):
     assert final_json.exists()
     data = json.loads(final_json.read_text(encoding="utf-8"))
     assert "feature" in data
+
+
+def test_orchestrated_call_uses_host_specific_command(tmp_path, monkeypatch):
+    calls = []
+    repo = Path(__file__).resolve().parents[3]
+    valid = json.loads(
+        (repo / "templates" / "examples" / "spec-basic.input.json").read_text(encoding="utf-8")
+    )
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        prompt_path = Path(cmd.split("<")[-1].strip())
+        role = "reviewer" if "reviewer" in prompt_path.name else "generator"
+        out_path = tmp_path / f"spec-basic.{role}.output.txt"
+        if role == "generator":
+            out_path.write_text(json.dumps(valid), encoding="utf-8")
+        else:
+            out_path.write_text(json.dumps({"issues": []}), encoding="utf-8")
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setenv("GENECR_HOST", "codex")
+
+    brief = tmp_path / "brief.txt"
+    brief.write_text("brief", encoding="utf-8")
+    result = orchestrated_call_ai_for_step(
+        step_name="spec-basic",
+        step_type="spec-basic",
+        ai_cfg={
+            "command": "claude -p < {prompt} > {output}",
+            "commands": {
+                "codex": "codex exec -o {output} < {prompt}",
+                "claude": "claude -p < {prompt} > {output}",
+            },
+        },
+        brief_file=brief,
+        run_dir=tmp_path,
+    )
+    assert result.success
+    assert calls
+    assert all(cmd.startswith("codex exec -o ") for cmd in calls)

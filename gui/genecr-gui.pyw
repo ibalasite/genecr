@@ -1,8 +1,9 @@
 """
 genecr-gui — Windows-friendly GUI wrapper for genecr pipeline.
 
-Single-file tkinter app. Drives ~/.gemini/skills/genecr/tools/bin/pipeline.py
-via subprocess and shows live progress. Designed for non-CLI users.
+Single-file tkinter app. Drives the installed genecr runtime under the selected
+host (Gemini / Claude / Codex / Copilot) via subprocess and shows live
+progress. Designed for non-CLI users.
 
 Run:
     pythonw genecr-gui.pyw
@@ -72,6 +73,7 @@ HOST_DIRS = {
     "gemini": ".gemini",
     "claude": ".claude",
     "codex":  ".codex",
+    "copilot": ".copilot",
 }
 
 
@@ -99,7 +101,7 @@ def detect_genecr_dir() -> Path | None:
 
 def detect_host(genecr_dir: Path) -> str:
     s = str(genecr_dir).replace("\\", "/")
-    for h in ("gemini", "claude", "codex"):
+    for h in ("gemini", "claude", "codex", "copilot"):
         if f"/.{h}/" in s:
             return h
     return "unknown"
@@ -283,6 +285,7 @@ CLI_MAP = {
     "gemini": (["gemini"], ["--skip-trust", "-p", " ", "--output-format", "text"]),
     "claude": (["claude"], ["-p", "--output-format", "text"]),
     "codex":  (["codex"],  ["exec", "--skip-git-repo-check"]),
+    "copilot": (["copilot"], ["-s"]),
 }
 
 EXTRACT_PROMPT = (
@@ -408,6 +411,10 @@ PREREQ_METHODS = {
     "codex": [
         ("npm", ["npm", "install", "-g", "@openai/codex"]),
     ],
+    "copilot": [
+        ("winget", ["winget", "install", "GitHub.Copilot",
+                    "--accept-package-agreements", "--accept-source-agreements"]),
+    ],
 }
 
 PREREQ_LABELS = {
@@ -417,10 +424,11 @@ PREREQ_LABELS = {
     "gemini": "Gemini CLI",
     "claude": "Claude Code CLI",
     "codex":  "Codex CLI",
+    "copilot": "GitHub Copilot CLI",
     "genecr": "genecr (本工具核心)",
 }
 
-HOST_BIN = {"gemini": "gemini", "claude": "claude", "codex": "codex"}
+HOST_BIN = {"gemini": "gemini", "claude": "claude", "codex": "codex", "copilot": "copilot"}
 
 
 # ─── 系統 Python 自動修復 ────────────────────────────────────────
@@ -526,8 +534,29 @@ AUTH_FILES = {
 }
 
 
+def _copilot_config_path() -> Path:
+    return Path.home() / ".copilot" / "config.json"
+
+
+def _copilot_logged_in() -> bool:
+    cfg = _copilot_config_path()
+    if not cfg.exists():
+        return False
+    try:
+        data = json.loads(cfg.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    logged_in_users = data.get("loggedInUsers") or []
+    if isinstance(logged_in_users, list) and logged_in_users:
+        return True
+    last_user = data.get("lastLoggedInUser") or {}
+    return bool(last_user.get("login"))
+
+
 def check_login_state(host: str) -> bool:
     """Return True if local OAuth credentials exist for the host. Zero token cost."""
+    if host == "copilot":
+        return _copilot_logged_in()
     return any(p.exists() for p in AUTH_FILES.get(host, []))
 
 
@@ -1057,7 +1086,7 @@ class GenecrGUI(tk.Tk):
             self.login_btn.pack(side="left")
 
     def _open_add_host_dialog(self):
-        """Show all 3 hosts with status; let user install + login any of them."""
+        """Show all supported hosts with status; let user install + login any of them."""
         win = tk.Toplevel(self)
         win.title("新增 / 管理 AI host")
         win.geometry("560x460")
@@ -1073,12 +1102,13 @@ class GenecrGUI(tk.Tk):
         rows_frame = ttk.Frame(win)
         rows_frame.pack(fill="both", expand=True, padx=20, pady=8)
 
-        # Order: Claude first (recommended fallback), then Gemini, then Codex
-        host_order = ["claude", "gemini", "codex"]
+        # Order: Claude first (recommended fallback), then Gemini, Codex, Copilot
+        host_order = ["claude", "gemini", "codex", "copilot"]
         host_desc = {
             "claude": "Anthropic Claude — 推薦備用，品質最佳（需付費 API 或 Pro 訂閱）",
             "gemini": "Google Gemini — 有免費額度，配額用完每天會重置",
             "codex":  "OpenAI Codex — 需 ChatGPT Plus 訂閱",
+            "copilot": "GitHub Copilot CLI — 需 GitHub Copilot 訂閱，可直接作為 Copilot skill host",
         }
         rows = {}
 
@@ -1192,6 +1222,7 @@ class GenecrGUI(tk.Tk):
             "gemini": ([bin_path], "/auth\n"),                 # interactive + stdin
             "codex":  ([bin_path, "login"], None),             # subcommand
             "claude": ([bin_path, "auth", "login"], None),     # subcommand
+            "copilot": ([bin_path, "login"], None),            # subcommand
         }
         cmd, stdin_input = login_cmd_map.get(host, ([bin_path], None))
 

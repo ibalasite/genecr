@@ -14,18 +14,27 @@ def _read_output(path: Path) -> str:
 
 
 def resolve_ai_command(ai_cfg: dict) -> str:
-    """Resolve the host-specific AI command, with ai.command as legacy fallback."""
+    """Resolve the host-specific AI command, with ai.command as legacy fallback.
+
+    If ai.models.<host> is set, substitutes {model_flag} with --model <id>.
+    If not set, substitutes {model_flag} with empty string.
+    """
     host = os.environ.get("GENECR_HOST", "")
     commands = ai_cfg.get("commands") or {}
 
     if host and host in commands:
-        return commands[host]
-    if "command" in ai_cfg:
-        return ai_cfg["command"]
-    raise KeyError(
-        f"No AI command configured for host '{host}' "
-        f"(expected ai.commands[{host}] or ai.command)"
-    )
+        template = commands[host]
+    elif "command" in ai_cfg:
+        template = ai_cfg["command"]
+    else:
+        raise KeyError(
+            f"No AI command configured for host '{host}' "
+            f"(expected ai.commands[{host}] or ai.command)"
+        )
+
+    model_id = (ai_cfg.get("models") or {}).get(host, "")
+    model_flag = f"--model {model_id}" if model_id else ""
+    return template.replace("{model_flag}", model_flag)
 
 
 def format_ai_command(
@@ -35,10 +44,12 @@ def format_ai_command(
     output_path: Path,
     brief_file: Path | None = None,
     repo_root: Path | None = None,
+    model_flag: str = "",
 ) -> str:
     values = {
         "prompt": str(prompt_path),
         "output": str(output_path),
+        "model_flag": model_flag,
     }
     if brief_file is not None:
         values["brief_file"] = str(brief_file)

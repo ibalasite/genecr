@@ -1,14 +1,15 @@
-# genecr setup.ps1 — Windows native (PowerShell), multi-host (Claude / Codex / Gemini)
+# genecr setup.ps1 — Windows native (PowerShell), multi-host (Claude / Codex / Gemini / Copilot)
 #
 # Usage:
 #   .\setup.ps1                          # install for auto-detected host
 #   .\setup.ps1 install claude           # ~/.claude/skills/genecr
 #   .\setup.ps1 install codex            # ~/.codex/skills/genecr
 #   .\setup.ps1 install gemini           # ~/.gemini/skills/genecr
-#   .\setup.ps1 install all              # all three hosts
+#   .\setup.ps1 install copilot          # ~/.copilot/skills/genecr
+#   .\setup.ps1 install all              # all four hosts
 #   .\setup.ps1 upgrade [target]
 #   .\setup.ps1 uninstall [target]
-#   .\setup.ps1 claude|codex|gemini|all  # shortcuts for install <target>
+#   .\setup.ps1 claude|codex|gemini|copilot|all  # shortcuts for install <target>
 
 param(
     [string]$Command = "install",
@@ -33,6 +34,7 @@ function Get-HostDir($hostName) {
         "claude" { Join-Path $env:USERPROFILE ".claude\skills\genecr" }
         "codex"  { Join-Path $env:USERPROFILE ".codex\skills\genecr" }
         "gemini" { Join-Path $env:USERPROFILE ".gemini\skills\genecr" }
+        "copilot" { Join-Path $env:USERPROFILE ".copilot\skills\genecr" }
     }
 }
 function Get-HostSkillsDir($hostName) {
@@ -40,6 +42,7 @@ function Get-HostSkillsDir($hostName) {
         "claude" { Join-Path $env:USERPROFILE ".claude\skills" }
         "codex"  { Join-Path $env:USERPROFILE ".codex\skills" }
         "gemini" { Join-Path $env:USERPROFILE ".gemini\skills" }
+        "copilot" { Join-Path $env:USERPROFILE ".copilot\skills" }
     }
 }
 
@@ -48,21 +51,23 @@ function Detect-HostFromSelf {
     if     ($self -match '\\\.codex\\')  { return "codex" }
     elseif ($self -match '\\\.claude\\') { return "claude" }
     elseif ($self -match '\\\.gemini\\') { return "gemini" }
+    elseif ($self -match '\\\.copilot\\') { return "copilot" }
     else                                 { return "" }
 }
 
 function Resolve-Targets($t) {
-    if     ($t -eq "all")    { return @("claude","codex","gemini") }
+    if     ($t -eq "all")    { return @("claude","codex","gemini","copilot") }
     elseif ($t -eq "claude") { return @("claude") }
     elseif ($t -eq "codex")  { return @("codex") }
     elseif ($t -eq "gemini") { return @("gemini") }
+    elseif ($t -eq "copilot") { return @("copilot") }
     elseif ([string]::IsNullOrEmpty($t)) {
         $detected = Detect-HostFromSelf
         if ($detected) { return @($detected) }
         Log "[warn] cannot autodetect host; defaulting to claude"
         return @("claude")
     }
-    else { Write-Error "unknown target: $t (use claude|codex|gemini|all)"; exit 1 }
+    else { Write-Error "unknown target: $t (use claude|codex|gemini|copilot|all)"; exit 1 }
 }
 
 function Deploy-Skills($runtime, $skillsDst) {
@@ -230,15 +235,16 @@ switch ($Command.ToLower()) {
     "claude"    { foreach ($h in Resolve-Targets "claude") { Install-One $h } }
     "codex"     { foreach ($h in Resolve-Targets "codex")  { Install-One $h } }
     "gemini"    { foreach ($h in Resolve-Targets "gemini") { Install-One $h } }
+    "copilot"   { foreach ($h in Resolve-Targets "copilot") { Install-One $h } }
     "all"       { foreach ($h in Resolve-Targets "all")    { Install-One $h } }
     default {
         Write-Host "Usage: .\setup.ps1 <command> [target]"
         Write-Host "  install [target]      git clone + deploy subskills (default)"
         Write-Host "  upgrade [target]      git pull + redeploy"
         Write-Host "  uninstall [target]    remove deployed skills + runtime"
-        Write-Host "  claude|codex|gemini|all  shortcut for install <target>"
+        Write-Host "  claude|codex|gemini|copilot|all  shortcut for install <target>"
         Write-Host ""
-        Write-Host "Targets: claude | codex | gemini | all | (auto-detect)"
+        Write-Host "Targets: claude | codex | gemini | copilot | all | (auto-detect)"
         exit 1
     }
 }

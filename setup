@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# genecr setup — install / uninstall / upgrade, multi-host (Claude / Codex / Gemini)
+# genecr setup — install / uninstall / upgrade, multi-host (Claude / Codex / Gemini / Copilot)
 #
 # Usage:
 #   ./setup                         # install for auto-detected host (current location)
@@ -7,10 +7,11 @@
 #   ./setup install claude          # clone to ~/.claude/skills/genecr + deploy subskills there
 #   ./setup install codex           # clone to ~/.codex/skills/genecr  + deploy subskills there
 #   ./setup install gemini          # clone to ~/.gemini/skills/genecr + deploy subskills there
-#   ./setup install all             # install for ALL hosts (claude + codex + gemini)
+#   ./setup install copilot         # clone to ~/.copilot/skills/genecr + deploy subskills there
+#   ./setup install all             # install for ALL hosts (claude + codex + gemini + copilot)
 #   ./setup upgrade                 # git pull + redeploy (current host)
 #   ./setup upgrade all             # upgrade ALL hosts
-#   ./setup uninstall [claude|codex|gemini|all]
+#   ./setup uninstall [claude|codex|gemini|copilot|all]
 #
 # Cross-platform: Windows (Git Bash), macOS, Linux.
 
@@ -30,6 +31,7 @@ _host_dir() {
     claude) echo "$HOME/.claude/skills/genecr" ;;
     codex)  echo "$HOME/.codex/skills/genecr"  ;;
     gemini) echo "$HOME/.gemini/skills/genecr" ;;
+    copilot) echo "$HOME/.copilot/skills/genecr" ;;
     *)      return 1 ;;
   esac
 }
@@ -38,6 +40,7 @@ _host_skills_dir() {
     claude) echo "$HOME/.claude/skills" ;;
     codex)  echo "$HOME/.codex/skills"  ;;
     gemini) echo "$HOME/.gemini/skills" ;;
+    copilot) echo "$HOME/.copilot/skills" ;;
     *)      return 1 ;;
   esac
 }
@@ -50,6 +53,7 @@ _detect_host_from_self() {
     *"/.codex/"*)  echo "codex"  ;;
     *"/.claude/"*) echo "claude" ;;
     *"/.gemini/"*) echo "gemini" ;;
+    *"/.copilot/"*) echo "copilot" ;;
     *) echo "" ;;
   esac
 }
@@ -57,8 +61,8 @@ _detect_host_from_self() {
 # Expand "all" → list of hosts; expand single host → that host; empty → autodetect
 _resolve_targets() {
   if [[ "$1" == "all" ]]; then
-    echo "claude codex gemini"
-  elif [[ "$1" == "claude" || "$1" == "codex" || "$1" == "gemini" ]]; then
+    echo "claude codex gemini copilot"
+  elif [[ "$1" == "claude" || "$1" == "codex" || "$1" == "gemini" || "$1" == "copilot" ]]; then
     echo "$1"
   elif [[ -z "$1" ]]; then
     local detected
@@ -70,7 +74,7 @@ _resolve_targets() {
       echo "claude"
     fi
   else
-    echo "❌ unknown target: $1 (use claude|codex|gemini|all)" >&2
+    echo "❌ unknown target: $1 (use claude|codex|gemini|copilot|all)" >&2
     exit 1
   fi
 }
@@ -246,7 +250,7 @@ case "$CMD" in
   _post_upgrade)
     _post_upgrade "$TARGET"
     ;;
-  claude|codex|gemini|all)
+  claude|codex|gemini|copilot|all)
     # Convenience: ./setup claude  ≡  ./setup install claude
     for h in $(_resolve_targets "$CMD"); do _install_one "$h"; done
     ;;
@@ -267,7 +271,8 @@ Targets:
   claude              安裝到 ~/.claude/skills/genecr
   codex               安裝到 ~/.codex/skills/genecr
   gemini              安裝到 ~/.gemini/skills/genecr
-  all                 三個 host 都裝
+  copilot             安裝到 ~/.copilot/skills/genecr
+  all                 四個 host 都裝
   (省略)              依本 setup 腳本所在位置自動判斷
 EOF
     exit 1

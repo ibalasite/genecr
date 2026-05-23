@@ -5,6 +5,7 @@
 #   $env:USERPROFILE\.claude\skills\genecr   (Claude Code)
 #   $env:USERPROFILE\.codex\skills\genecr    (Codex CLI)
 #   $env:USERPROFILE\.gemini\skills\genecr   (Gemini CLI)
+#   $env:USERPROFILE\.copilot\skills\genecr  (GitHub Copilot CLI)
 #   or any other host's skill dir.
 #
 # Skills MUST dot-source this to discover templates/tools, and MUST NOT
@@ -26,4 +27,5 @@ $env:GENECR_REFERENCES = Join-Path $env:GENECR_DIR "references"
 if     ($env:GENECR_DIR -match '\\\.codex\\')  { $env:GENECR_HOST = 'codex' }
 elseif ($env:GENECR_DIR -match '\\\.claude\\') { $env:GENECR_HOST = 'claude' }
 elseif ($env:GENECR_DIR -match '\\\.gemini\\') { $env:GENECR_HOST = 'gemini' }
+elseif ($env:GENECR_DIR -match '\\\.copilot\\') { $env:GENECR_HOST = 'copilot' }
 else                                            { $env:GENECR_HOST = 'unknown' }

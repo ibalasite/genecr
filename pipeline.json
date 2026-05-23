@@ -8,7 +8,7 @@
     },
     "command": "claude -p --output-format text {model_flag} < {prompt} > {output}",
     "models": {
-      "claude":  "claude-haiku-4-5-20251001",
+      "claude":  "claude-sonnet-4-6",
       "codex":   "gpt-5-mini",
       "gemini":  "gemini-2.5-flash",
       "copilot": "gpt-5-mini"

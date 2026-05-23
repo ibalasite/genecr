@@ -64,3 +64,24 @@ def test_format_replaces_model_flag_with_empty(tmp_path: Path):
     )
     assert "--model" not in cmd
     assert "{model_flag}" not in cmd
+
+
+# ── pipeline.json 結構驗證 ───────────────────────────────────────────────────
+
+def test_pipeline_json_has_models_for_all_hosts(repo_root: Path):
+    """pipeline.json ai.models 必須有四個 host 的 model 設定。"""
+    import json
+    pipeline = json.loads((repo_root / "pipeline.json").read_text(encoding="utf-8"))
+    models = pipeline["ai"]["models"]
+    for host in ("claude", "codex", "gemini", "copilot"):
+        assert host in models, f"ai.models.{host} 缺失"
+        assert models[host], f"ai.models.{host} 不可為空"
+
+
+def test_pipeline_json_commands_contain_model_flag(repo_root: Path):
+    """pipeline.json ai.commands 每個 host 的指令必須含 {model_flag}。"""
+    import json
+    pipeline = json.loads((repo_root / "pipeline.json").read_text(encoding="utf-8"))
+    commands = pipeline["ai"]["commands"]
+    for host, cmd in commands.items():
+        assert "{model_flag}" in cmd, f"ai.commands.{host} 缺少 {{model_flag}}"

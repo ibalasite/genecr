@@ -8,13 +8,15 @@ from ai_command import format_ai_command, resolve_ai_command
 
 def test_pipeline_json_declares_copilot_command(repo_root: Path):
     pipeline = json.loads((repo_root / "pipeline.json").read_text(encoding="utf-8"))
-    assert pipeline["ai"]["commands"]["copilot"] == "copilot -s < {prompt} > {output}"
+    assert pipeline["ai"]["commands"]["copilot"] == "copilot -s {model_flag} < {prompt} > {output}"
 
 
 def test_resolve_ai_command_picks_copilot_from_pipeline_map(monkeypatch, repo_root: Path):
     pipeline = json.loads((repo_root / "pipeline.json").read_text(encoding="utf-8"))
     monkeypatch.setenv("GENECR_HOST", "copilot")
-    assert resolve_ai_command(pipeline["ai"]) == "copilot -s < {prompt} > {output}"
+    cmd = resolve_ai_command(pipeline["ai"])
+    assert "copilot -s" in cmd
+    assert "--model gpt-5-mini" in cmd
 
 
 def test_format_ai_command_for_copilot_uses_prompt_and_output_paths(tmp_path: Path):

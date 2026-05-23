@@ -6,7 +6,7 @@
 把一個 iGaming 功能需求，自動轉成完整文件套件：
 企畫版（含線框圖）、技術版（API + Mermaid）、資源清單＋AI Prompt、BDD、SCRUM、互動原型、整合 docs.html。
 
-**Host-neutral**：同時支援 [Claude Code](https://claude.com/claude-code) 與 [Codex CLI](https://github.com/openai/codex)。
+**Host-neutral**：同時支援 [Claude Code](https://claude.com/claude-code)、[Codex CLI](https://github.com/openai/codex)、Gemini CLI、與 [GitHub Copilot CLI](https://docs.github.com/copilot/how-tos/copilot-cli)。
 
 > 🐛 **找到問題？** 開個 issue：[github.com/ibalasite/genecr/issues](https://github.com/ibalasite/genecr/issues/new?template=bug_report.md)
 > 💡 **想要新功能？** 開個建議：[Feature request](https://github.com/ibalasite/genecr/issues/new?template=feature_request.md)
@@ -41,7 +41,7 @@
 genecr/
 ├── README.md
 ├── pipeline.json              # 流程定義（7 step + AI 設定 + 依賴）
-├── setup / setup.ps1          # host 安裝（claude | codex | all）— 仿 gendoc 慣例
+├── setup / setup.ps1          # host 安裝（claude | codex | gemini | copilot | all）— 仿 gendoc 慣例
 ├── bin/genecr-env.{sh,ps1}    # runtime 路徑探測（GENECR_DIR/TEMPLATES/...）
 ├── skills/                    # 部署到 host 的 sub skills
 │   ├── genecr/           # /genecr "<brief>" — 跑完整 pipeline
@@ -99,7 +99,7 @@ output/<feature-slug>/<YYYYMMDD-HHMMSS>/
 |---|---|
 | **embed Python**（python.org 官方 3.13）| installer 期協調 pip install / playwright install |
 | **System Python 自動補齊** | 用 winget / 官方 .exe 靜默裝，user 完全感受不到 |
-| **多 host 自動同步** | 啟動時掃 `~/.gemini` / `~/.claude` / `~/.codex` 三個 host 的 genecr skill，逐個 `git pull` + redeploy |
+| **多 host 自動同步** | 啟動時掃 `~/.gemini` / `~/.claude` / `~/.codex` / `~/.copilot` 的 genecr skill，逐個 `git pull` + redeploy |
 | **single-instance lock** | 雙擊不會開出多隻；切換 host 自動背景更新該 host runtime |
 | **bootloader splash** | PyInstaller `--splash` ≈ 30ms 內就顯示，無黑屏等待 |
 | **🐛 一鍵回報 bug** | dialog 自動帶 env + log + 智慧萃取 `ErrorType: message` 作 title |
@@ -121,7 +121,22 @@ git clone https://github.com/ibalasite/genecr.git ~/.codex/skills/genecr
 ~/.codex/skills/genecr/setup codex
 ```
 
-### 🔁 兩個都裝
+### 🟠 GitHub Copilot CLI
+
+```bash
+git clone https://github.com/ibalasite/genecr.git ~/.copilot/skills/genecr
+~/.copilot/skills/genecr/setup copilot
+```
+
+啟動 `copilot` 後可用：
+
+```text
+/skills list
+/skills info genecr
+Use the /genecr skill to 產出一份完整需求文件
+```
+
+### 🔁 全部都裝
 
 ```bash
 ~/.claude/skills/genecr/setup install all
@@ -136,7 +151,7 @@ git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.claude\skil
 
 `setup` 內部依序：`git clone` → `_deploy_skills`（部署 sub skills）→ `_deploy_tools`（跑 `tools/renderer/build.sh` 把 .py 拷到 `tools/bin/`）。
 
-安裝完**重啟** Claude Code / Codex 讓 skill 生效。
+安裝完**重啟**對應 host（Claude / Codex / Gemini / Copilot）讓 skill 生效。
 
 ---
 
@@ -144,7 +159,7 @@ git clone https://github.com/ibalasite/genecr.git "$env:USERPROFILE\.claude\skil
 
 ### 一行觸發
 
-在 Claude Code / Codex 任意對話：
+在對應 host（Claude / Codex / Gemini / Copilot）任意對話：
 
 ```
 /genecr 老玩家每儲值 1000 送刮刮券，玩遊戲也會掉，20-5000 倍大獎，未中獎有幸運代號每週抽，不能讓代理商損失
@@ -419,7 +434,8 @@ prompts 對 AI 明確指定，產出的 spec-advanced / bdd / scrum 都以此為
 ```bash
 ~/.claude/skills/genecr/setup upgrade           # 只升 claude
 ~/.codex/skills/genecr/setup upgrade            # 只升 codex
-~/.claude/skills/genecr/setup upgrade all       # 兩邊都升
+~/.copilot/skills/genecr/setup upgrade          # 只升 copilot
+~/.claude/skills/genecr/setup upgrade all       # 全部都升
 
 # 或對話內：「升級 genecr」會觸發 /genecr-upgrade（同 host 自動偵測）
 ```
@@ -457,5 +473,6 @@ git push
 ```bash
 ~/.claude/skills/genecr/setup uninstall          # 只移除 claude
 ~/.codex/skills/genecr/setup uninstall           # 只移除 codex
-~/.claude/skills/genecr/setup uninstall all      # 兩邊都移除
+~/.copilot/skills/genecr/setup uninstall        # 只移除 copilot
+~/.claude/skills/genecr/setup uninstall all      # 全部都移除
 ```

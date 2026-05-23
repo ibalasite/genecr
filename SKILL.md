@@ -14,9 +14,10 @@ allowed-tools:
 ## 1. 決定 host
 
 看上方「Base directory for this skill」：
-- 含 `.claude` → `GENECR_DIR=$HOME/.claude/skills/genecr`，預設用 `pipeline.json`
-- 含 `.codex`  → `GENECR_DIR=$HOME/.codex/skills/genecr`，改用 `pipeline-codex.json`（若存在；否則編輯 `pipeline.json` 的 `ai.command`）
-- 含 `.gemini` → `GENECR_DIR=$HOME/.gemini/skills/genecr`，改用 `pipeline-gemini.json`
+- 含 `.claude` → `GENECR_DIR=$HOME/.claude/skills/genecr`
+- 含 `.codex`  → `GENECR_DIR=$HOME/.codex/skills/genecr`
+- 含 `.gemini` → `GENECR_DIR=$HOME/.gemini/skills/genecr`
+- 含 `.copilot` → `GENECR_DIR=$HOME/.copilot/skills/genecr`
 
 ## 2. 從 brief 萃取 feature 資訊（你的職責，AI）
 
@@ -50,7 +51,7 @@ python "$GENECR_TOOLS/pipeline.py" \
 
 ```
 ✅ genecr 完成！產出在：
-   $GENECR_DIR/output/<slug>/<datetime>/
+   ./output/<slug>/<datetime>/
 
   📋 spec-basic.md / spec-advanced.md
   🎨 assets.md

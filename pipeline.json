@@ -1,14 +1,14 @@
 {
   "ai": {
     "commands": {
-      "claude":  "claude -p --output-format text {model_flag} < {prompt} > {output}",
-      "codex":   "codex exec --skip-git-repo-check --color never {model_flag} -o {output} < {prompt}",
-      "gemini":  "gemini --skip-trust -p \" \" --output-format text {model_flag} < {prompt} > {output}",
-      "copilot": "copilot -s {model_flag} < {prompt} > {output}"
+      "claude":  "claude -p --output-format text {model_flag} --allowedTools \"WebSearch\" < {prompt} > {output}",
+      "codex":   "codex exec --skip-git-repo-check --color never {model_flag} --search -o {output} < {prompt}",
+      "gemini":  "gemini --skip-trust -p \" \" --output-format text {model_flag} --allowed-tools google_web_search < {prompt} > {output}",
+      "copilot": "copilot -s {model_flag} --allow-all-urls < {prompt} > {output}"
     },
     "command": "claude -p --output-format text {model_flag} < {prompt} > {output}",
     "models": {
-      "claude":  "claude-sonnet-4-6",
+      "claude":  "claude-haiku-4-5-20251001",
       "codex":   "gpt-5-mini",
       "gemini":  "gemini-2.5-flash",
       "copilot": "gpt-5-mini"

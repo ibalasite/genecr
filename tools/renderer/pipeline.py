@@ -373,6 +373,7 @@ def execute_one(step: StepState, ai_cfg: dict, done: set[str], brief_file: Path)
                 brief_file=brief_file,
                 run_dir=step.input_path.parent,
                 depends_on=step.depends_on,
+                max_rounds=ai_cfg.get("max_rounds"),
             )
             if result.success:
                 changed = True

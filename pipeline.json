@@ -1,5 +1,6 @@
 {
   "ai": {
+    "max_rounds": 99,
     "commands": {
       "claude":  "claude -p --output-format text {model_flag} --allowedTools \"WebSearch\" < {prompt} > {output}",
       "codex":   "codex exec --skip-git-repo-check --color never {model_flag} -c 'web_search=\"live\"' -o {output} < {prompt}",

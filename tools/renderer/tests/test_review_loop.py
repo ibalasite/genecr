@@ -169,6 +169,52 @@ def test_max_rounds_exceeded_returns_failure():
     assert len(result.final_issues) >= 1
 
 
+# ─── fixer stall detection ──────────────────────────────────────────────────
+
+def test_fixer_stall_continues_to_next_step(tmp_path):
+    """Fixer produces identical data 3 rounds in a row → early exit with
+    success=True (繼續下一步), attempts < max_rounds, stall log written."""
+    stale_data = json.dumps({"feature": {"name": "x", "slug": "x"}})
+    ai = FakeAI(responses={
+        "generator": [stale_data],
+        "reviewer":  [json.dumps({"issues": [{"category": "c", "detail": "still bad"}]})] * 10,
+        "fixer":     [stale_data] * 10,
+    })
+    result = run_step(
+        "spec-basic", {}, ai,
+        schema_validate=_ok_schema,
+        cross_check_fn=_ok_cross_check,
+        max_rounds=99,
+        work_dir=tmp_path,
+    )
+    assert result.success           # 繼續下一步，不算失敗
+    assert result.attempts < 99    # 提早停止，不跑滿
+    log_file = tmp_path / "spec-basic.stall.log"
+    assert log_file.exists()       # stall log 寫出
+
+
+def test_fixer_stall_resets_on_progress():
+    """Stale counter resets when fixer produces new data — only 3 *consecutive*
+    identical rounds trigger early exit."""
+    v1 = json.dumps({"feature": {"name": "a", "slug": "x"}})
+    v2 = json.dumps({"feature": {"name": "b", "slug": "x"}})
+    ai = FakeAI(responses={
+        "generator": [v1],
+        "reviewer":  [
+            json.dumps({"issues": [{"category": "c", "detail": "bad"}]}),
+            json.dumps({"issues": [{"category": "c", "detail": "bad"}]}),
+            json.dumps({"issues": []}),  # 第 3 輪過
+        ],
+        "fixer": [v1, v2],  # 第 1 輪不變、第 2 輪有改 → counter 重置 → 第 3 輪過
+    })
+    result = run_step(
+        "spec-basic", {}, ai,
+        schema_validate=_ok_schema,
+        cross_check_fn=_ok_cross_check,
+    )
+    assert result.success  # 不應被 stall 機制打斷
+
+
 # ─── independence guarantee ─────────────────────────────────────────────────
 
 def test_three_roles_receive_independent_payloads():

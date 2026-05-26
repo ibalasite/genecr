@@ -271,6 +271,9 @@ def run_step(
 
     last_issues: list[Issue] = []
     attempt = 0
+    _prev_data_json: str | None = None
+    _stale_count = 0
+    _STALE_LIMIT = 3
     while max_rounds is None or attempt < max_rounds:
         attempt += 1
         # Update all_data so cross_check sees the current step's output
@@ -331,6 +334,27 @@ def run_step(
                     step=step_name, category="fixer_invalid_json", detail=str(e),
                 )],
             )
+
+        # Stall detection：fixer 連續 _STALE_LIMIT 輪輸出完全相同 → 繼續下一步並寫 log
+        _cur_json = json.dumps(data, sort_keys=True)
+        if _cur_json == _prev_data_json:
+            _stale_count += 1
+        else:
+            _stale_count = 1
+            _prev_data_json = _cur_json
+        if _stale_count >= _STALE_LIMIT:
+            _stall_msg = (
+                f"[stall] {step_name}: fixer produced identical output "
+                f"{_STALE_LIMIT} rounds in a row — skipping to next step.\n"
+                f"Unresolved issues: {[i.to_dict() for i in last_issues]}\n"
+            )
+            print(_stall_msg, end="")
+            if work_dir is not None:
+                from pathlib import Path as _Path
+                (_Path(work_dir) / f"{step_name}.stall.log").write_text(
+                    _stall_msg, encoding="utf-8"
+                )
+            return RunStepResult(success=True, attempts=attempt, data=data)
 
     # Only reachable when max_rounds is set (tests). Production = loop forever
     # until finding=0 or exception.

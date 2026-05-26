@@ -98,7 +98,7 @@ _deploy_skills() {
   done
 }
 
-# ── python detection (gendoc pattern) ──────────────────
+# ── python detection + auto-install ───────────────────
 # Windows Git Bash may have a python3 alias that is the MS Store stub —
 # it exits non-zero or opens the Store. Try python3 first, fall back to python,
 # verify the result is actually Python 3.
@@ -111,6 +111,28 @@ _find_python() {
     fi
   done
   return 1
+}
+
+_ensure_python() {
+  if _find_python >/dev/null 2>&1; then return 0; fi
+  log "[deps] Python 3 not found — attempting auto-install..."
+  # macOS: Homebrew
+  if command -v brew >/dev/null 2>&1; then
+    brew install python3 && _find_python >/dev/null 2>&1 && return 0
+  fi
+  # Debian/Ubuntu
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get install -y python3 python3-pip && _find_python >/dev/null 2>&1 && return 0
+  fi
+  # Windows Git Bash — try winget
+  if command -v winget.exe >/dev/null 2>&1; then
+    winget.exe install --id Python.Python.3.13 --silent --accept-source-agreements --accept-package-agreements \
+      && hash -r \
+      && _find_python >/dev/null 2>&1 && return 0
+  fi
+  echo "❌ Python 3 not found and auto-install failed." >&2
+  echo "   Install manually: https://python.org/downloads" >&2
+  exit 1
 }
 
 # ── deploy_tools (gendoc-style) ────────────────────────
@@ -130,9 +152,10 @@ _deploy_tools() {
     [[ "$pkg_name" == "bin" ]] && continue
     if [[ -f "$pkg_dir/build.sh" ]]; then
       log "  · build $pkg_name (build.sh)"
-      local py; py="$(_find_python)" || { log "  ✗ Python 3 not found"; return 1; }
+      _ensure_python
+      local py; py="$(_find_python)"
       ( cd "$pkg_dir" && BIN_DIR="$bin_dir" PACKAGE_DIR="$pkg_dir" PY="$py" bash build.sh ) || {
-        log "  ✗ build.sh failed for $pkg_name"; return 1; }
+        echo "❌ build.sh failed for $pkg_name" >&2; exit 1; }
     else
       local entry="$pkg_dir$pkg_name.py"
       if [[ -f "$entry" ]]; then
@@ -144,17 +167,16 @@ _deploy_tools() {
 }
 
 # ── install Python deps (jinja2/jsonschema/markdown/playwright) ──────────
-# Runs `pip install -r requirements.txt` then `playwright install chromium`.
-# Soft-fails: warns but doesn't abort install if pip or chromium download fails.
 _install_python_deps() {
   local runtime="$1"
   local req="$runtime/tools/renderer/requirements.txt"
   [[ -f "$req" ]] || return 0
-  local py; py="$(_find_python)" || { log "[deps] Python 3 not found — skip pip install"; return 0; }
-  log "[deps] pip install -r tools/renderer/requirements.txt"
-  if ! "$py" -m pip install --quiet -r "$req"; then
-    log "[deps] ⚠ pip install failed — run manually: $py -m pip install -r $req"
-    return 0
+  _ensure_python
+  local py; py="$(_find_python)"
+  log "[deps] pip install -r tools/renderer/requirements.txt (using $py)"
+  if ! "$py" -m pip install -r "$req"; then
+    echo "❌ pip install failed. Check network/permissions and re-run setup." >&2
+    exit 1
   fi
   log "[deps] playwright install chromium (≈150MB, one-time)"
   if ! "$py" -m playwright install chromium 2>&1 | tail -5; then

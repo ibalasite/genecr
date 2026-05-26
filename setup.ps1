@@ -97,6 +97,32 @@ function Find-Python {
     return $null
 }
 
+function Ensure-Python {
+    $py = Find-Python
+    if ($py) { return $py }
+    Log "[deps] Python 3 not found — attempting auto-install via winget..."
+    $winget = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $winget) {
+        Write-Error "[deps] Python 3 not found and winget unavailable.`n       Install manually: https://python.org/downloads"
+        exit 1
+    }
+    winget install --id Python.Python.3.13 --silent --accept-source-agreements --accept-package-agreements
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "[deps] winget install Python failed (exit $LASTEXITCODE).`n       Install manually: https://python.org/downloads"
+        exit 1
+    }
+    # Refresh PATH so newly-installed python is visible in this session
+    $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" +
+                [System.Environment]::GetEnvironmentVariable("PATH", "User")
+    $py = Find-Python
+    if (-not $py) {
+        Write-Error "[deps] Python installed but still not found in PATH. Open a new terminal and re-run setup."
+        exit 1
+    }
+    Log "[deps] Python installed: $py"
+    return $py
+}
+
 function Find-GitBash {
     # Prefer Git Bash over WSL's bash (System32\bash.exe is WSL, which can't
     # access Windows paths like C:\Users\...). Check Git installation first.
@@ -161,12 +187,16 @@ function Deploy-Tools($runtime) {
 function Install-PythonDeps($runtime) {
     $req = Join-Path $runtime "tools\renderer\requirements.txt"
     if (-not (Test-Path $req)) { return }
-    $py = Find-Python
-    if (-not $py) { Log "[deps] Python 3 not found - skip pip install"; return }
-    Log "[deps] pip install -r tools/renderer/requirements.txt"
-    try { & $py -m pip install --quiet -r $req } catch { Log "[deps] WARN pip install failed - run manually: $py -m pip install -r $req"; return }
+    $py = Ensure-Python
+    Log "[deps] pip install -r tools/renderer/requirements.txt (using $py)"
+    & $py -m pip install -r $req
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "[deps] pip install failed (exit $LASTEXITCODE). Check network/permissions and re-run setup."
+        exit 1
+    }
     Log "[deps] playwright install chromium (~150MB, one-time, may take 1-2 min)"
-    try { & $py -m playwright install chromium } catch { Log "[deps] WARN chromium download failed - prototype layout audit will skip. Retry: $py -m playwright install chromium" }
+    & $py -m playwright install chromium
+    if ($LASTEXITCODE -ne 0) { Log "[deps] WARN: chromium download failed - prototype layout audit will skip. Retry: $py -m playwright install chromium" }
 }
 
 function Install-One($hostName) {

@@ -13,8 +13,12 @@ if (-not $env:PY)          { $env:PY = "python" }
 
 Write-Host "[renderer] pip install (using $($env:PY))"
 & $env:PY -m pip install -q -r (Join-Path $env:PACKAGE_DIR "requirements.txt")
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "[renderer] pip install failed (exit $LASTEXITCODE). Fix: $($env:PY) -m pip install -r $(Join-Path $env:PACKAGE_DIR 'requirements.txt')"
+    exit 1
+}
 
-Write-Host "[renderer] cp .py -> $($env:BIN_DIR)"
-foreach ($f in @("render.py","pipeline.py","orchestrate.py")) {
-    Copy-Item -Force (Join-Path $env:PACKAGE_DIR $f) (Join-Path $env:BIN_DIR $f)
+Write-Host "[renderer] cp *.py -> $($env:BIN_DIR)"
+foreach ($f in (Get-ChildItem -Path $env:PACKAGE_DIR -Filter "*.py" -File)) {
+    Copy-Item -Force $f.FullName (Join-Path $env:BIN_DIR $f.Name)
 }
